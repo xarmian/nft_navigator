@@ -96,8 +96,8 @@
     let formattedApproved = token.approved ? token.approved.length > 8
         ? `${token.approved.slice(0, 8)}...${token.approved.slice(-8)}`
         : token.approved : '';
-
-    const collectionName = token?.metadata.name.replace(/(\d+|#)/g, '')??'';
+        
+    const collectionName = token?.metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
 </script>
 <div class="flex" class:flex-col={isMobile}>
     <img src={token.metadata.image} class="w-72 h-72 mr-3 rounded-xl"/>

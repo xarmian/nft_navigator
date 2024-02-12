@@ -72,7 +72,7 @@
                     });
                     token = tokens[0];
                     tokenName = token?.metadata.name??'';
-                    collectionName = token?.metadata.name.replace(/(\d+|#)/g, '')??'';
+                    collectionName = token?.metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
                 }
 
 
