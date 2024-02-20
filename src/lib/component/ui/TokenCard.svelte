@@ -27,7 +27,7 @@
 	}
 
     let infourl = `/collection/${token.contractId}/token/${token.tokenId}`;
-    let marketurl = `https://nautilu.xyz/#/nft/collection/${token.contractId}/token/${token.tokenId}`;
+    let marketurl = `https://nautilus.sh/#/nft/collection/${token.contractId}/token/${token.tokenId}`;
     let contracturl = `https://voi.observer/explorer/application/${token.contractId}/transactions`;
 
 </script>
@@ -69,7 +69,7 @@
                 </Card>
             </div>
 		{:else}
-            <div class="side back" transition:flip={{}}>
+            <div class="side back" transition:flip={{}} on:click|stopPropagation>
                 <Card padding="none">
                     <img src={token.metadata.image} alt={token.metadata.name} title={token.metadata.name} class="rounded-t-lg"/>
                     <div class="text-center">{token.metadata.name}</div>

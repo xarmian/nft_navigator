@@ -106,7 +106,7 @@
                     </div>
                 {/each}
                 {#if isLoaded && tokens.length == 0}
-                    <div class="text-2xl font-bold">No tokens found! Want to get some? <A href="https://nautilu.xyz/" target="_blank">Check out the ARC-72 Marketplace</A></div>
+                    <div class="text-2xl font-bold">No tokens found! Want to get some? <A href="https://nautilus.sh/" target="_blank">Check out the ARC-72 Marketplace</A></div>
                 {/if}
             </div>
         </TabItem>
