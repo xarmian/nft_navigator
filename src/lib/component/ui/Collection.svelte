@@ -100,10 +100,10 @@
                 </div>
             </div>    
         </div>
-        <div class="absolute -top-4 left-4 bg-black bg-opacity-50 text-white p-4 z-40 rounded-md">
+        <div class="absolute -top-4 right-4 bg-black bg-opacity-50 text-white p-4 z-40 rounded-md">
             <div>{tokens[0].metadata.name.replace(/[1#]/g, '')}</div>
             <div>ID: {tokens[0].contractId}</div>
-            <div>Tokens: {tokens.length}</div>
+            <div>Tokens: {tokens.length} / {collection.totalSupply}</div>
             <div>Unique holders: {holders.length}</div>
         </div>
     {/if}
