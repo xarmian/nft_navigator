@@ -77,13 +77,13 @@
             <div class="flex justify-center -space-x-36 group-hover:-space-x-48 transition-all duration-500">
                 <div class="transform -rotate-12 z-30">
                     <Card padding="none" class="rounded-xl">
-                        <img src={tokens[0].metadata.image} class="w-48 h-48 rounded-xl" />
+                        <img src={tokens[0].metadata.image} class="w-48 h-48 rounded-xl -w-max" />
                     </Card>
                 </div>
                 <div class="z-20">
                     <Card padding="none" class="rounded-xl">
                         {#if tokens.length >= 2}
-                            <img src={tokens[1].metadata.image} class="w-48 h-48 rounded-xl" />
+                            <img src={tokens[1].metadata.image} class="w-48 h-48 rounded-xl -w-max" />
                         {:else}
                             <div class="w-48 h-48"></div>
                         {/if}
@@ -92,7 +92,7 @@
                 <div class="transform rotate-12 z-10">
                     <Card padding="none" class="rounded-xl">
                         {#if tokens.length >= 3}
-                            <img src={tokens[2].metadata.image} class="w-48 h-48 rounded-xl" />
+                            <img src={tokens[2].metadata.image} class="w-48 h-48 rounded-xl -w-max" />
                         {:else}
                             <div class="w-48 h-48"></div>
                         {/if}
@@ -108,3 +108,9 @@
         </div>
     {/if}
 </div>
+
+<style>
+    img {
+        max-width: unset;
+    }
+</style>
