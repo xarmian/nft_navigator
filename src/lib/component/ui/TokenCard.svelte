@@ -27,7 +27,7 @@
 	}
 
     let infourl = `/collection/${token.contractId}/token/${token.tokenId}`;
-    let marketurl = `https://nautilus.sh/#/collection/${token.contractId}/token/${token.tokenId}`;
+    let marketurl = `https://nautilus.sh/#/nft/collection/${token.contractId}/token/${token.tokenId}`;
     let contracturl = `https://voi.observer/explorer/application/${token.contractId}/transactions`;
 
 </script>
