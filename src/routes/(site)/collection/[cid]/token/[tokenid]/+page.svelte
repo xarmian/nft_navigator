@@ -38,7 +38,7 @@
     });
 
     const goToMarketplace = () => {
-        if (token) window.open(`https://shellyssandbox.xyz/#/nft/collection/${token.contractId}/token/${token.tokenId}`,'_blank');
+        if (token) window.open(`https://nautilus.sh/#/collection/${token.contractId}/token/${token.tokenId}`,'_blank');
     }
 
     const goToContract = () => {
