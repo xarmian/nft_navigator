@@ -11,6 +11,7 @@
 
     export let data: PageData;
     let walletId = data.walletId;
+    let walletIds = walletId.split(',');
     let walletNFD: string | null = null;
     let tokens: Token[] = [];
     let approvals: Token[] = [];
@@ -25,45 +26,47 @@
 
     const getTokens = async () => {
         try {
-            const nfd = await getNFD([walletId]); // nfd is array of objects with key = owner, replacementValue = nfd
-            const nfdObj: any = nfd.find((n: any) => n.key === walletId);
+            const nfd = await getNFD([walletIds[0]]); // nfd is array of objects with key = owner, replacementValue = nfd
+            const nfdObj: any = nfd.find((n: any) => n.key === walletIds[0]);
             if (nfdObj) {
                 walletNFD = nfdObj.replacementValue;
             }
 
             // owned tokens
-            const url = `https://arc72-idx.voirewards.com/nft-indexer/v1/tokens?owner=${walletId}`;
-            const data = await fetch(url).then((response) => response.json());
-            data.tokens.forEach((token: any) => {
-                tokens.push({
-                    contractId: token.contractId,
-                    tokenId: token.tokenId,
-                    owner: token.owner,
-                    ownerNFD: walletNFD,
-                    metadataURI: token.metadataURI,
-                    metadata: JSON.parse(token.metadata),
-                    mintRound: token['mint-round'],
-                    approved: token.approved,
-                    marketData: undefined,
+            for(let wid of walletIds) {
+                const url = `https://arc72-idx.voirewards.com/nft-indexer/v1/tokens?owner=${wid}`;
+                const data = await fetch(url).then((response) => response.json());
+                data.tokens.forEach((token: any) => {
+                    tokens.push({
+                        contractId: token.contractId,
+                        tokenId: token.tokenId,
+                        owner: token.owner,
+                        ownerNFD: walletNFD,
+                        metadataURI: token.metadataURI,
+                        metadata: JSON.parse(token.metadata),
+                        mintRound: token['mint-round'],
+                        approved: token.approved,
+                        marketData: undefined,
+                    });
                 });
-            });
 
-            // approved tokens
-            const aurl = `https://arc72-idx.voirewards.com/nft-indexer/v1/tokens?approved=${walletId}`;
-            const adata = await fetch(aurl).then((response) => response.json());
-            adata.tokens.forEach((token: any) => {
-                approvals.push({
-                    contractId: token.contractId,
-                    tokenId: token.tokenId,
-                    owner: token.owner,
-                    ownerNFD: walletNFD,
-                    metadataURI: token.metadataURI,
-                    metadata: JSON.parse(token.metadata),
-                    mintRound: token['mint-round'],
-                    approved: token.approved,
-                    marketData: undefined,
+                // approved tokens
+                const aurl = `https://arc72-idx.voirewards.com/nft-indexer/v1/tokens?approved=${wid}`;
+                const adata = await fetch(aurl).then((response) => response.json());
+                adata.tokens.forEach((token: any) => {
+                    approvals.push({
+                        contractId: token.contractId,
+                        tokenId: token.tokenId,
+                        owner: token.owner,
+                        ownerNFD: walletNFD,
+                        metadataURI: token.metadataURI,
+                        metadata: JSON.parse(token.metadata),
+                        mintRound: token['mint-round'],
+                        approved: token.approved,
+                        marketData: undefined,
+                    });
                 });
-            });
+            }
 
             tokens = tokens;
             approvals = approvals;
@@ -74,9 +77,9 @@
         }
     }
 
-    let formattedWallet = walletId.length > 8
-        ? `${walletId.slice(0, 8)}...${walletId.slice(-8)}`
-        : walletId;
+    let formattedWallet = walletIds[0].length > 8
+        ? `${walletIds[0].slice(0, 8)}...${walletIds[0].slice(-8)}`
+        : walletIds[0];
 </script>
 
 <Breadcrumb aria-label="Navigation breadcrumb" solid>
@@ -85,14 +88,13 @@
             <HomeOutline class="w-4 h-4 me-2 inline" />
           </svelte:fragment>Collections
     </BreadcrumbItem>
-    <BreadcrumbItem href="/portfolio/{walletId}" class="hover:text-blue-800">
+    <BreadcrumbItem href="/portfolio/{walletIds[0]}" class="hover:text-blue-800">
         <svelte:fragment slot="icon">
             <ChevronDoubleRightOutline class="w-4 h-4 me-2 inline" />
-          </svelte:fragment>Portfolio (<A href="https://voi.observer/explorer/account/{walletId}" target="_blank">{walletNFD??formattedWallet}</A>)
+          </svelte:fragment>Portfolio (<A href="https://voi.observer/explorer/account/{walletIds[0]}" target="_blank">{walletNFD??formattedWallet}</A>)
     </BreadcrumbItem>
 </Breadcrumb>
 <div class="text-center">
-    <!--<div><A href="https://voi.observer/explorer/account/{walletId}" target="_blank">{walletNFD??walletId}</A></div>-->
     <Tabs style="underline" defaultClass="flex rounded-lg divide-x rtl:divide-x-reverse divide-gray-200 shadow dark:divide-gray-700 justify-center">
         <TabItem open>
             <div slot="title">
