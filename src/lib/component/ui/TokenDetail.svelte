@@ -1,17 +1,40 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
     import type { Token, Collection } from '$lib/data/types';
-	import { getNFD } from '$lib/utils/nfd';
     import { A } from 'flowbite-svelte';
 	import { onMount } from 'svelte';
-    export let token: Token;
     //@ts-ignore
     import Device from 'svelte-device-info';
 
-    $: isMobile = false;
-    $: formattedOwner = '';
-    let collection: Collection | undefined;
-    let royaltyPercentage: number = 0;
+    export let token: Token;
+    let isMobile = false;
+    let formattedOwner = '';
+    let collection = {} as Collection;
+    let royaltyPercentage = 0;
+
+    onMount(async () => {
+        isMobile = Device.isMobile;
+    });
+
+    $: {
+        getCollection(token.contractId);
+
+        formattedOwner = token.ownerNFD ? token.ownerNFD as string : token.owner.length > 16
+            ? `${token.owner.slice(0, 8)}...${token.owner.slice(-8)}`
+            : token.owner;
+
+        if (token.metadata.royalties) {
+            const decodedRoyalties = atob(token.metadata.royalties);
+
+            // Convert the binary string to an array of bytes
+            const bytes = new Uint8Array(decodedRoyalties.length);
+            for (let i = 0; i < decodedRoyalties.length; i++) {
+                bytes[i] = decodedRoyalties.charCodeAt(i);
+            }
+
+            // Extract the first two bytes and convert them to a number
+            royaltyPercentage = (bytes[0] << 8) | bytes[1];
+        }
+    }
 
     const getCollection = async (contractId: number) => {
         if (contractId) {
@@ -27,37 +50,6 @@
             }
         }
     }
-
-    onMount(async () => {
-        isMobile = Device.isMobile;
-
-        if (token) {
-            getCollection(token.contractId);
-
-            const nfd = await getNFD([token.owner]); // nfd is array of objects with key = owner, replacementValue = nfd
-            const nfdObj: any = nfd.find((n: any) => n.key === token?.owner);
-            if (nfdObj) {
-                token.ownerNFD = nfdObj.replacementValue;
-            }
-        }
-
-        formattedOwner = token.ownerNFD ? token.ownerNFD as string : token.owner.length > 16
-        ? `${token.owner.slice(0, 8)}...${token.owner.slice(-8)}`
-        : token.owner;
-
-        if (token.metadata.royalties) {
-            const decodedRoyalties = atob(token.metadata.royalties);
-
-            // Convert the binary string to an array of bytes
-            const bytes = new Uint8Array(decodedRoyalties.length);
-            for (let i = 0; i < decodedRoyalties.length; i++) {
-                bytes[i] = decodedRoyalties.charCodeAt(i);
-            }
-
-            // Extract the first two bytes and convert them to a number
-            royaltyPercentage = (bytes[0] << 8) | bytes[1];
-        }
-    });
 
     let tokenProps: any[] = [];
     // map token.metadata.properties object of the form {"BACKGROUND":"Aquamarine","BODY":"Red","ON BODY":"Scar"}

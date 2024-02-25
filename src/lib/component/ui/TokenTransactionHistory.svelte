@@ -95,7 +95,7 @@
                                     <A href='/portfolio/{transfer.from}'>{nfdMap[transfer.from] ? nfdMap[transfer.from] : formatAddr(transfer.from)}</A>
                                 {/if}
                             </td>
-                            <td class="px-4 py-3"><A href='/arc72/portfolio/{transfer.to}'>{nfdMap[transfer.to] ? nfdMap[transfer.to] : formatAddr(transfer.to)}</A></td>
+                            <td class="px-4 py-3"><A href='/portfolio/{transfer.to}'>{nfdMap[transfer.to] ? nfdMap[transfer.to] : formatAddr(transfer.to)}</A></td>
                         </tr>
                     {/each}
                 </tbody>

@@ -1,85 +1,21 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { goto } from '$app/navigation';
     import type { Token } from '$lib/data/types';
     import TokenComponent from '$lib/component/ui/TokenDetail.svelte';
-	import { onMount } from 'svelte';
-    import { getNFD } from '$lib/utils/nfd';
 	import { A } from 'flowbite-svelte';
     import { Tabs, TabItem, Indicator, Breadcrumb, BreadcrumbItem } from 'flowbite-svelte';
     import { HomeOutline, ChevronDoubleRightOutline } from 'flowbite-svelte-icons';
 
     export let data: PageData;
-    let walletId = data.walletId;
-    let walletIds = walletId.split(',');
-    let walletNFD: string | null = null;
-    let tokens: Token[] = [];
-    let approvals: Token[] = [];
-    let isLoaded = false;
+    $: walletId = data.props.walletId;
+    $: walletIds = walletId.split(',');
+    $: walletNFD = data.props.walletNFD;
+    $: tokens = data.props.tokens;
+    $: approvals = data.props.approvals;
 
-    let viewPortfolio = true;
-    let viewApprovals = false;
-
-    onMount(() => {
-        getTokens();
-    });
-
-    const getTokens = async () => {
-        try {
-            const nfd = await getNFD([walletIds[0]]); // nfd is array of objects with key = owner, replacementValue = nfd
-            const nfdObj: any = nfd.find((n: any) => n.key === walletIds[0]);
-            if (nfdObj) {
-                walletNFD = nfdObj.replacementValue;
-            }
-
-            // owned tokens
-            for(let wid of walletIds) {
-                const url = `https://arc72-idx.voirewards.com/nft-indexer/v1/tokens?owner=${wid}`;
-                const data = await fetch(url).then((response) => response.json());
-                data.tokens.forEach((token: any) => {
-                    tokens.push({
-                        contractId: token.contractId,
-                        tokenId: token.tokenId,
-                        owner: token.owner,
-                        ownerNFD: walletNFD,
-                        metadataURI: token.metadataURI,
-                        metadata: JSON.parse(token.metadata),
-                        mintRound: token['mint-round'],
-                        approved: token.approved,
-                        marketData: undefined,
-                    });
-                });
-
-                // approved tokens
-                const aurl = `https://arc72-idx.voirewards.com/nft-indexer/v1/tokens?approved=${wid}`;
-                const adata = await fetch(aurl).then((response) => response.json());
-                adata.tokens.forEach((token: any) => {
-                    approvals.push({
-                        contractId: token.contractId,
-                        tokenId: token.tokenId,
-                        owner: token.owner,
-                        ownerNFD: walletNFD,
-                        metadataURI: token.metadataURI,
-                        metadata: JSON.parse(token.metadata),
-                        mintRound: token['mint-round'],
-                        approved: token.approved,
-                        marketData: undefined,
-                    });
-                });
-            }
-
-            tokens = tokens;
-            approvals = approvals;
-            isLoaded = true;
-        }
-        catch(err) {
-            console.error(err);
-        }
-    }
-
-    let formattedWallet = walletIds[0].length > 8
+    $: formattedWallet = (walletIds) ? (walletIds[0].length > 8
         ? `${walletIds[0].slice(0, 8)}...${walletIds[0].slice(-8)}`
-        : walletIds[0];
+        : walletIds[0]) : '';
 </script>
 
 <Breadcrumb aria-label="Navigation breadcrumb" solid>
@@ -107,7 +43,7 @@
                         <TokenComponent token={token}></TokenComponent>
                     </div>
                 {/each}
-                {#if isLoaded && tokens.length == 0}
+                {#if tokens.length == 0}
                     <div class="text-2xl font-bold">No tokens found! Want to get some? <A href="https://nautilus.sh/" target="_blank">Check out the ARC-72 Marketplace</A></div>
                 {/if}
             </div>
@@ -123,7 +59,7 @@
                         <TokenComponent token={token}></TokenComponent>
                     </div>
                 {/each}
-                {#if isLoaded && approvals.length == 0}
+                {#if approvals.length == 0}
                     <div class="text-2xl font-bold">No approvals found.</div>
                 {/if}
             </div>

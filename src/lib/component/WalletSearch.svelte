@@ -31,7 +31,7 @@
     export let onSubmit: (addr: string) => void;
     export let loadPreviousValue: boolean = true;
     $: isMobile = false;
-
+    let inputElement: HTMLInputElement;
 
 	onMount(() => {
         windowDefined = typeof window !== 'undefined';
@@ -117,9 +117,22 @@
                     : Math.min(addressList.length - 1, selectedAddressIndex + 1);
             }
             event.preventDefault();
-        } else if (event.key === 'Enter' && selectedAddressIndex >= 0) {
+        } else if (event.key === 'Enter') {
             //searchText = addressList[selectedAddressIndex];
-            handleSubmit(addressList[selectedAddressIndex]);
+            let addr;
+            if (selectedAddressIndex > 0) {
+                addr = addressList[selectedAddressIndex];
+            }
+            else if (addressList.length > 0) {
+                addr = addressList[0];
+            }
+            else {
+                addr = searchText;
+            }
+            handleSubmit(addr);
+            event.preventDefault();
+        } else if (event.key === 'f' && event.ctrlKey) {
+            inputElement.focus();
             event.preventDefault();
         }
     }
@@ -133,7 +146,7 @@
     <div
         class="dark:bg-gray-800 bg-white flex"
     >
-        <input
+        <input bind:this={inputElement}
             type="text"
             use:init
             bind:value={searchText}
