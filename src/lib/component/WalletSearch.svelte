@@ -168,7 +168,7 @@
         <div class="bg-white dark:bg-gray-800 overflow-hidden max-h-64">
             <ul class="inline-block text-left">
                 {#each addressList as address, index}
-                    <li>
+                    <li on:mouseover={() => selectedAddressIndex = index}>
                         <button class="p-1 border border-solid text-left w-screen md:w-full lg:w-full text-lg"
                             class:selected={index === selectedAddressIndex}
                             on:click={() => {
