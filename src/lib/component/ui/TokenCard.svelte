@@ -32,7 +32,7 @@
 
 </script>
 
-<div class="card-container" on:mouseenter={() => flipped = true} on:mouseleave={() => flipped = false}>
+<div class="card-container" on:mouseenter={() => setTimeout(() => flipped = true,100)} on:mouseleave={() => flipped = false}>
     <div class="card">
         {#if flipped}
             <div class="side cursor-pointer" transition:flip={{}} on:click={() => goto(infourl)}>
