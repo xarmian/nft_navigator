@@ -61,7 +61,7 @@
 
     const getTokens = async () => {
         if (contractId) {
-            const url = `https://arc72-idx.voirewards.com/nft-indexer/v1/tokens?contractId=${contractId}`;
+            const url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/tokens?contractId=${contractId}`;
             try {
                 const data = await fetch(url).then((response) => response.json());
                 if (data.tokens.length > 0) {

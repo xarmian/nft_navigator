@@ -19,7 +19,7 @@ export const load = (async ({ params, fetch }) => {
 
 		// owned tokens
 		for(const wid of walletIds) {
-			const url = `https://arc72-idx.voirewards.com/nft-indexer/v1/tokens?owner=${wid}`;
+			const url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/tokens?owner=${wid}`;
 			const data = await fetch(url).then((response) => response.json());
 			data.tokens.forEach((token: any) => {
 				tokens.push({
@@ -36,7 +36,7 @@ export const load = (async ({ params, fetch }) => {
 			});
 
 			// approved tokens
-			const aurl = `https://arc72-idx.voirewards.com/nft-indexer/v1/tokens?approved=${wid}`;
+			const aurl = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/tokens?approved=${wid}`;
 			const adata = await fetch(aurl).then((response) => response.json());
 			adata.tokens.forEach((token: any) => {
 				approvals.push({

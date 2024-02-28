@@ -16,7 +16,7 @@
 
     const getTransfers = async (contractId: string, tokenId: string): Promise<Transfer[]> => {
         if (contractId) {
-            const url = `https://arc72-idx.voirewards.com/nft-indexer/v1/transfers/?contractId=${contractId}&tokenId=${tokenId}`;
+            const url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/transfers/?contractId=${contractId}&tokenId=${tokenId}`;
             try {
                 const data = await fetch(url).then((response) => response.json());
 

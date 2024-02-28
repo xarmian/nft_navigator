@@ -22,7 +22,7 @@
     });
 
     async function getTokens() {
-        let url = `https://arc72-idx.voirewards.com/nft-indexer/v1/tokens/?contractId=${collection.contractId}`;
+        let url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/tokens/?contractId=${collection.contractId}`;
         if (selectedAddress.length > 0) {
             url += `?owner=${selectedAddress}`;
         }

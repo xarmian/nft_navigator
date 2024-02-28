@@ -38,7 +38,7 @@
 
     const getCollection = async (contractId: number) => {
         if (contractId) {
-            const url = `https://arc72-idx.voirewards.com/nft-indexer/v1/collections/?contractId=${contractId}`;
+            const url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/collections/?contractId=${contractId}`;
             try {
                 const data = await fetch(url).then((response) => response.json());
                 if (data.collections && data.collections.length > 0) {
