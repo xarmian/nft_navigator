@@ -35,7 +35,7 @@
 <div class="card-container" on:mouseenter={() => flipped = true} on:mouseleave={() => flipped = false}>
     <div class="card">
         {#if flipped}
-            <div class="side" transition:flip={{}}>
+            <div class="side cursor-pointer" transition:flip={{}} on:click={() => goto(infourl)}>
                 <Card class="flex justify-between" style="height: 270px; width:240px;">
                     <div class="overflow-auto h-5/6">
                         <div class="text-2xl font-bold mb-2"><A on:click={() => goto(infourl)}>{token.metadata.name}</A></div>
@@ -48,19 +48,19 @@
                     <hr class="w-full my-2"/>
                     <div class="flex justify-between">
                         <div class="text-center">
-                            <button class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-14" on:click={() => window.open(marketurl,'_blank')}>
+                            <button class="cursor-pointer p-1 {token.marketData ? 'bg-lime-400 hover:bg-green-500 outline-yellow-200 outline outline-2' : 'bg-blue-400 hover:bg-blue-500'} text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-14" on:click|stopPropagation={() => window.open(marketurl,'_blank')}>
                                 <i class="fas fa-store" aria-details="Marketplace"></i>
                                 <div class="text-xs">Market</div>
                             </button>
                         </div>
                         <div class="text-center">
-                            <button class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-14" on:click={() => goto(infourl)}>
+                            <button class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-14" on:click|stopPropagation={() => goto(infourl)}>
                                 <i class="fas fa-info-circle" aria-details="Info"></i>
                                 <div class="text-xs">Detail</div>
                             </button>
                         </div>
                         <div class="text-center">
-                            <button class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-14" on:click={() => window.open(contracturl,'_blank')}>
+                            <button class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-14" on:click|stopPropagation={() => window.open(contracturl,'_blank')}>
                                 <i class="fas fa-file-contract" aria-details="Contract"></i>
                                 <div class="text-xs">Contract</div>
                             </button>
@@ -69,16 +69,69 @@
                 </Card>
             </div>
 		{:else}
-            <div class="side back" transition:flip={{}} on:click|stopPropagation>
-                <Card padding="none">
+        <div class="side back" transition:flip={{}} on:click|stopPropagation>
+            <Card padding="none">
+                <div class="image-container">
                     <img src={token.metadata.image} alt={token.metadata.name} title={token.metadata.name} class="rounded-t-lg"/>
-                    <div class="text-center">{token.metadata.name}</div>
-                </Card>
-            </div>
-		{/if}
+                    {#if token.marketData}
+                        <div class="badge top-right">For Sale</div>
+                    {/if}
+                </div>
+                <div class="text-center">{token.metadata.name}</div>
+            </Card>
+        </div>
+        {/if}
     </div>
 </div>
 <style>
+.image-container {
+    position: relative;
+}
+
+.badge {
+    margin: 0;
+    padding: 0;
+    color: white;
+    padding: 10px 10px;
+    font-size: 15px;
+    font-family: Arial, Helvetica, sans-serif;
+    text-align: center;
+    line-height: normal;
+    text-transform: uppercase;
+    background: #ed1b24;
+}
+
+.badge::before, .badge::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    margin: 0 -1px;
+    width: 100%;
+    height: 100%;
+    background: inherit;
+    min-width: 55px
+}
+
+.badge::before {
+    right: 100%
+}
+
+.badge::after {
+    left: 100%
+}
+
+.top-right {
+    position: absolute;
+    top: 0;
+    right: 0;
+    -ms-transform: translateX(30%) translateY(0%) rotate(45deg);
+    -webkit-transform: translateX(30%) translateY(0%) rotate(45deg);
+    transform: translateX(30%) translateY(0%) rotate(45deg);
+    -ms-transform-origin: top left;
+    -webkit-transform-origin: top left;
+    transform-origin: top left;
+}
+
 .card-container {
     position: relative;
     height: 280px;

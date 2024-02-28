@@ -1,6 +1,5 @@
 // types.ts
 export interface Token {
-	marketData: object | null | undefined;
     owner: string;
     ownerNFD: string | unknown;
     contractId: number;
@@ -9,6 +8,7 @@ export interface Token {
     metadata: Metadata;
     metadataURI: string;
     approved: string;
+	marketData: Listing | null | undefined;
 }
 
 export interface Transfer {
@@ -47,4 +47,23 @@ export interface Metadata {
     image_mimetype: string;
     properties: object;
     royalties: string;
+}
+
+export interface Listing {
+    transactionId: string;
+    mpContractId: number;
+    mpListingId: number;
+    collectionId: number;
+    tokenId: number;
+    price: number;
+    seller: string;
+    timestamp: number;
+    sale: null | Sale;
+}
+
+export interface Sale {
+    transactionId: string;
+    buyer: string;
+    price: number;
+    timestamp: number;
 }
