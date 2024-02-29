@@ -174,7 +174,7 @@
                                 <td class="px-4 py-3"><A href="https://voi.observer/explorer/transaction/{transfer.transactionId}" target="_blank">{transfer.transactionId.substring(0,15)}...</A></td>
                                 <td class="px-4 py-3"><A href="https://voi.observer/explorer/block/{transfer.round.toString()}" target="_blank">{transfer.round}</A></td>
                             {/if}
-                            <td class="px-4 py-3 flex">
+                            <td class="px-4 py-3">
                                 {#if transfer.from == zeroAddress}
                                     <span class="text-center w-full text-sm bg-yellow-200 rounded-lg text-yellow-400 font-bold p-1 pl-2 pr-2">Minted</span>
                                 {:else}
