@@ -7,6 +7,7 @@
 	import { getNFD } from '$lib/utils/nfd';
     import { arc200 as Contract } from "ulujs";
 	import { algodClient, algodIndexer } from '$lib/utils/algod';
+	import Modal from './Modal.svelte';
 
     export let token: Token;
     let tokenId = token.tokenId;
@@ -14,6 +15,8 @@
     let transfers: Transfer[] = [];
     let paginatedTransfers: Transfer[] = [];
     let nfdMap: any = {};
+    let showTxModal = false;
+    let selectedTx: Transfer | null = null;
 
     let zeroAddress = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
     $: isMobile = false;
@@ -38,6 +41,11 @@
             currentPage--;
         }
     };
+
+    const doShowTxModal = (transfer: Transfer) => {
+        selectedTx = transfer;
+        showTxModal = true;
+    }
 
     const getTransfers = async (contractId: string, tokenId: string): Promise<Transfer[]> => {
         if (contractId) {
@@ -150,6 +158,7 @@
                         <th class="px-4 py-3">From</th>
                         <th class="px-4 py-3">To</th>
                         <th class="px-4 py-3">Sale Price</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody class="bg-white dark:bg-gray-700 divide-y">
@@ -181,6 +190,12 @@
                                     -
                                 {/if}
                             </td>
+                            <td class="px-4 py-3">
+                                <button class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-14" on:click={() => doShowTxModal(transfer)}>
+                                    <i class="fas fa-info-circle" aria-details="Info"></i>
+                                    <div class="text-xs">Details</div>
+                                </button>
+                            </td>
                         </tr>
                     {/each}
                 </tbody>
@@ -193,6 +208,25 @@
         </div>
     </div>
 </div>
+<!-- transaction details modal -->
+<Modal title="Transaction Details" bind:showModal={showTxModal}>
+    <div class="text-center">
+        {#if selectedTx}
+            <div class="text-2xl font-bold mb-2">Transaction ID: <A href="https://voi.observer/explorer/transaction/{selectedTx.transactionId}" target="_blank">{selectedTx.transactionId.substring(0, 6)}...{selectedTx.transactionId.substring(selectedTx.transactionId.length - 6)}</A></div>
+            <div class="text-sm">Round: <A href="https://voi.observer/explorer/block/{selectedTx.round.toString()}" target="_blank">{selectedTx.round}</A></div>
+            <div class="text-sm">Date: {new Date(selectedTx.timestamp * 1000).toLocaleString()}</div>
+            <div class="text-sm">From: <A href='/portfolio/{selectedTx.from}'>{nfdMap[selectedTx.from] ? nfdMap[selectedTx.from] : formatAddr(selectedTx.from)}</A></div>
+            <div class="text-sm">To: <A href='/portfolio/{selectedTx.to}'>{nfdMap[selectedTx.to] ? nfdMap[selectedTx.to] : formatAddr(selectedTx.to)}</A></div>
+            <div class="text-sm">
+                {#if selectedTx.salePrice}
+                    Sale Price: {selectedTx.salePrice / Math.pow(10,selectedTx.saleCurrency?.decimals??0)} {selectedTx.saleCurrency?.symbol??''}
+                {:else}
+                    Sale Price: -
+                {/if}
+            </div>
+        {/if}
+    </div>
+</Modal>
 
 <style>
     .pagination {
