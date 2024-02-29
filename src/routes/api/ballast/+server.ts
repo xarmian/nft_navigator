@@ -36,7 +36,7 @@ export async function GET({ url }) {
         ballast = (await fetchBallast()).map(account => account.account);
     }
     catch(err: any) {
-        throw error(500,`Error retrieving ballast wallets from API: ${err.message}`);
+        error(500,`Error retrieving ballast wallets from API: ${err.message}`);
     }
     
     // initialize an empty array to hold the addresses that voted
