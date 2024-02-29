@@ -25,6 +25,7 @@ export interface Transfer {
 }
 
 export interface Collection {
+	gameData: IHighforgeProject | null;
 	firstToken: RawToken;
     contractId: number;
     totalSupply: number;
@@ -76,4 +77,18 @@ export interface Currency {
     name: string;
     symbol: string;
     decimals: number;
+}
+
+// highforge voi games project data
+export interface IHighforgeProject {
+    applicationID: number;
+    coverImageURL: string;
+    description: string;
+    earlyAccessDateTime: string;
+    indexerState: object;
+    lastNFTSoldAt: string;
+    mintTotal: number;
+    nsfw: boolean;
+    publicLaunchDateTime: string;
+    title: string;
 }

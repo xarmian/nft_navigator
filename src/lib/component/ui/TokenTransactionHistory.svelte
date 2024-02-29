@@ -8,15 +8,20 @@
     import { arc200 as Contract } from "ulujs";
 	import { algodClient, algodIndexer } from '$lib/utils/algod';
 	import Modal from './Modal.svelte';
+    import Switch from './Switch.svelte';
 
     export let token: Token;
     let tokenId = token.tokenId;
     let contractId = token.contractId;
     let transfers: Transfer[] = [];
+    let filteredTransfers: Transfer[] = [];
     let paginatedTransfers: Transfer[] = [];
     let nfdMap: any = {};
     let showTxModal = false;
     let selectedTx: Transfer | null = null;
+    let showOnlySales = false;
+    let searchFrom = '';
+    let searchTo = '';
 
     let zeroAddress = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
     $: isMobile = false;
@@ -25,13 +30,18 @@
     const transactionsPerPage = 10;
 
     $: {
+        filteredTransfers = transfers.filter((t: Transfer) => {
+            return (searchFrom.length > 0 ? t.from.toLowerCase().includes(searchFrom.toLowerCase()) : true) &&
+                (searchTo.length > 0 ? t.to.toLowerCase().includes(searchTo.toLowerCase()) : true) &&
+                (!showOnlySales ? true : t.salePrice);
+        });
         const start = (currentPage - 1) * transactionsPerPage;
         const end = start + transactionsPerPage;
-        paginatedTransfers = transfers.slice(start, end);
+        paginatedTransfers = filteredTransfers.slice(start, end);
     }
 
     const nextPage = () => {
-        if (currentPage < Math.ceil(transfers.length / transactionsPerPage)) {
+        if (currentPage < Math.ceil(filteredTransfers.length / transactionsPerPage)) {
             currentPage++;
         }
     };
@@ -150,14 +160,23 @@
             <table class="w-full whitespace-no-wrap">
                 <thead>
                     <tr class="text-xs font-semibold tracking-wide text-left text-gray-500 dark:text-gray-100 uppercase border-b bg-gray-50 dark:bg-gray-700">
-                        <th class="px-4 py-3">Date</th>
+                        <th class="px-4 py-3 align-top">Date</th>
                         {#if !isMobile}
-                            <th class="px-4 py-3">Transaction ID</th>
-                            <th class="px-4 py-3">Round</th>
+                            <th class="px-4 py-3 align-top">Transaction ID</th>
+                            <th class="px-4 py-3 align-top">Round</th>
                         {/if}
-                        <th class="px-4 py-3">From</th>
-                        <th class="px-4 py-3">To</th>
-                        <th class="px-4 py-3">Sale Price</th>
+                        <th class="px-4 py-3 align-top">
+                            <div>From</div>
+                            <input type="text" placeholder="Search" class="w-full border border-gray-200 rounded-lg p-1" bind:value={searchFrom} />
+                        </th>
+                        <th class="px-4 py-3 align-top">
+                            <div>To</div>
+                            <input type="text" placeholder="Search" class="w-full border border-gray-200 rounded-lg p-1" bind:value={searchTo} />
+                        </th>
+                        <th class="px-4 py-3 align-top">
+                            <div>Sale Price</div>
+                            <Switch label="" bind:checked={showOnlySales} title="Toggle only marketplace sales" /> 
+                        </th>
                         <th></th>
                     </tr>
                 </thead>
@@ -202,8 +221,8 @@
             </table>
             <div class="pagination">
                 <button on:click={previousPage} disabled={currentPage === 1}>Previous</button>
-                <span>Page {currentPage} of {Math.ceil(transfers.length / transactionsPerPage)}</span>
-                <button on:click={nextPage} disabled={currentPage === Math.ceil(transfers.length / transactionsPerPage)}>Next</button>
+                <span>Page {currentPage} of {Math.ceil(filteredTransfers.length / transactionsPerPage)}</span>
+                <button on:click={nextPage} disabled={currentPage === Math.ceil(filteredTransfers.length / transactionsPerPage)}>Next</button>
             </div>
         </div>
     </div>

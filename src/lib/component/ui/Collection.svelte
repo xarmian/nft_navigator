@@ -7,6 +7,7 @@
 	import { goto } from '$app/navigation';
     //@ts-ignore
     import Device from 'svelte-device-info';
+    import voiGamesImage from '$lib/assets/voi-games-small.png';
 
     export let collection: Collection;
     export let selectedAddress: string = '';
@@ -101,10 +102,15 @@
             </div>    
         </div>
         <div class="absolute -top-4 right-4 bg-black bg-opacity-50 text-white p-4 z-40 rounded-md">
-            <div>{tokens[0].metadata.name.replace(/[1#]/g, '')}</div>
-            <div>ID: {tokens[0].contractId}</div>
-            <div>Tokens: {tokens.length} / {collection.totalSupply}</div>
-            <div>Unique holders: {holders.length}</div>
+            {#if collection.gameData}
+                <div class="voi-games-logo z-10"><img class="h-8 bg-lime-300 opacity-50 rounded-tr-md" src={voiGamesImage} /></div>
+            {/if}
+            <div class="z-20">
+                <div>{tokens[0].metadata.name.replace(/[1#]/g, '')}</div>
+                <div>ID: {tokens[0].contractId}</div>
+                <div>Tokens: {tokens.length}</div>
+                <div>Unique holders: {holders.length}</div>
+            </div>
         </div>
     {/if}
 </div>
@@ -112,5 +118,10 @@
 <style>
     img {
         max-width: unset;
+    }
+    .voi-games-logo {
+        position: absolute;
+        top:0;
+        right:0;
     }
 </style>
