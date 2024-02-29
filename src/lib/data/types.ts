@@ -9,6 +9,7 @@ export interface Token {
     metadataURI: string;
     approved: string;
 	marketData: Listing | null | undefined;
+    salesData: Sale | null | undefined;
 }
 
 export interface Transfer {
@@ -19,6 +20,8 @@ export interface Transfer {
     round: number;
     transactionId: string;
     timestamp: number;
+    salePrice: number | null;
+    saleCurrency: Currency;
 }
 
 export interface Collection {
@@ -66,4 +69,11 @@ export interface Sale {
     buyer: string;
     price: number;
     timestamp: number;
+}
+
+export interface Currency {
+    id: number;
+    name: string;
+    symbol: string;
+    decimals: number;
 }

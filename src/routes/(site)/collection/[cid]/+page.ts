@@ -35,7 +35,7 @@ export const load = (async ({ params }) => {
 		}
 
 		// get marketplace data for collection
-		const marketUrl = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/listings/?collectionId=${contractId}`;
+		const marketUrl = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/listings/?collectionId=${contractId}&active=true`;
 		try {
 			const marketData = await fetch(marketUrl).then((response) => response.json());
 			if (marketData.listings.length > 0) {

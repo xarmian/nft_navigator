@@ -7,7 +7,6 @@
 	import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
     import TokenTransactionHistory from '$lib/component/ui/TokenTransactionHistory.svelte';
     import { goto } from '$app/navigation';
-	import { getNFD } from '$lib/utils/nfd';
     //@ts-ignore
     import Device from 'svelte-device-info';
 
@@ -15,11 +14,10 @@
     export let data: PageData;
     let contractId = data.contractId;
     let tokenId = data.tokenId;
-    let token = undefined as Token | undefined;
-
-    let tokenName = '';
-    let collectionName = '';
-
+    let token = data.token;
+    let tokenName = token?.metadata.name??'';
+	let collectionName = token?.metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
+console.log(token);
     let isMenuOpen = false;
 
     function toggleMenu() {
@@ -34,7 +32,6 @@
 
     onMount(() => {
         isMobile = Device.isMobile;
-        getToken();
     });
 
     const goToMarketplace = () => {
@@ -51,37 +48,6 @@
 
     const goToCollection = () => {
         if (token) goto(`/collection/${token.contractId}`);
-    }
-
-    const getToken = async () => {
-        if (contractId && tokenId) {
-            const url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/tokens?contractId=${contractId}&tokenId=${tokenId}`;
-            try {
-                const data = await fetch(url).then((response) => response.json());
-                if (data.tokens.length > 0) {
-                    let tokens = data.tokens.map((token: any) => {
-                        return {
-                            contractId: token.contractId,
-                            tokenId: token.tokenId,
-                            owner: token.owner,
-                            metadataURI: token.metadataURI,
-                            metadata: JSON.parse(token.metadata),
-                            mintRound: token['mint-round'],
-                            approved: token.approved,
-                        }
-                    });
-                    token = tokens[0];
-                    tokenName = token?.metadata.name??'';
-                    collectionName = token?.metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
-                }
-
-
-            }
-            catch(err) {
-                console.error(err);
-            }
-
-        }
     }
 </script>
 <svelte:window on:click={closeMenu} />
@@ -128,7 +94,7 @@
     </div>
     {#if token}
         <TokenDetail {token} />
-        <TokenTransactionHistory {contractId} {tokenId} />
+        <TokenTransactionHistory {token}/>
     {/if}
 </div>
 <style>

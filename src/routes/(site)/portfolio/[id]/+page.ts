@@ -32,6 +32,7 @@ export const load = (async ({ params, fetch }) => {
 					mintRound: token['mint-round'],
 					approved: token.approved,
 					marketData: undefined,
+					salesData: undefined,
 				});
 			});
 
@@ -49,6 +50,7 @@ export const load = (async ({ params, fetch }) => {
 					mintRound: token['mint-round'],
 					approved: token.approved,
 					marketData: undefined,
+					salesData: undefined,
 				});
 			});
 		}

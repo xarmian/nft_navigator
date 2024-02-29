@@ -48,7 +48,7 @@
                     <hr class="w-full my-2"/>
                     <div class="flex justify-between">
                         <div class="text-center">
-                            <button class="cursor-pointer p-1 {token.marketData ? 'bg-lime-400 hover:bg-green-500 outline-yellow-200 outline outline-2' : 'bg-blue-400 hover:bg-blue-500'} text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-14" on:click|stopPropagation={() => window.open(marketurl,'_blank')}>
+                            <button class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-14" on:click|stopPropagation={() => window.open(marketurl,'_blank')}>
                                 <i class="fas fa-store" aria-details="Marketplace"></i>
                                 <div class="text-xs">Market</div>
                             </button>
@@ -74,7 +74,7 @@
                 <div class="image-container">
                     <img src={token.metadata.image} alt={token.metadata.name} title={token.metadata.name} class="rounded-t-lg"/>
                     {#if token.marketData}
-                        <div class="badge top-right">For Sale</div>
+                        <div class="badge top-right"><div>For Sale</div><div class="text-xxs">See Marketplace</div></div>
                     {/if}
                 </div>
                 <div class="text-center">{token.metadata.name}</div>
@@ -88,11 +88,15 @@
     position: relative;
 }
 
+.text-xxs {
+    font-size: 8px;
+}
+
 .badge {
     margin: 0;
     padding: 0;
     color: white;
-    padding: 10px 10px;
+    padding: 1px 10px;
     font-size: 15px;
     font-family: Arial, Helvetica, sans-serif;
     text-align: center;

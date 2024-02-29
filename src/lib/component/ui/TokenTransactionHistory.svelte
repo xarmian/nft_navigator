@@ -3,16 +3,41 @@
     import Device from 'svelte-device-info';
     import { onMount } from 'svelte';
     import { A } from 'flowbite-svelte';
-    import type { Transfer } from '$lib/data/types';
+    import type { Token, Transfer, Sale } from '$lib/data/types';
 	import { getNFD } from '$lib/utils/nfd';
+    import { arc200 as Contract } from "ulujs";
+	import { algodClient, algodIndexer } from '$lib/utils/algod';
 
-    export let tokenId: string;
-    export let contractId: string;
+    export let token: Token;
+    let tokenId = token.tokenId;
+    let contractId = token.contractId;
     let transfers: Transfer[] = [];
+    let paginatedTransfers: Transfer[] = [];
     let nfdMap: any = {};
 
     let zeroAddress = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
     $: isMobile = false;
+
+    let currentPage = 1;
+    const transactionsPerPage = 10;
+
+    $: {
+        const start = (currentPage - 1) * transactionsPerPage;
+        const end = start + transactionsPerPage;
+        paginatedTransfers = transfers.slice(start, end);
+    }
+
+    const nextPage = () => {
+        if (currentPage < Math.ceil(transfers.length / transactionsPerPage)) {
+            currentPage++;
+        }
+    };
+
+    const previousPage = () => {
+        if (currentPage > 1) {
+            currentPage--;
+        }
+    };
 
     const getTransfers = async (contractId: string, tokenId: string): Promise<Transfer[]> => {
         if (contractId) {
@@ -20,6 +45,7 @@
             try {
                 const data = await fetch(url).then((response) => response.json());
 
+                // reverse sort by timestamp
                 return data.transfers.map((transfer: any) => {
                     return {
                         transactionId: transfer.transactionId,
@@ -30,7 +56,7 @@
                         round: transfer.round,
                         timestamp: transfer.timestamp,
                     };
-                });
+                }).sort((a: Transfer, b: Transfer) => b.timestamp - a.timestamp);
             }
             catch(err) {
                 console.error(err);
@@ -46,8 +72,53 @@
     onMount(async () => {
         isMobile = Device.isMobile;
 
-        transfers = await getTransfers(contractId, tokenId);
-        
+        transfers = await getTransfers(String(contractId), String(tokenId));
+
+        // fetch market data
+        /*const marketUrl = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/listings?collectionId=${contractId}&tokenId=${tokenId}&active=true`;
+        const marketData = await fetch(marketUrl).then((response) => response.json());
+        if (marketData.listings && token) {
+            token.marketData = marketData.listings;
+        }*/
+
+        // fetch sales data
+        const salesUrl = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/sales?collectionId=${contractId}&tokenId=${tokenId}`;
+        const salesData = await fetch(salesUrl).then((response) => response.json());
+        if (salesData.sales) {
+            // look for salesData.transactionId that matches transfers.transactionId. if found, set transfers.salePrice to salesData.price
+            for (let t of transfers) {
+                const sale = salesData.sales.find((s: Sale) => s.transactionId === t.transactionId);
+                if (sale && sale.currency == 0) {
+                    t.salePrice = sale.price;
+                    t.saleCurrency = {
+                        id: 0,
+                        name: "Voi",
+                        symbol: "VOI",
+                        decimals: 6,
+                    };
+                }
+                else if (sale && typeof sale.currency !== 'undefined') {
+                    try {
+                        t.salePrice = sale.price;
+                        const ctc = new Contract(Number(sale.currency), algodClient, algodIndexer);
+                        const decimals = await ctc.arc200_decimals();
+                        const name = await ctc.arc200_name();
+                        const symbol = await ctc.arc200_symbol();
+
+                        t.saleCurrency = {
+                            id: sale.currency,
+                            name: (name.success) ? name.returnValue : '',
+                            symbol: (symbol.success) ? symbol.returnValue : '',
+                            decimals: (decimals.success) ? Number(decimals.returnValue) : 0,
+                        };
+                    }
+                    catch (err) {
+                        console.error(err);
+                    }
+                }
+            }
+        }
+
         // get NFDs
         let addresses = new Set();
         transfers.forEach(t => {
@@ -78,10 +149,16 @@
                         {/if}
                         <th class="px-4 py-3">From</th>
                         <th class="px-4 py-3">To</th>
+                        <th class="px-4 py-3">Sale Price</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white dark:bg-gray-700 divide-y">
-                    {#each transfers as transfer}
+                    {#each paginatedTransfers as transfer (transfer.transactionId)}
+                        {#if transfers.length === 0}
+                            <tr class="text-gray-700 dark:text-gray-100">
+                                <td class="px-4 py-3" colspan="6">No transfers found</td>
+                            </tr>
+                        {/if}
                         <tr class="text-gray-700 dark:text-gray-100">
                             <td class="px-4 py-3">{new Date(transfer.timestamp * 1000).toLocaleString()}</td>
                             {#if !isMobile}
@@ -96,10 +173,47 @@
                                 {/if}
                             </td>
                             <td class="px-4 py-3"><A href='/portfolio/{transfer.to}'>{nfdMap[transfer.to] ? nfdMap[transfer.to] : formatAddr(transfer.to)}</A></td>
+                            <td class="px-4 py-3">
+                                {#if transfer.salePrice}
+                                    {transfer.salePrice / Math.pow(10,transfer.saleCurrency?.decimals??0)} {transfer.saleCurrency?.symbol??''}
+                                    <span role="img" aria-label="Celebration">🎉</span>
+                                {:else}
+                                    -
+                                {/if}
+                            </td>
                         </tr>
                     {/each}
                 </tbody>
             </table>
+            <div class="pagination">
+                <button on:click={previousPage} disabled={currentPage === 1}>Previous</button>
+                <span>Page {currentPage} of {Math.ceil(transfers.length / transactionsPerPage)}</span>
+                <button on:click={nextPage} disabled={currentPage === Math.ceil(transfers.length / transactionsPerPage)}>Next</button>
+            </div>
         </div>
     </div>
 </div>
+
+<style>
+    .pagination {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+    }
+
+    .pagination button {
+        padding: 10px 20px;
+        font-size: 16px;
+        color: white;
+        background-color: #007BFF;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .pagination button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+    }
+</style>
