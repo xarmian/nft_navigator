@@ -73,7 +73,7 @@
             <Card padding="none">
                 <div class="image-container">
                     <img src={token.metadata.image} alt={token.metadata.name} title={token.metadata.name} class="rounded-t-lg"/>
-                    {#if token.marketData && !token.marketData.sale} && !token.marketData.delete}
+                    {#if token.marketData && !token.marketData.sale && !token.marketData.delete}
                         <div class="badge top-right"><div>For Sale</div><div class="text-xxs">See Marketplace</div></div>
                     {/if}
                 </div>

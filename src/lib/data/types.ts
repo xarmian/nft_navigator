@@ -63,6 +63,7 @@ export interface Listing {
     seller: string;
     timestamp: number;
     sale: null | Sale;
+    delete: null | object;
 }
 
 export interface Sale {
