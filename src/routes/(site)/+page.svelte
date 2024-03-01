@@ -33,6 +33,10 @@
             } else {
                 filterCollections = collections;
             }
+
+            filterCollections = filterCollections.filter((c: Collection) => {
+                return JSON.parse(c.firstToken?.metadata)?.name.toLowerCase().includes(textFilter.toLowerCase());
+            });
         }
     }
 
@@ -48,14 +52,10 @@
     }
 </script>
 
-<div class="m-4 flex justify-between">
-    <div>
-        <input type="text" placeholder="Search" bind:value={textFilter} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600 hidden"/>
-    </div>
-    <div class="flex">
-        <Switch bind:checked={$filters.forSale} label="For Sale"></Switch>
-        <Switch bind:checked={$filters.voiGames} label="Voi Games"></Switch>
-    </div>
+<div class="m-4 flex justify-end">
+    <input type="text" placeholder="Search" bind:value={textFilter} class="mr-6 p-2 border border-gray-300 rounded-lg dark:bg-gray-600"/>
+    <Switch bind:checked={$filters.forSale} label="For Sale"></Switch>
+    <Switch bind:checked={$filters.voiGames} label="Voi Games"></Switch>
 </div>      
 <div>
     {#if $filters.forSale && listings.length > 0}

@@ -105,7 +105,9 @@
     }
 
   function handleKeydown(event: KeyboardEvent) {
-        if (event.key === 'Escape') {
+    if (document.activeElement !== inputElement) return;
+    
+    if (event.key === 'Escape') {
             addressList = [];
             selectedAddressIndex = -1;
         } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {

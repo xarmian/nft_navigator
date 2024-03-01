@@ -17,8 +17,10 @@
     let categories = {} as { [key: string]: {} };
     let collectionName = data.collectionName;
     let filteredTokens = [] as Token[];
+    let displayCount = 25;
     let filters = {} as { [key: string]: string };
     let isMobile = false;
+    let searchText = '';
 
     const zeroAddress = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
 
@@ -55,6 +57,7 @@
         // filter tokens using filters
         filteredTokens = tokens.filter(token => {
             if ($filterToggles.forSale && (!token.marketData || token.marketData?.sale || token.marketData?.delete)) return false;
+            if (searchText !== '' && !token.metadata.name.toLowerCase().includes(searchText.toLowerCase())) return false;
 
             return Object.entries(filters).every(([key, value]) => {
                 if (value === '') return true;
@@ -62,6 +65,10 @@
                 return token.metadata.properties[key] === value;
             });
         });
+    }
+
+    function showMore() {
+        displayCount += 25;
     }
 </script>
 
@@ -83,8 +90,9 @@
 <div class="flex">
     {#if !isMobile}
         <div class="p-4">
+            <input type="text" placeholder="Search" bind:value={searchText} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600" />
             {#each Object.entries(categories) as [category, traits]}
-                <div class="mb-4">
+                <div class="mb-2">
                     <label class="block text-gray-700 text-sm font-bold mb-2" for={category}>
                         {category}
                     </label>
@@ -99,6 +107,8 @@
                 </div>
             {/each}
         </div>
+    {:else}
+        <input type="text" placeholder="Search" bind:value={searchText} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600" />
     {/if}
     <div>
         <div class="flex justify-between">
@@ -112,11 +122,31 @@
             </div>
         </div>
         <div class="flex flex-wrap flex-grow justify-center">
-            {#each filteredTokens as token (token.tokenId)}
+            {#each filteredTokens.slice(0, displayCount) as token (token.tokenId)}
                 <div class="p-4">
                     <TokenCard {token} />
                 </div>
             {/each}
         </div>
+        {#if filteredTokens.length > displayCount}
+            <button on:click={showMore} class="show-more">Show More</button>
+        {/if}
     </div>
 </div>
+
+<style>
+    .show-more {
+        display: block;
+        margin: 0px auto 40px auto;
+        padding: 10px 20px;
+        font-size: 16px;
+        color: white;
+        background-color: #007BFF;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    .show-more:hover {
+        background-color: #0056b3;
+    }
+</style>
