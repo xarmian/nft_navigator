@@ -60,6 +60,7 @@ export interface Listing {
     collectionId: number;
     tokenId: number;
     price: number;
+    currency: number;
     seller: string;
     timestamp: number;
     sale: null | Sale;

@@ -75,7 +75,7 @@
   }
   
   .label-text {
-    margin-left: 10px;
+    margin: 0px 12px 0px 0px;
     vertical-align: middle;
   }
 </style>

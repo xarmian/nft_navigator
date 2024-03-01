@@ -8,6 +8,8 @@
     import BreadcrumbCustom from '$lib/component/ui/BreadcrumbCustom.svelte';
     //@ts-ignore
     import Device from 'svelte-device-info';
+	import Switch from '$lib/component/ui/Switch.svelte';
+    import { filters as filterToggles } from '../../../../stores/collection';
 
     export let data: PageData;
     let contractId = data.contractId;
@@ -52,6 +54,8 @@
 
         // filter tokens using filters
         filteredTokens = tokens.filter(token => {
+            if ($filterToggles.forSale && (!token.marketData || token.marketData?.sale || token.marketData?.delete)) return false;
+
             return Object.entries(filters).every(([key, value]) => {
                 if (value === '') return true;
                 //@ts-ignore
@@ -76,6 +80,9 @@
         <div></div>
     </svelte:fragment>
 </BreadcrumbCustom>
+<div class="flex justify-end p-4">
+    <Switch label="For Sale" bind:checked={$filterToggles.forSale} />
+</div>
 <div class="flex">
     {#if !isMobile}
         <div class="p-4">
@@ -97,7 +104,7 @@
         </div>
     {/if}
     <div class="flex flex-wrap flex-grow justify-center">
-        {#each filteredTokens as token}
+        {#each filteredTokens as token (token.tokenId)}
             <div class="p-4">
                 <TokenCard {token} />
             </div>
