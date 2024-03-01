@@ -35,7 +35,7 @@
             }
 
             filterCollections = filterCollections.filter((c: Collection) => {
-                return JSON.parse(c.firstToken?.metadata??"{}")?.name.toLowerCase().includes(textFilter.toLowerCase());
+                return JSON.parse(c.firstToken?.metadata??"{}")?.name?.toLowerCase().includes(textFilter.toLowerCase());
             });
         }
     }
