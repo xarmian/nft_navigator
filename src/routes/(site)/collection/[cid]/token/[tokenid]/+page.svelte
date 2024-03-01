@@ -17,7 +17,7 @@
     let token = data.token;
     let tokenName = token?.metadata.name??'';
 	let collectionName = token?.metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
-console.log(token);
+
     let isMenuOpen = false;
 
     function toggleMenu() {

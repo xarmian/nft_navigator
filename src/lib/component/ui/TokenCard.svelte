@@ -19,6 +19,7 @@
                     .then((response) => response.json())
                     .then((d) => {
                         const data = d.tokens[0];
+
                         token = {
                             contractId: data.contractId,
                             tokenId: data.tokenId,
@@ -88,6 +89,30 @@
             infourl = `/collection/${token.contractId}/token/${token.tokenId}`;
             marketurl = `https://nautilus.sh/#/collection/${token.contractId}/token/${token.tokenId}`;
             contracturl = `https://voi.observer/explorer/application/${token.contractId}/transactions`;
+
+            if (token.rank == null) {
+                const rankingUrl = `https://test-voi.api.highforge.io/assets/traitInfo/${token.contractId}`;
+                try {
+                    const assetIDs = [token.tokenId];
+                    fetch(rankingUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ assetIDs })
+                    }).then((response) => response.json()).then((rankingData) => {
+                        if (rankingData && token) {
+                            const rankingToken = rankingData.assets[token.tokenId];
+                            if (rankingToken && token) {
+                                token.rank = rankingToken['HF--rank'];
+                            }
+                        }
+                   });
+                }
+                catch(err) {
+                    console.error(err);
+                }
+            }
         }
     }
 </script>
@@ -132,10 +157,10 @@
             {:else}
             <div class="side back" transition:flip={{}} on:click|stopPropagation>
                 <Card padding="none">
-                    <div class="image-container relative">
+                    <div class="image-container relative overflow-hidden" style="max-height: 240px; width:240px;">
                         <img src={token.metadata.image} alt={token.metadata.name} title={token.metadata.name} class="rounded-t-lg"/>
                         {#if token.rank}
-                            <div class="absolute bottom-0 right-0 bg-gray-100 dark:bg-gray-400 text-black dark:text-gray-100 p-1">
+                            <div class="absolute bottom-0 left-0 bg-gray-100 dark:bg-gray-400 text-black dark:text-gray-100 p-1 text-xs">
                                 <i class="fas fa-medal"></i> {token.rank}
                             </div>
                         {/if}
