@@ -79,22 +79,25 @@ console.log(token);
                 </button>
                 {#if isMenuOpen}
                     <div class="menu">
-                        <button class="mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToMarketplace}>Marketplace</button>
-                        <button class="mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToContract}>Contract</button>
+                        <button class="mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToMarketplace}>Marketplace <i class="fas fa-external-link-alt"></i></button>
+                        <button class="mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToContract}>Contract <i class="fas fa-external-link-alt"></i></button>
+                        <button class="mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={() => window.open('https://highforge.io/project/'+contractId)}>High Forge <i class="fas fa-external-link-alt"></i></button>
                         <button class="bg-gray-200 dark:bg-gray-600 opacity-50 !cursor-not-allowed" on:click={goToProjectPage}>Project Page</button>
                     </div>
                 {/if}
             </div>
         {:else}
             <button class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToCollection}><i class='fas fa-arrow-left'></i> Collection</button>
-            <button class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToMarketplace}>Marketplace</button>
-            <button class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToContract}>Contract</button>
-            <button class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={() => window.open('https://highforge.io/project/'+contractId)}>High Forge</button>
-            <!--<button class="mr-2 bg-gray-200 dark:bg-gray-600 opacity-50 !cursor-not-allowed" on:click={goToProjectPage}>Project Page</button>-->
+            <button class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToMarketplace}>Marketplace <i class="fas fa-external-link-alt"></i></button>
+            <button class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToContract}>Contract <i class="fas fa-external-link-alt"></i></button>
+            <button class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={() => window.open('https://highforge.io/project/'+contractId)}>High Forge <i class="fas fa-external-link-alt"></i></button>
+            <!--<button class="mr-2 bg-gray-200 dark:bg-gray-600 opacity-50 !cursor-not-allowed" on:click={goToProjectPage}>Project Page <i class="fas fa-external-link-alt"></i></button>-->
         {/if}
     </div>
     {#if token}
-        <TokenDetail {token} />
+        <div class='mb-4'>
+            <TokenDetail {token} />
+        </div>
         <TokenTransactionHistory {token}/>
     {/if}
 </div>
@@ -152,6 +155,10 @@ console.log(token);
 
         button:hover {
             background-color: #444;
+        }
+        .menu {
+            background-color: #444;
+            border: 1px solid #333;
         }
     }
 </style>
