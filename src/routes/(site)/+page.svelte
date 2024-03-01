@@ -35,7 +35,7 @@
             }
 
             filterCollections = filterCollections.filter((c: Collection) => {
-                return JSON.parse(c.firstToken?.metadata)?.name.toLowerCase().includes(textFilter.toLowerCase());
+                return JSON.parse(c.firstToken?.metadata??"{}")?.name.toLowerCase().includes(textFilter.toLowerCase());
             });
         }
     }
@@ -74,7 +74,7 @@
                 </div>
             {/each}
         </div>
-        {#if collections.length > displayCount}
+        {#if filterCollections.length > displayCount}
             <button on:click={showMore} class="show-more">Show More</button>
         {/if}
     {/if}
