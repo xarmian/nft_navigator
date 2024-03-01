@@ -30,6 +30,7 @@
                             approved: data.approved,
                             marketData: null,
                             salesData: null,
+                            rank: null,
                         };
                     });
             }
@@ -131,8 +132,13 @@
             {:else}
             <div class="side back" transition:flip={{}} on:click|stopPropagation>
                 <Card padding="none">
-                    <div class="image-container">
+                    <div class="image-container relative">
                         <img src={token.metadata.image} alt={token.metadata.name} title={token.metadata.name} class="rounded-t-lg"/>
+                        {#if token.rank}
+                            <div class="absolute bottom-0 right-0 bg-gray-100 dark:bg-gray-400 text-black dark:text-gray-100 p-1">
+                                <i class="fas fa-medal"></i> {token.rank}
+                            </div>
+                        {/if}
                         {#if listing && !listing.sale && !listing.delete}
                             {#if currency}
                                 <div class="badge top-right"><div>For Sale</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.symbol}</div></div>

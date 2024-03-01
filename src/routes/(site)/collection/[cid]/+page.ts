@@ -1,7 +1,7 @@
 import type { PageLoad } from './$types';
 import type { Token, Listing } from '$lib/data/types';
 
-export const load = (async ({ params }) => {
+export const load = (async ({ params, fetch }) => {
 	const contractId = params.cid;
 	let tokens: Token[] = [];
 	let collectionName: string = '';
@@ -43,6 +43,32 @@ export const load = (async ({ params }) => {
 					const marketToken = marketData.listings.find((listing: Listing) => listing.tokenId === token.tokenId);
 					if (marketToken && !marketToken.sale) {
 						token.marketData = marketToken;
+					}
+				});
+			}
+		}
+		catch(err) {
+			console.error(err);
+		}
+
+		// get ranking data for collection
+		const rankingUrl = `https://test-voi.api.highforge.io/assets/traitInfo/${contractId}`;
+		try {
+			const assetIDs = tokens.map((token: Token) => token.tokenId);
+			const response = await fetch(rankingUrl, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ assetIDs })
+			});
+			const rankingData = await response.json();
+			if (rankingData) {
+				tokens.forEach((token: Token) => {
+					// rankingData.assets is an object with a key that is the token id
+					const rankingToken = rankingData.assets[token.tokenId];
+					if (rankingToken) {
+						token.rank = rankingToken['HF--rank'];
 					}
 				});
 			}

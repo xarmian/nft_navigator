@@ -105,6 +105,9 @@
             {/if}
             </div>
             <div>Collection: <A href="/collection/{token.contractId}">{collectionName}</A></div>
+            {#if token.rank}
+                <div>Ranking: {token.rank}</div>
+            {/if}
             <div>Owned by: <A href="/portfolio/{token.owner}">{formattedOwner}</A></div>
             {#if token.approved && token.approved != 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ'}
                 <div>Approved Spender: <A href="/portfolio/{token.approved}">{formattedApproved}</A></div>

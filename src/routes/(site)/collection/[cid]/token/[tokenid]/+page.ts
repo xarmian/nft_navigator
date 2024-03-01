@@ -35,8 +35,31 @@ export const load = (async ({ params, fetch }) => {
 						// @ts-ignore
 						token.ownerNFD = nfdObj.replacementValue;
 					}
-				}
 
+					// get ranking data for the token
+					const rankingUrl = `https://test-voi.api.highforge.io/assets/traitInfo/${contractId}`;
+					try {
+						const assetIDs = [token.tokenId];
+						const response = await fetch(rankingUrl, {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json'
+							},
+							body: JSON.stringify({ assetIDs })
+						});
+						const rankingData = await response.json();
+						if (rankingData) {
+							const rankingToken = rankingData.assets[token.tokenId];
+							if (rankingToken) {
+								token.rank = rankingToken['HF--rank'];
+							}
+						}
+					}
+					catch(err) {
+						console.error(err);
+					}
+
+				}
 			}
 		}
 		catch(err) {

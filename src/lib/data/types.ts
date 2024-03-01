@@ -10,6 +10,7 @@ export interface Token {
     approved: string;
 	marketData: Listing | null | undefined;
     salesData: Sale | null | undefined;
+    rank: number | null;
 }
 
 export interface Transfer {
