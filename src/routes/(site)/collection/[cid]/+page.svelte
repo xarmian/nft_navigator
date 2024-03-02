@@ -107,8 +107,6 @@
                 </div>
             {/each}
         </div>
-    {:else}
-        <input type="text" placeholder="Search" bind:value={searchText} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600" />
     {/if}
     <div>
         <div class="flex justify-between">
@@ -131,6 +129,9 @@
         {#if filteredTokens.length > displayCount}
             <button on:click={showMore} class="show-more">Show More</button>
         {/if}
+    </div>
+    <div>
+        <input type="text" placeholder="Search" bind:value={searchText} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600" />
     </div>
 </div>
 
