@@ -16,23 +16,25 @@
     });
 
     $: {
-        getCollection(token.contractId);
+        if (!collection) {
+            getCollection(token.contractId);
 
-        formattedOwner = token.ownerNFD ? token.ownerNFD as string : token.owner.length > 16
-            ? `${token.owner.slice(0, 8)}...${token.owner.slice(-8)}`
-            : token.owner;
+            formattedOwner = token.ownerNFD ? token.ownerNFD as string : token.owner.length > 16
+                ? `${token.owner.slice(0, 8)}...${token.owner.slice(-8)}`
+                : token.owner;
 
-        if (token.metadata.royalties) {
-            const decodedRoyalties = atob(token.metadata.royalties);
+            if (token.metadata.royalties) {
+                const decodedRoyalties = atob(token.metadata.royalties);
 
-            // Convert the binary string to an array of bytes
-            const bytes = new Uint8Array(decodedRoyalties.length);
-            for (let i = 0; i < decodedRoyalties.length; i++) {
-                bytes[i] = decodedRoyalties.charCodeAt(i);
+                // Convert the binary string to an array of bytes
+                const bytes = new Uint8Array(decodedRoyalties.length);
+                for (let i = 0; i < decodedRoyalties.length; i++) {
+                    bytes[i] = decodedRoyalties.charCodeAt(i);
+                }
+
+                // Extract the first two bytes and convert them to a number
+                royaltyPercentage = (bytes[0] << 8) | bytes[1];
             }
-
-            // Extract the first two bytes and convert them to a number
-            royaltyPercentage = (bytes[0] << 8) | bytes[1];
         }
     }
 

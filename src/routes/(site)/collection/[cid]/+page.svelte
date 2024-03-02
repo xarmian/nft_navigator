@@ -120,7 +120,7 @@
             </div>
         </div>
         {#if isMobile}
-            <div class="pl-4">
+            <div class="flex pl-4 justify-center">
                 <input type="text" placeholder="Search" bind:value={searchText} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600" />
             </div>
         {/if}

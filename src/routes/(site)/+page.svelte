@@ -11,39 +11,66 @@
     let collections: Collection[] = data.collections;
     let filterCollections: Collection[] = [];
     let displayCount = 12;
-    let listings: Listing[] = [];
+    let listings: Listing[] | null = null;
     let voiGames: object[] = data.voiGames;
+    let tokens: Token[] = [];
+    let filterTokens: Token[] = [];
     let textFilter = '';
 
-    const unsubscribe = filters.subscribe(value => {
-        if (value.forSale) {
+    $: if ($filters.forSale) {
+        if (listings == null) {
             fetch('https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/listings?active=true')
                 .then(response => response.json())
                 .then(data => {
-                    listings = data.listings;
-                    if (value.voiGames) {
+                    listings = data.listings as Listing[];
+                    if ($filters.voiGames) {
                         listings = listings.filter((l: Listing) => voiGames.find((v: any) => v.applicationID === l.collectionId));
-                    } else {
-                        listings = listings;
                     }
+
+                    // build array of collectionId+'_'+tokenId from listings and use with tokenIds[] to get token data
+                    let tokenIds = listings.map((l: Listing) => l.collectionId + '_' + l.tokenId).join(',');
+
+                    fetch(`https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/tokens/?tokenIds=${tokenIds}`)
+                        .then((response) => response.json())
+                        .then((d) => {
+                            d.tokens.forEach((data: any) => {
+                                tokens.push({
+                                    contractId: data.contractId,
+                                    tokenId: data.tokenId,
+                                    owner: data.owner,
+                                    ownerNFD: null,
+                                    metadataURI: data.metadataURI,
+                                    metadata: JSON.parse(data.metadata),
+                                    mintRound: data['mint-round'],
+                                    approved: data.approved,
+                                    marketData: listings?.find((l: Listing) => l.collectionId === data.contractId && l.tokenId === data.tokenId),
+                                    salesData: null,
+                                    rank: null,
+                                });
+                            });
+
+                            tokens = tokens;
+                        });
                 });
         }
-        else {
-            if (value.voiGames) {
-                filterCollections = collections.filter((c: Collection) => voiGames.find((v: any) => v.applicationID === c.contractId));
-            } else {
-                filterCollections = collections;
-            }
-
-            filterCollections = filterCollections.filter((c: Collection) => {
-                return JSON.parse(c.firstToken?.metadata??"{}")?.name?.toLowerCase().includes(textFilter.toLowerCase());
-            });
+    }
+    else {
+        if ($filters.voiGames) {
+            filterCollections = collections.filter((c: Collection) => voiGames.find((v: any) => v.applicationID === c.contractId));
+        } else {
+            filterCollections = collections;
         }
 
-        }
-    );
+        filterCollections = filterCollections.filter((c: Collection) => {
+            return JSON.parse(c.firstToken?.metadata??"{}")?.name?.toLowerCase().includes(textFilter.toLowerCase());
+        });
+    }
 
-    onDestroy(unsubscribe);
+    $: {
+        filterTokens = tokens.filter((t: Token) => {
+            return t.metadata?.name?.toLowerCase().includes(textFilter.toLowerCase());
+        });
+    }
 
     voiGames.forEach((game: any) => {
         let collection = collections.find((c: Collection) => c.contractId === game.applicationID);
@@ -58,25 +85,21 @@
 </script>
 
 <div class="m-4 flex justify-end">
-    <input type="text" placeholder="Search" bind:value={textFilter} class="mr-6 p-2 border border-gray-300 rounded-lg dark:bg-gray-600"/>
+    <input type="text" placeholder="Search" bind:value={textFilter} class="self-start mr-6 p-2 border border-gray-300 rounded-lg dark:bg-gray-600"/>
     <Switch bind:checked={$filters.forSale} label="For Sale"></Switch>
     <Switch bind:checked={$filters.voiGames} label="Voi Games"></Switch>
 </div>      
 <div>
-    {#if $filters.forSale}
-        {#if listings.length === 0}
-            <p>No listings found</p>
-        {:else}
-            <div class="flex flex-wrap justify-center">
-                {#each listings.splice(0, displayCount) as listing (String(listing.mpContractId)+'.'+String(listing.mpListingId))}
-                    <div class="inline-block m-2">
-                        <TokenCard listing={listing}></TokenCard>
-                    </div>
-                {/each}
-            </div>
-            {#if listings.length > displayCount}
-                <button on:click={showMore} class="show-more">Show More</button>
-            {/if}
+    {#if $filters.forSale && listings}
+        <div class="flex flex-wrap justify-center">
+            {#each filterTokens.splice(0, displayCount) as token (String(token.contractId)+'_'+String(token.tokenId))}
+                <div class="inline-block m-2">
+                    <TokenCard token={token}></TokenCard>
+                </div>
+            {/each}
+        </div>
+        {#if tokens.length > displayCount}
+            <button on:click={showMore} class="show-more">Show More</button>
         {/if}
     {:else}
         <div class="flex flex-wrap justify-center">
