@@ -33,6 +33,7 @@ export const load = (async ({ params, fetch }) => {
 					approved: token.approved,
 					marketData: undefined,
 					salesData: undefined,
+					rank: null,
 				});
 			});
 
@@ -51,6 +52,7 @@ export const load = (async ({ params, fetch }) => {
 					approved: token.approved,
 					marketData: undefined,
 					salesData: undefined,
+					rank: null
 				});
 			});
 		}

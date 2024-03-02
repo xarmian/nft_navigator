@@ -5,6 +5,7 @@
     import CollectionComponent from '$lib/component/ui/Collection.svelte';
     import TokenCard from '$lib/component/ui/TokenCard.svelte';
     import Switch from '$lib/component/ui/Switch.svelte';
+    import { onDestroy } from 'svelte';
     
     export let data: PageData;
     let collections: Collection[] = data.collections;
@@ -14,13 +15,13 @@
     let voiGames: object[] = data.voiGames;
     let textFilter = '';
 
-    $: {
-        if ($filters.forSale) {
+    const unsubscribe = filters.subscribe(value => {
+        if (value.forSale) {
             fetch('https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/listings?active=true')
                 .then(response => response.json())
                 .then(data => {
                     listings = data.listings;
-                    if ($filters.voiGames) {
+                    if (value.voiGames) {
                         listings = listings.filter((l: Listing) => voiGames.find((v: any) => v.applicationID === l.collectionId));
                     } else {
                         listings = listings;
@@ -28,7 +29,7 @@
                 });
         }
         else {
-            if ($filters.voiGames) {
+            if (value.voiGames) {
                 filterCollections = collections.filter((c: Collection) => voiGames.find((v: any) => v.applicationID === c.contractId));
             } else {
                 filterCollections = collections;
@@ -38,7 +39,11 @@
                 return JSON.parse(c.firstToken?.metadata??"{}")?.name?.toLowerCase().includes(textFilter.toLowerCase());
             });
         }
-    }
+
+        }
+    );
+
+    onDestroy(unsubscribe);
 
     voiGames.forEach((game: any) => {
         let collection = collections.find((c: Collection) => c.contractId === game.applicationID);
@@ -58,14 +63,21 @@
     <Switch bind:checked={$filters.voiGames} label="Voi Games"></Switch>
 </div>      
 <div>
-    {#if $filters.forSale && listings.length > 0}
-        <div class="flex flex-wrap justify-center">
-            {#each listings as listing (String(listing.mpContractId)+'.'+String(listing.mpListingId))}
-                <div class="inline-block m-2">
-                    <TokenCard listing={listing}></TokenCard>
-                </div>
-            {/each}
-        </div>
+    {#if $filters.forSale}
+        {#if listings.length === 0}
+            <p>No listings found</p>
+        {:else}
+            <div class="flex flex-wrap justify-center">
+                {#each listings.splice(0, displayCount) as listing (String(listing.mpContractId)+'.'+String(listing.mpListingId))}
+                    <div class="inline-block m-2">
+                        <TokenCard listing={listing}></TokenCard>
+                    </div>
+                {/each}
+            </div>
+            {#if listings.length > displayCount}
+                <button on:click={showMore} class="show-more">Show More</button>
+            {/if}
+        {/if}
     {:else}
         <div class="flex flex-wrap justify-center">
             {#each filterCollections.slice(0, displayCount) as collection (collection.contractId)}
