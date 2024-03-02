@@ -119,6 +119,11 @@
                 <Switch label="For Sale" bind:checked={$filterToggles.forSale} />
             </div>
         </div>
+        {#if isMobile}
+            <div class="pl-4">
+                <input type="text" placeholder="Search" bind:value={searchText} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600" />
+            </div>
+        {/if}
         <div class="flex flex-wrap flex-grow justify-center">
             {#each filteredTokens.slice(0, displayCount) as token (token.tokenId)}
                 <div class="p-4">
@@ -129,9 +134,6 @@
         {#if filteredTokens.length > displayCount}
             <button on:click={showMore} class="show-more">Show More</button>
         {/if}
-    </div>
-    <div>
-        <input type="text" placeholder="Search" bind:value={searchText} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600" />
     </div>
 </div>
 
