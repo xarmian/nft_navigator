@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
     import type { Token, Listing, Currency } from '$lib/data/types';
+    import TokenName from './TokenName.svelte';
     import { A, Card } from 'flowbite-svelte';
 	import { onMount } from 'svelte';
     import { arc200 as Contract } from "ulujs";
@@ -124,7 +125,7 @@
                 <div class="side cursor-pointer" transition:flip={{}} on:click={() => goto(infourl)}>
                     <Card class="flex justify-between" style="height: 270px; width:240px;">
                         <div class="overflow-auto h-5/6">
-                            <div class="text-2xl font-bold mb-2"><A on:click={() => goto(infourl)}>{token.metadata.name}</A></div>
+                            <div class="text-2xl font-bold mb-2"><A on:click={() => goto(infourl)}><TokenName name={token.metadata.name}></TokenName></A></div>
                             {#each tokenProps as prop}
                                 <div class="text-sm">
                                     <div class="font-bold inline">{prop.trait_type}</div>: {prop.value}
@@ -172,7 +173,7 @@
                             {/if}
                         {/if}
                     </div>
-                    <div class="text-center">{token.metadata.name}</div>
+                    <div class="text-center"><TokenName name="{token.metadata.name}"/></div>
                 </Card>
             </div>
             {/if}

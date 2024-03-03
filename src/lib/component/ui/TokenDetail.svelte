@@ -2,6 +2,7 @@
     import type { Token, Collection } from '$lib/data/types';
     import { A } from 'flowbite-svelte';
 	import { onMount } from 'svelte';
+    import TokenName from '$lib/component/ui/TokenName.svelte';
     //@ts-ignore
     import Device from 'svelte-device-info';
 
@@ -123,7 +124,7 @@
         <div class="mb-2">
             {token.metadata?.description??''}
         </div>
-        <div class="text-2xl font-bold mb-2 text-purple-900 dark:text-purple-100"><A href="/collection/{token.contractId}/token/{token.tokenId}">{token.metadata.name}</A></div>
+        <div class="text-2xl font-bold mb-2 text-purple-900 dark:text-purple-100"><A href="/collection/{token.contractId}/token/{token.tokenId}"><TokenName name={token.metadata.name}></TokenName></A></div>
         <div class="mb-2">
             <div>Token ID: {token.tokenId}
             {#if collection}
