@@ -51,11 +51,11 @@
         if (token) goto(`/collection/${token.contractId}`);
     }
 </script>
-<MetaTags title={`${token?.metadata?.name} - NFT Navigator`} description={`NFT Navigator detail page for ${token?.metadata?.name}`}
+<MetaTags title={token?.metadata?.name} 
+    titleTemplate="%s | NFT Navigator"
     openGraph={{
         url: `https://nftnavigator.xyz/collection/${contractId}/token/${tokenId}`,
         title: `${token?.metadata?.name} - NFT Navigator`,
-        description: `${token?.metadata?.description??'NFT Navigator detail page for '+token?.metadata?.name}`,
         images: [{ url: token?.metadata?.image??'' }],
     }} />
 <svelte:window on:click={closeMenu} />
