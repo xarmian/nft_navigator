@@ -7,6 +7,7 @@
 	import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
     import TokenTransactionHistory from '$lib/component/ui/TokenTransactionHistory.svelte';
     import { goto } from '$app/navigation';
+    import { MetaTags } from 'svelte-meta-tags';
     //@ts-ignore
     import Device from 'svelte-device-info';
 
@@ -50,6 +51,13 @@
         if (token) goto(`/collection/${token.contractId}`);
     }
 </script>
+<MetaTags title={`${token?.metadata?.name} - NFT Navigator`} description={`NFT Navigator detail page for ${token?.metadata?.name}`}
+    openGraph={{
+        url: `https://nftnavigator.xyz/collection/${contractId}/token/${tokenId}`,
+        title: `${token?.metadata?.name} - NFT Navigator`,
+        description: `${token?.metadata?.description??'NFT Navigator detail page for '+token?.metadata?.name}`,
+        images: [{ url: token?.metadata?.image??'' }],
+    }} />
 <svelte:window on:click={closeMenu} />
 <Breadcrumb aria-label="Navigation breadcrumb" solid>
     <BreadcrumbItem href="/" class="hover:text-blue-800" >
