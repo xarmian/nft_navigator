@@ -157,8 +157,8 @@
             {:else}
             <div class="side back" transition:flip={{}} on:click|stopPropagation>
                 <Card padding="none">
-                    <div class="image-container relative overflow-hidden" style="max-height: 240px; width:240px;">
-                        <img src={token.metadata.image} alt={token.metadata.name} title={token.metadata.name} class="rounded-t-lg"/>
+                    <div class="image-container relative rounded-t-lg overflow-hidden flex justify-center">
+                        <img src={token.metadata.image} alt={token.metadata.name} title={token.metadata.name} class="max-h-60 max-w-60 object-contain object-center"/>
                         {#if token.rank}
                             <div class="absolute bottom-0 left-0 bg-gray-100 dark:bg-gray-400 text-black dark:text-gray-100 p-1 text-xs">
                                 <i class="fas fa-medal"></i> {token.rank}

@@ -76,24 +76,24 @@
     {#if tokens && tokens.length >= 1}
         <div class="{styleClass}">
             <div class="flex justify-center -space-x-36 group-hover:-space-x-48 transition-all duration-500">
-                <div class="transform -rotate-12 z-30">
+                <div class="transform -rotate-12 z-30 max-w-48 max-h-48 object-contain">
                     <Card padding="none" class="rounded-xl">
-                        <img src={tokens[0].metadata.image} class="w-48 h-48 rounded-xl -w-max" />
+                        <img src={tokens[0].metadata.image} class="rounded-xl h-48 w-48 object-cover" />
                     </Card>
                 </div>
-                <div class="z-20">
+                <div class="z-20 max-w-48 max-h-48 object-contain">
                     <Card padding="none" class="rounded-xl">
                         {#if tokens.length >= 2}
-                            <img src={tokens[1].metadata.image} class="w-48 h-48 rounded-xl -w-max" />
+                            <img src={tokens[1].metadata.image} class="rounded-xl h-48 w-48 object-cover" />
                         {:else}
                             <div class="w-48 h-48"></div>
                         {/if}
                     </Card>
                 </div>
-                <div class="transform rotate-12 z-10">
+                <div class="transform rotate-12 z-10 max-h-48 max-w-48 object-contain">
                     <Card padding="none" class="rounded-xl">
                         {#if tokens.length >= 3}
-                            <img src={tokens[2].metadata.image} class="w-48 h-48 rounded-xl -w-max" />
+                            <img src={tokens[2].metadata.image} class="rounded-xl h-48 w-48 object-cover" />
                         {:else}
                             <div class="w-48 h-48"></div>
                         {/if}
