@@ -11,6 +11,7 @@ export interface Token {
 	marketData: Listing | null | undefined;
     salesData: Sale | null | undefined;
     rank: number | null;
+	traits: string[] | undefined;
 }
 
 export interface Transfer {

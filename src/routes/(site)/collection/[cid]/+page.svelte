@@ -42,6 +42,8 @@
                 } else {
                     combinedProperties[key] = { [value]: 1 };
                 }
+
+                token.traits = Object.entries(token.metadata.properties).map(([key, value]) => key + ': ' + value);
             });
         });
 
@@ -57,8 +59,11 @@
         // filter tokens using filters
         filteredTokens = tokens.filter(token => {
             if ($filterToggles.forSale && (!token.marketData || token.marketData?.sale || token.marketData?.delete)) return false;
-            if (searchText !== '' && !token.metadata.name.toLowerCase().includes(searchText.toLowerCase())) return false;
-
+            if (searchText !== ''
+                && !token.metadata.name.toLowerCase().includes(searchText.toLowerCase())
+                && !token.traits?.some(trait => trait.toLowerCase().includes(searchText.toLowerCase()))
+                ) return false;
+            
             return Object.entries(filters).every(([key, value]) => {
                 if (value === '') return true;
                 //@ts-ignore
@@ -90,14 +95,14 @@
 <div class="flex">
     {#if !isMobile}
         <div class="p-4">
-            <input type="text" placeholder="Search" bind:value={searchText} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600" />
+            <input type="text" placeholder="Search" bind:value={searchText} class="p-2 border border-gray-300 dark:border-gray-500 rounded-lg dark:bg-gray-600 dark:text-gray-200" />
             {#each Object.entries(categories) as [category, traits]}
-                <div class="mb-2">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for={category}>
+                <div class="mt-2 mb-2">
+                    <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for={category}>
                         {category}
                     </label>
                     <div class="relative">
-                        <select bind:value={filters[category]} class="block appearance-none w-48 bg-white border border-gray-200 text-gray-700 py-3 px-4 pr-8 rounded leading-tight focus:outline-none focus:bg-white focus:border-gray-500" id={category}>
+                        <select bind:value={filters[category]} class="block appearance-none w-48 bg-white border border-gray-300 dark:border-gray-500 text-gray-700 dark:bg-gray-600 dark:text-gray-200 py-3 px-4 pr-8 rounded leading-tight focus:outline-none focus:bg-white focus:border-gray-500" id={category}>
                             <option value="">All</option>
                             {#each Object.entries(traits) as [trait, count]}
                                 <option value={trait}>{trait+' ('+count+')'}</option>
