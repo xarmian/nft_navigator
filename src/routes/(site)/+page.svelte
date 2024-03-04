@@ -76,6 +76,10 @@
                 || t.metadata?.name?.toLowerCase().includes(textFilter.toLowerCase())
                 || t.traits?.some(trait => trait.toLowerCase().includes(textFilter.toLowerCase())));
         });
+
+        if ($filters.voiGames) {
+            filterTokens = filterTokens.filter((t: Token) => voiGames.find((v: any) => v.applicationID === t.contractId));
+        }
     }
 
     voiGames.forEach((game: any) => {
