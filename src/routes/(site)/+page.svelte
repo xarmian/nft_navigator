@@ -34,19 +34,22 @@
                         .then((response) => response.json())
                         .then((d) => {
                             d.tokens.forEach((data: any) => {
+                                const metadata = JSON.parse(data.metadata);
                                 tokens.push({
                                     contractId: data.contractId,
                                     tokenId: data.tokenId,
                                     owner: data.owner,
                                     ownerNFD: null,
                                     metadataURI: data.metadataURI,
-                                    metadata: JSON.parse(data.metadata),
+                                    metadata: metadata,
                                     mintRound: data['mint-round'],
                                     approved: data.approved,
                                     marketData: listings?.find((l: Listing) => l.collectionId === data.contractId && l.tokenId === data.tokenId),
                                     salesData: null,
                                     rank: null,
+                                    traits: Object.entries(metadata.properties).map(([key, value]) => key + ': ' + value),
                                 });
+
                             });
 
                             tokens = tokens;
@@ -68,7 +71,9 @@
 
     $: {
         filterTokens = tokens.filter((t: Token) => {
-            return t.metadata?.name?.toLowerCase().includes(textFilter.toLowerCase());
+            return (textFilter == ''
+                || t.metadata?.name?.toLowerCase().includes(textFilter.toLowerCase())
+                || t.traits?.some(trait => trait.toLowerCase().includes(textFilter.toLowerCase())));
         });
     }
 
