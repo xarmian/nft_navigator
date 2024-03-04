@@ -9,6 +9,7 @@
 
     export let token: Token | null = null;
     export let listing: Listing | null = null;
+    export let includeCollection: boolean = false;
 
     let currency: Currency | null = null;
 
@@ -33,6 +34,7 @@
                             marketData: null,
                             salesData: null,
                             rank: null,
+                            traits: [],
                         };
                     });
             }
@@ -80,7 +82,7 @@
 
     let infourl = '';
     let marketurl = '';
-    let contracturl = '';
+    let collectionurl = '';
     $: {
         if (token) {
             tokenProps = Object.keys(token.metadata.properties).map((key) => {
@@ -88,8 +90,8 @@
             });
 
             infourl = `/collection/${token.contractId}/token/${token.tokenId}`;
+            collectionurl = `/collection/${token.contractId}`;
             marketurl = `https://nautilus.sh/#/collection/${token.contractId}/token/${token.tokenId}`;
-            contracturl = `https://voi.observer/explorer/application/${token.contractId}/transactions`;
 
             if (token.rank == null) {
                 const rankingUrl = `https://test-voi.api.highforge.io/assets/traitInfo/${token.contractId}`;
@@ -133,25 +135,27 @@
                             {/each}
                         </div>
                         <hr class="w-full my-2"/>
-                        <div class="flex justify-between">
+                        <div class="flex justify-evenly">
                             <div class="text-center">
-                                <button class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-14" on:click|stopPropagation={() => window.open(marketurl,'_blank')}>
+                                <button class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-16 ml-1 mr-1" on:click|stopPropagation={() => window.open(marketurl,'_blank')}>
                                     <i class="fas fa-store" aria-details="Marketplace"></i>
                                     <div class="text-xs">Market</div>
                                 </button>
                             </div>
                             <div class="text-center">
-                                <button class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-14" on:click|stopPropagation={() => goto(infourl)}>
+                                <button class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-16 ml-1 mr-1" on:click|stopPropagation={() => goto(infourl)}>
                                     <i class="fas fa-info-circle" aria-details="Info"></i>
                                     <div class="text-xs">Detail</div>
                                 </button>
                             </div>
-                            <div class="text-center">
-                                <button class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-14" on:click|stopPropagation={() => window.open(contracturl,'_blank')}>
-                                    <i class="fas fa-file-contract" aria-details="Contract"></i>
-                                    <div class="text-xs">Contract</div>
-                                </button>
-                            </div>
+                            {#if includeCollection}
+                                <div class="text-center">
+                                    <button class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-16 ml-1 mr-1" on:click|stopPropagation={() => goto(collectionurl)}>
+                                        <i class="fas fa-file-contract" aria-details="Collection"></i>
+                                        <div class="text-xs">Collection</div>
+                                    </button>
+                                </div>
+                            {/if}
                         </div>
                     </Card>
                 </div>
