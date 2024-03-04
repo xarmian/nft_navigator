@@ -8,6 +8,7 @@
     import TokenTransactionHistory from '$lib/component/ui/TokenTransactionHistory.svelte';
     import { goto } from '$app/navigation';
     import { MetaTags } from 'svelte-meta-tags';
+    import { reformatTokenName } from '$lib/utils/indexer';
     //@ts-ignore
     import Device from 'svelte-device-info';
 
@@ -16,7 +17,7 @@
     let contractId = data.contractId;
     let tokenId = data.tokenId;
     let token = data.token;
-    let tokenName = token?.metadata.name??'';
+    let tokenName = reformatTokenName(token?.metadata.name??'');
 	let collectionName = token?.metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
 
     let isMenuOpen = false;
@@ -51,7 +52,7 @@
         if (token) goto(`/collection/${token.contractId}`);
     }
 </script>
-<MetaTags title={token?.metadata?.name} 
+<MetaTags title={tokenName} 
     titleTemplate="%s | NFT Navigator"
     openGraph={{
         url: `https://nftnavigator.xyz/collection/${contractId}/token/${tokenId}`,

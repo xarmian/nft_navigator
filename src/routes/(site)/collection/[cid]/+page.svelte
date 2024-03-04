@@ -10,6 +10,7 @@
     import Device from 'svelte-device-info';
 	import Switch from '$lib/component/ui/Switch.svelte';
     import { filters as filterToggles } from '../../../../stores/collection';
+    import { MetaTags } from 'svelte-meta-tags';
 
     export let data: PageData;
     let contractId = data.contractId;
@@ -79,6 +80,13 @@
     let inputElement: HTMLInputElement;
 </script>
 
+<MetaTags title={collectionName} 
+    titleTemplate="%s | NFT Navigator"
+    openGraph={{
+        url: `https://nftnavigator.xyz/collection/${contractId}`,
+        title: `${collectionName} | NFT Navigator`,
+        images: [{ url: tokens[0]?.metadata?.image??'' }],
+    }} />
 <BreadcrumbCustom aria-label="Navigation breadcrumb" solidClass="flex px-5 py-3 text-gray-700 border border-gray-200 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 justify-between" solid>
     <BreadcrumbItem href="/" class="hover:text-blue-800" >
         <svelte:fragment slot="icon">
