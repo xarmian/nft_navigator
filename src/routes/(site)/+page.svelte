@@ -106,7 +106,7 @@
     <Switch bind:checked={$filters.forSale} label="For Sale"></Switch>
     <Switch bind:checked={$filters.voiGames} label="Voi Games"></Switch>
 </div>      
-<div>
+<div class="pb-16">
     {#if $filters.forSale && listings}
         <div class="flex flex-wrap justify-center">
             {#each filterTokens.slice(0, displayCount) as token (String(token.contractId) + '_' + String(token.tokenId))}

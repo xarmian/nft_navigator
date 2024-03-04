@@ -103,7 +103,7 @@
         <div></div>
     </svelte:fragment>
 </BreadcrumbCustom>
-<div class="flex">
+<div class="flex pb-16">
     {#if !isMobile}
         <div class="p-4">
             <div class="relative self-start">
