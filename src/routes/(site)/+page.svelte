@@ -97,7 +97,7 @@
 <div>
     {#if $filters.forSale && listings}
         <div class="flex flex-wrap justify-center">
-            {#each filterTokens.splice(0, displayCount) as token (String(token.contractId)+'_'+String(token.tokenId))}
+            {#each filterTokens.slice(0, displayCount) as token (String(token.contractId) + '_' + String(token.tokenId))}
                 <div class="inline-block m-2">
                     <TokenCard token={token}></TokenCard>
                 </div>
