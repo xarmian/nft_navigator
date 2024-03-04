@@ -110,9 +110,12 @@
     {/if}
     <div>
         <div class="flex justify-between">
-            <div>
+            <div class="flex flex-row">
                 <button on:click={() => window.open('https://highforge.io/project/'+contractId)} class="m-4 px-4 py-2 bg-blue-600 text-white rounded-md transition-colors duration-200 ease-in-out hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                     View on High Forge <i class="fas fa-external-link-alt"></i>
+                </button>
+                <button on:click={() => window.open('https://nft-games.boeieruurd.com/collections/'+contractId)} class="m-4 px-4 py-2 bg-blue-600 text-white rounded-md transition-colors duration-200 ease-in-out hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                    View on NFT Games Tracker <i class="fas fa-external-link-alt"></i>
                 </button>
             </div>
             <div class="flex justify-end p-4">
