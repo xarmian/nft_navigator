@@ -75,6 +75,8 @@
     function showMore() {
         displayCount += 25;
     }
+
+    let inputElement: HTMLInputElement;
 </script>
 
 <BreadcrumbCustom aria-label="Navigation breadcrumb" solidClass="flex px-5 py-3 text-gray-700 border border-gray-200 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 justify-between" solid>
@@ -95,7 +97,16 @@
 <div class="flex">
     {#if !isMobile}
         <div class="p-4">
-            <input type="text" placeholder="Search" bind:value={searchText} class="p-2 border border-gray-300 dark:border-gray-500 rounded-lg dark:bg-gray-600 dark:text-gray-200" />
+            <div class="relative self-start">
+                <input type="text" placeholder="Search" bind:value={searchText} bind:this={inputElement} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600 w-full pr-10"/>
+                {#if searchText}
+                    <button class="absolute inset-y-0 right-0 pr-3 flex items-center w-10" on:click={() => { searchText = ''; inputElement.focus(); }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-5 w-5 text-gray-500">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                {/if}
+            </div>
             {#each Object.entries(categories) as [category, traits]}
                 <div class="mt-2 mb-2">
                     <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for={category}>

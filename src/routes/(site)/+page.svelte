@@ -87,10 +87,21 @@
     function showMore() {
         displayCount += 12;
     }
+
+    let inputElement: HTMLInputElement;
 </script>
 
 <div class="m-4 flex justify-end">
-    <input type="text" placeholder="Search" bind:value={textFilter} class="self-start mr-6 p-2 border border-gray-300 rounded-lg dark:bg-gray-600"/>
+    <div class="relative self-start mr-6">
+        <input type="text" placeholder="Search" bind:value={textFilter} bind:this={inputElement} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600 w-full pr-8"/>
+        {#if textFilter}
+            <button class="absolute inset-y-0 right-0 pr-3 flex items-center" on:click={() => { textFilter = ''; inputElement.focus(); }}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-5 w-5 text-gray-500">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        {/if}
+    </div>
     <Switch bind:checked={$filters.forSale} label="For Sale"></Switch>
     <Switch bind:checked={$filters.voiGames} label="Voi Games"></Switch>
 </div>      
