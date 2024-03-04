@@ -33,6 +33,7 @@ export interface Collection {
     totalSupply: number;
     mintRound: number;
     tokens: Token[];
+    uniqueOwners: number | undefined;
 }
 
 export interface RawToken {

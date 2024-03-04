@@ -13,7 +13,6 @@
     export let selectedAddress: string = '';
     export let styleClass = '';
     let tokens: Token[] = [];
-    $: holders = [...new Set(tokens.map((t) => t.owner))]; // unique holders
     $: isMobile = false;
 
     onMount(() => {
@@ -21,9 +20,10 @@
 
         getTokens();
     });
+    console.log(collection);
 
     async function getTokens() {
-        let url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/tokens/?contractId=${collection.contractId}`;
+        let url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/tokens/?contractId=${collection.contractId}&limit=3`;
         if (selectedAddress.length > 0) {
             url += `?owner=${selectedAddress}`;
         }
@@ -109,7 +109,7 @@
                 <div>{tokens[0].metadata.name.replace(/[1#]/g, '')}</div>
                 <div>ID: {tokens[0].contractId}</div>
                 <div>Tokens: {tokens.length}</div>
-                <div>Unique holders: {holders.length}</div>
+                <div>Unique holders: {collection.uniqueOwners}</div>
             </div>
         </div>
     {/if}

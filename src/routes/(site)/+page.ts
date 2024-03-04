@@ -4,7 +4,7 @@ import type { Collection } from '$lib/data/types';
 import voiGames from '$lib/data/voiGames.json';
 
 export const load = (async ({ fetch }) => {
-    const url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/collections`;
+    const url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/collections/?includes=unique-owners`;
     let collections: Collection[] = [];
     
     try {
