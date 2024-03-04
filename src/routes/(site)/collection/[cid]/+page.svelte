@@ -11,6 +11,7 @@
 	import Switch from '$lib/component/ui/Switch.svelte';
     import { filters as filterToggles } from '../../../../stores/collection';
     import { MetaTags } from 'svelte-meta-tags';
+    import { inview } from 'svelte-inview';
 
     export let data: PageData;
     let contractId = data.contractId;
@@ -18,7 +19,7 @@
     let categories = {} as { [key: string]: {} };
     let collectionName = data.collectionName;
     let filteredTokens = [] as Token[];
-    let displayCount = 25;
+    let displayCount = 10;
     let filters = {} as { [key: string]: string };
     let isMobile = false;
     let searchText = '';
@@ -74,7 +75,7 @@
     }
 
     function showMore() {
-        displayCount += 25;
+        displayCount += 10;
     }
 
     let inputElement: HTMLInputElement;
@@ -159,13 +160,13 @@
             {/each}
         </div>
         {#if filteredTokens.length > displayCount}
-            <button on:click={showMore} class="show-more">Show More</button>
+            <div class="sentinel" use:inview={{ threshold: 1 }} on:inview_enter={showMore}></div>
         {/if}
     </div>
 </div>
 
 <style>
-    .show-more {
+    /*.show-more {
         display: block;
         margin: 0px auto 40px auto;
         padding: 10px 20px;
@@ -178,5 +179,9 @@
     }
     .show-more:hover {
         background-color: #0056b3;
+    }*/
+    .sentinel {
+        height: 1px;
+        width: 100%;
     }
 </style>

@@ -6,6 +6,7 @@
     import TokenCard from '$lib/component/ui/TokenCard.svelte';
     import Switch from '$lib/component/ui/Switch.svelte';
     import { onDestroy } from 'svelte';
+    import { inview } from 'svelte-inview';
     
     export let data: PageData;
     let collections: Collection[] = data.collections;
@@ -115,7 +116,7 @@
             {/each}
         </div>
         {#if tokens.length > displayCount}
-            <button on:click={showMore} class="show-more">Show More</button>
+            <div class="sentinel" use:inview={{ threshold: 1 }} on:inview_enter={showMore}></div>
         {/if}
     {:else}
         <div class="flex flex-wrap justify-center">
@@ -126,12 +127,12 @@
             {/each}
         </div>
         {#if filterCollections.length > displayCount}
-            <button on:click={showMore} class="show-more">Show More</button>
+            <div class="sentinel" use:inview={{ threshold: 1 }} on:inview_enter={showMore}></div>
         {/if}
     {/if}
 </div>
 <style>
-    .show-more {
+    /*.show-more {
         display: block;
         margin: 40px auto;
         padding: 10px 20px;
@@ -144,5 +145,9 @@
     }
     .show-more:hover {
         background-color: #0056b3;
+    }*/
+    .sentinel {
+        height: 1px;
+        width: 100%;
     }
 </style>

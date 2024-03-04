@@ -20,7 +20,6 @@
 
         getTokens();
     });
-    console.log(collection);
 
     async function getTokens() {
         let url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/tokens/?contractId=${collection.contractId}&limit=3`;
@@ -108,7 +107,7 @@
             <div class="z-20">
                 <div>{tokens[0].metadata.name.replace(/[1#]/g, '')}</div>
                 <div>ID: {tokens[0].contractId}</div>
-                <div>Tokens: {tokens.length}</div>
+                <div>Tokens: {collection.totalSupply}</div>
                 <div>Unique holders: {collection.uniqueOwners}</div>
             </div>
         </div>
