@@ -9,7 +9,7 @@ export const load = (async ({ params, fetch }) => {
 
 	if (contractId) {
 
-		tokens = await getTokens({ contractId, fetch });
+		tokens = (await getTokens({ contractId, fetch })).sort((a: Token, b: Token) => a.tokenId - b.tokenId);
 		collectionName = tokens[0].metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
 
 		// get marketplace data for collection

@@ -5,10 +5,9 @@
     import { A } from 'flowbite-svelte';
     import type { Token, Transfer, Sale } from '$lib/data/types';
 	import { getNFD } from '$lib/utils/nfd';
-    import { arc200 as Contract } from "ulujs";
-	import { algodClient, algodIndexer } from '$lib/utils/algod';
 	import Modal from './Modal.svelte';
     import Switch from './Switch.svelte';
+	import { getCurrency } from '$lib/utils/currency';
 
     export let token: Token;
     let tokenId = token.tokenId;
@@ -106,33 +105,9 @@
             // look for salesData.transactionId that matches transfers.transactionId. if found, set transfers.salePrice to salesData.price
             for (let t of transfers) {
                 const sale = salesData.sales.find((s: Sale) => s.transactionId === t.transactionId);
-                if (sale && sale.currency == 0) {
+                if (sale) {
                     t.salePrice = sale.price;
-                    t.saleCurrency = {
-                        id: 0,
-                        name: "Voi",
-                        symbol: "VOI",
-                        decimals: 6,
-                    };
-                }
-                else if (sale && typeof sale.currency !== 'undefined') {
-                    try {
-                        t.salePrice = sale.price;
-                        const ctc = new Contract(Number(sale.currency), algodClient, algodIndexer);
-                        const decimals = await ctc.arc200_decimals();
-                        const name = await ctc.arc200_name();
-                        const symbol = await ctc.arc200_symbol();
-
-                        t.saleCurrency = {
-                            id: sale.currency,
-                            name: (name.success) ? name.returnValue : '',
-                            symbol: (symbol.success) ? symbol.returnValue : '',
-                            decimals: (decimals.success) ? Number(decimals.returnValue) : 0,
-                        };
-                    }
-                    catch (err) {
-                        console.error(err);
-                    }
+                    t.saleCurrency = await getCurrency(sale.currency);
                 }
             }
         }
@@ -203,7 +178,7 @@
                             <td class="px-4 py-3"><A href='/portfolio/{transfer.to}'>{nfdMap[transfer.to] ? nfdMap[transfer.to] : formatAddr(transfer.to)}</A></td>
                             <td class="px-4 py-3">
                                 {#if transfer.salePrice}
-                                    {transfer.salePrice / Math.pow(10,transfer.saleCurrency?.decimals??0)} {transfer.saleCurrency?.symbol??''}
+                                    {transfer.salePrice / Math.pow(10,transfer.saleCurrency?.decimals??0)} {transfer.saleCurrency?.unitName??''}
                                     <span role="img" aria-label="Celebration">🎉</span>
                                 {:else}
                                     -
@@ -238,7 +213,7 @@
             <div class="text-sm">To: <A href='/portfolio/{selectedTx.to}'>{nfdMap[selectedTx.to] ? nfdMap[selectedTx.to] : formatAddr(selectedTx.to)}</A></div>
             <div class="text-sm">
                 {#if selectedTx.salePrice}
-                    Sale Price: {selectedTx.salePrice / Math.pow(10,selectedTx.saleCurrency?.decimals??0)} {selectedTx.saleCurrency?.symbol??''}
+                    Sale Price: {selectedTx.salePrice / Math.pow(10,selectedTx.saleCurrency?.decimals??0)} {selectedTx.saleCurrency?.unitName??''}
                 {:else}
                     Sale Price: -
                 {/if}

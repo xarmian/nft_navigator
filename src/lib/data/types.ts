@@ -23,7 +23,7 @@ export interface Transfer {
     transactionId: string;
     timestamp: number;
     salePrice: number | null;
-    saleCurrency: Currency;
+    saleCurrency: Currency | null;
 }
 
 export interface Collection {
@@ -78,9 +78,10 @@ export interface Sale {
 }
 
 export interface Currency {
-    id: number;
+    assetId: number;
     name: string;
-    symbol: string;
+    unitName: string
+    total: number;
     decimals: number;
 }
 

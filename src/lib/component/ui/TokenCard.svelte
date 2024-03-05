@@ -4,8 +4,7 @@
     import TokenName from './TokenName.svelte';
     import { A, Card } from 'flowbite-svelte';
 	import { onMount } from 'svelte';
-    import { arc200 as Contract } from "ulujs";
-	import { algodClient, algodIndexer } from '$lib/utils/algod';
+	import { getCurrency } from '$lib/utils/currency';
 
     export let token: Token | null = null;
     export let listing: Listing | null = null;
@@ -39,27 +38,7 @@
                     });
             }
             
-            if (listing.currency == 0) {
-                currency = {
-                    id: 0,
-                    name: 'Voi',
-                    symbol: 'VOI',
-                    decimals: 6,
-                };
-            }
-            else {
-                const ctc = new Contract(Number(listing.currency), algodClient, algodIndexer);
-                const decimals = await ctc.arc200_decimals();
-                const name = await ctc.arc200_name();
-                const symbol = await ctc.arc200_symbol();
-
-                currency = {
-                    id: listing.currency,
-                    name: (name.success) ? name.returnValue : '',
-                    symbol: (symbol.success) ? symbol.returnValue : '',
-                    decimals: (decimals.success) ? Number(decimals.returnValue) : 0,
-                };
-            }
+            currency = await getCurrency(listing.currency);
         }
     });
 
@@ -171,7 +150,7 @@
                         {/if}
                         {#if listing && !listing.sale && !listing.delete}
                             {#if currency}
-                                <div class="badge top-right"><div>For Sale</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.symbol}</div></div>
+                                <div class="badge top-right"><div>For Sale</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}</div></div>
                             {:else}
                                 <div class="badge top-right"><div>For Sale</div><div class="text-xxs">See Marketplace</div></div>
                             {/if}
