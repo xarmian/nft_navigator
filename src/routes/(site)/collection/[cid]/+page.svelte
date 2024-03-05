@@ -9,7 +9,6 @@
     //@ts-ignore
     import Device from 'svelte-device-info';
 	import Switch from '$lib/component/ui/Switch.svelte';
-    import { filters as filterToggles } from '../../../../stores/collection';
     import { MetaTags } from 'svelte-meta-tags';
     import { inview } from 'svelte-inview';
 
@@ -23,6 +22,7 @@
     let filters = {} as { [key: string]: string };
     let isMobile = false;
     let searchText = '';
+    let forSaleCollection = false;
 
     onMount(() => {
         isMobile = Device.isMobile;
@@ -58,7 +58,7 @@
 
         // filter tokens using filters
         filteredTokens = tokens.filter(token => {
-            if ($filterToggles.forSale && (!token.marketData || token.marketData?.sale || token.marketData?.delete)) return false;
+            if (forSaleCollection && (!token.marketData || token.marketData?.sale || token.marketData?.delete)) return false;
             if (searchText !== ''
                 && !token.metadata.name.toLowerCase().includes(searchText.toLowerCase())
                 && !token.traits?.some(trait => trait.toLowerCase().includes(searchText.toLowerCase()))
@@ -142,7 +142,7 @@
                 </button>
             </div>
             <div class="flex justify-end p-4">
-                <Switch label="For Sale" bind:checked={$filterToggles.forSale} />
+                <Switch label="For Sale" bind:checked={forSaleCollection} />
             </div>
         </div>
         {#if isMobile}
