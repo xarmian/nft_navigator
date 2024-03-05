@@ -5,6 +5,7 @@
     import CollectionComponent from '$lib/component/ui/Collection.svelte';
     import TokenCard from '$lib/component/ui/TokenCard.svelte';
     import Switch from '$lib/component/ui/Switch.svelte';
+    import Select from '$lib/component/ui/Select.svelte';
     import { onDestroy } from 'svelte';
     import { inview } from 'svelte-inview';
     
@@ -17,7 +18,7 @@
     let tokens: Token[] = [];
     let filterTokens: Token[] = [];
     let textFilter = '';
-    let currencyList = [ { id: 0, name: 'VOI' }, { id: 6779767, name: 'VIA' } ];
+    let currencyList = [ { id: '0', name: 'VOI' }, { id: '6779767', name: 'VIA' } ];
 
     $: if ($filters.forSale) {
         if (listings == null) {
@@ -135,30 +136,9 @@
 <div class="flex justify-between">
     <div class="m-4 flex justify-start">
         {#if $filters.forSale}
-            <div class="relative inline-flex dark:bg-gray-800">
-                <svg class="w-2 h-2 absolute top-0 right-0 m-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 412 232"><path d="M206 171.144L42.678 7.822c-9.763-9.763-25.592-9.763-35.355 0-9.763 9.762-9.763 25.591 0 35.354l189.21 189.209c9.372 9.373 24.749 9.373 34.121 0l189.21-189.209c9.763-9.763 9.763-25.592 0-35.354-9.763-9.763-25.592-9.763-35.355 0L206 171.144z" fill="#648299" fill-rule="nonzero"/></svg>
-                <select bind:value={$sort.by} class="border border-gray-300 rounded-full text-gray-600 h-10 pl-5 pr-10 bg-white hover:border-gray-400 focus:outline-none appearance-none dark:bg-gray-800 dark:text-white">
-                    <option>Name</option>
-                    <option>Price</option>
-                    <option>Rank</option>
-                </select>
-            </div>
-            <div class="relative inline-flex ml-4 dark:bg-gray-800">
-                <svg class="w-2 h-2 absolute top-0 right-0 m-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 412 232"><path d="M206 171.144L42.678 7.822c-9.763-9.763-25.592-9.763-35.355 0-9.763 9.762-9.763 25.591 0 35.354l189.21 189.209c9.372 9.373 24.749 9.373 34.121 0l189.21-189.209c9.763-9.763 9.763-25.592 0-35.354-9.763-9.763-25.592-9.763-35.355 0L206 171.144z" fill="#648299" fill-rule="nonzero"/></svg>
-                <select bind:value={$sort.direction} class="border border-gray-300 rounded-full text-gray-600 h-10 pl-5 pr-10 bg-white hover:border-gray-400 focus:outline-none appearance-none dark:bg-gray-800 dark:text-white">
-                    <option>Ascending</option>
-                    <option>Descending</option>
-                </select>
-            </div>
-            <div class="relative inline-flex ml-4 dark:bg-gray-800">
-                <svg class="w-2 h-2 absolute top-0 right-0 m-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 412 232"><path d="M206 171.144L42.678 7.822c-9.763-9.763-25.592-9.763-35.355 0-9.763 9.762-9.763 25.591 0 35.354l189.21 189.209c9.372 9.373 24.749 9.373 34.121 0l189.21-189.209c9.763-9.763 9.763-25.592 0-35.354-9.763-9.763-25.592-9.763-35.355 0L206 171.144z" fill="#648299" fill-rule="nonzero"/></svg>
-                <select bind:value={$filters.currency} class="border border-gray-300 rounded-full text-gray-600 h-10 pl-5 pr-10 bg-white hover:border-gray-400 focus:outline-none appearance-none dark:bg-gray-800 dark:text-white">
-                    <option value='*'>Any Token</option>
-                    {#each currencyList as currency}
-                        <option value={currency.id}>{currency.name}</option>
-                    {/each}
-                </select>
-            </div>
+            <Select options={[{id: 'Name', name: 'Name'}, {id: 'Price', name: 'Price'}, {id: 'Rank', name: 'Rank'}]} bind:value={$sort.by} containerClass="m-1"></Select>
+            <Select options={[{id: 'Ascending', name: 'Ascending'}, {id: 'Descending', name: 'Descending'}]} bind:value={$sort.direction} containerClass="m-1"></Select>
+            <Select options={[{id:"*",name:"Any Token"},...currencyList]} bind:value={$filters.currency} containerClass="m-1"></Select>
         {/if}
     </div>
     <div class="m-4 flex justify-end">
