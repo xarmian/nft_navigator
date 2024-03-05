@@ -1,17 +1,17 @@
 // types.ts
 export interface Token {
     owner: string;
-    ownerNFD: string | unknown;
+    ownerNFD?: string | unknown;
     contractId: number;
     tokenId: number;
     mintRound: number;
     metadata: Metadata;
     metadataURI: string;
     approved: string;
-	marketData: Listing | null | undefined;
-    salesData: Sale | null | undefined;
+	marketData?: Listing | null | undefined;
+    salesData?: Sale | null | undefined;
     rank: number | null;
-	traits: string[] | undefined;
+	traits?: string[] | undefined;
 }
 
 export interface Transfer {
@@ -33,7 +33,7 @@ export interface Collection {
     totalSupply: number;
     mintRound: number;
     tokens: Token[];
-    uniqueOwners: number | undefined;
+    uniqueOwners?: number | undefined;
 }
 
 export interface RawToken {

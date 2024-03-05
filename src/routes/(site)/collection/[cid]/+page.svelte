@@ -24,8 +24,6 @@
     let isMobile = false;
     let searchText = '';
 
-    const zeroAddress = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
-
     onMount(() => {
         isMobile = Device.isMobile;
     });
@@ -45,7 +43,7 @@
                     combinedProperties[key] = { [value]: 1 };
                 }
 
-                token.traits = Object.entries(token.metadata.properties).map(([key, value]) => key + ': ' + value);
+                // token.traits = Object.entries(token.metadata.properties).map(([key, value]) => key + ': ' + value);
             });
         });
 

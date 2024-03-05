@@ -2,76 +2,23 @@
     import type { Token, Collection } from '$lib/data/types';
 	import { onMount } from 'svelte';
     import { Card } from 'flowbite-svelte';
-    import { getNFD } from '$lib/utils/nfd';
-    import { viewCollection, tokenGroup } from '../../../stores/collection';
 	import { goto } from '$app/navigation';
-    //@ts-ignore
-    import Device from 'svelte-device-info';
     import voiGamesImage from '$lib/assets/voi-games-small.png';
+    import { getTokens } from '$lib/utils/indexer';
 
     export let collection: Collection;
     export let selectedAddress: string = '';
     export let styleClass = '';
     let tokens: Token[] = [];
-    $: isMobile = false;
 
     onMount(() => {
-        isMobile = Device.isMobile;
-
-        getTokens();
+        getTokens({ contractId: collection.contractId, owner: selectedAddress, fetch, limit: 3 }).then((data: Token[]) => {
+            tokens = data;
+        });
     });
-
-    async function getTokens() {
-        let url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/tokens/?contractId=${collection.contractId}&limit=3`;
-        if (selectedAddress.length > 0) {
-            url += `?owner=${selectedAddress}`;
-        }
-
-        try {
-            const data = await fetch(url).then((response) => response.json());
-            tokens = data.tokens.map((token: any) => {
-                return {
-                    contractId: token.contractId,
-                    tokenId: token.tokenId,
-                    owner: token.owner,
-                    metadataURI: token.metadataURI,
-                    metadata: JSON.parse(token.metadata),
-                    mintRound: token['mint-round'],
-                    approved: token.approved,
-                }
-            });
-
-        }
-        catch(err) {
-            console.error(err);
-        }
-    }
-
-    async function displayCollection(c: Collection) {
-        goto(`/collection/${c.contractId}`);
-        return;
-
-        let owners = [...new Set(tokens.map((t: Token) => t.owner))];
-
-        if (owners.length > 0) {
-            const nfd: any = await getNFD(owners); // nfd is array of objects with key = owner, replacementValue = nfd
-
-            // for each token, replace owner with nfd replacementValue
-            tokens = tokens.map((t: Token) => {
-                const nfdObj = nfd.find((n: any) => n.key === t.owner);
-                if (nfdObj) {
-                    t.ownerNFD = nfdObj.replacementValue;
-                }
-                return t;
-            });
-        }
-
-        tokenGroup.set(tokens);
-        viewCollection.set(true);
-    }
 </script>
 
-<div class="relative cursor-pointer transform hover:scale-110 transition-transform duration-200" on:click={() => displayCollection(collection)}>
+<div class="relative cursor-pointer transform hover:scale-110 transition-transform duration-200" on:click={() => goto(`/collection/${collection.contractId}`)}>
     {#if tokens && tokens.length >= 1}
         <div class="{styleClass}">
             <div class="flex justify-center -space-x-36 group-hover:-space-x-48 transition-all duration-500">

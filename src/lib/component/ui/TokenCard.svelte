@@ -139,7 +139,7 @@
                             <div class="text-center">
                                 <button class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-16 ml-1 mr-1" on:click|stopPropagation={() => window.open(marketurl,'_blank')}>
                                     <i class="fas fa-store" aria-details="Marketplace"></i>
-                                    <div class="text-xs">Market</div>
+                                    <div class="text-xs">Market <i class="fas fa-external-link-alt"></i></div>
                                 </button>
                             </div>
                             <div class="text-center">

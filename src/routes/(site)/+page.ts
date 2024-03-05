@@ -2,18 +2,11 @@
 import type { PageLoad } from './$types';
 import type { Collection } from '$lib/data/types';
 import voiGames from '$lib/data/voiGames.json';
+import { getCollections } from '$lib/utils/indexer';
 
 export const load = (async ({ fetch }) => {
-    const url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/collections/?includes=unique-owners`;
-    let collections: Collection[] = [];
-    
-    try {
-        const data = await fetch(url).then((response) => response.json());
-        collections = data.collections.filter((c: Collection) => c.firstToken !== null);
-    }
-    catch(err) {
-        console.error(err);
-    }
+    let collections: Collection[] = await getCollections({ fetch, includes: 'unique-owners', contractId: undefined });
+    collections = collections.filter((c: Collection) => c.firstToken !== null);
 
 	return {
 		collections,
