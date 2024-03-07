@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
     import type { Token, Listing, Currency } from '$lib/data/types';
     import TokenName from './TokenName.svelte';
     import { A, Card } from 'flowbite-svelte';
@@ -68,7 +67,7 @@
                 return { trait_type: key, value: token?.metadata.properties[key as keyof typeof token.metadata.properties] };
             });
 
-            infourl = `/collection/${token.contractId}/token/${token.tokenId}`;
+            infourl = (`/collection/${token.contractId}/token/${token.tokenId}`);
             collectionurl = `/collection/${token.contractId}`;
             marketurl = `https://nautilus.sh/#/collection/${token.contractId}/token/${token.tokenId}`;
 
@@ -103,10 +102,10 @@
     <div class="card">
         {#if token}
             {#if flipped}
-                <div class="side cursor-pointer" transition:flip={{}} on:click={() => goto(infourl)}>
+                <a class="side cursor-pointer" transition:flip={{}} href={infourl}>
                     <Card class="flex justify-between" style="height: 315px;width:290px;">
                         <div class="overflow-auto h-5/6">
-                            <div class="text-2xl font-bold mb-2"><A on:click={() => goto(infourl)}><TokenName name={token.metadata.name}></TokenName></A></div>
+                            <div class="text-2xl font-bold mb-2"><TokenName name={token.metadata.name}></TokenName></div>
                             {#each tokenProps as prop}
                                 <div class="text-sm">
                                     <div class="font-bold inline">{prop.trait_type}</div>: {prop.value}
@@ -122,22 +121,22 @@
                                 </button>
                             </div>
                             <div class="text-center">
-                                <button class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-16 ml-1 mr-1" on:click|stopPropagation={() => goto(infourl)}>
+                                <a class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-16 ml-1 mr-1 inline-block">
                                     <i class="fas fa-info-circle" aria-details="Info"></i>
                                     <div class="text-xs">Detail</div>
-                                </button>
+                                </a>
                             </div>
                             {#if includeCollection}
                                 <div class="text-center">
-                                    <button class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-16 ml-1 mr-1" on:click|stopPropagation={() => goto(collectionurl)}>
+                                    <a class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-16 ml-1 mr-1 inline-block" on:click|stopPropagation href={collectionurl}>
                                         <i class="fas fa-file-contract" aria-details="Collection"></i>
                                         <div class="text-xs">Collection</div>
-                                    </button>
+                                    </a>
                                 </div>
                             {/if}
                         </div>
                     </Card>
-                </div>
+                </a>
             {:else}
             <div class="side back" transition:flip={{}} on:click|stopPropagation>
                 <Card padding="none">

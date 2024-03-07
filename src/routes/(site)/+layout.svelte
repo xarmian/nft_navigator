@@ -30,10 +30,10 @@
 		<div class="flex justify-center">
 			<div class="bg-white shadow rounded-lg overflow-hidden dark:bg-gray-600 inline-flex">
 				<ul class="flex divide-x divide-gray-300 dark:divide-gray-500">
-					<button on:click={() => goto(`/`)} class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer overflow-hidden">Collections</button>
-					<button on:click={() => goto(`/forsale`)} class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">For Sale</button>
+					<a href='/' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer overflow-hidden">Collections</a>
+					<a href='/forsale' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">For Sale</a>
 					{#if $selectedWallet}
-						<button on:click={() => goto(`/portfolio/${$selectedWallet?.address}`)} class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">My Portfolio</button>
+						<a href='/portfolio/{$selectedWallet?.address}' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">My Portfolio</a>
 					{/if}
 				</ul>
 			</div>

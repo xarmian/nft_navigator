@@ -1,6 +1,5 @@
 <script lang="ts">
     import type { Token, Collection } from '$lib/data/types';
-    import { A } from 'flowbite-svelte';
 	import { onMount } from 'svelte';
     import TokenName from '$lib/component/ui/TokenName.svelte';
     //@ts-ignore
@@ -124,22 +123,22 @@
         <div class="mb-2">
             {token.metadata?.description??''}
         </div>
-        <div class="text-2xl font-bold mb-2 text-purple-900 dark:text-purple-100"><A href="/collection/{token.contractId}/token/{token.tokenId}"><TokenName name={token.metadata.name}></TokenName></A></div>
+        <div class="text-2xl font-bold mb-2 text-purple-900 dark:text-purple-100"><a href="/collection/{token.contractId}/token/{token.tokenId}"><TokenName name={token.metadata.name}></TokenName></a></div>
         <div class="mb-2">
             <div>Token ID: {token.tokenId}
             {#if collection}
                 / {collection.totalSupply}
             {/if}
             </div>
-            <div>Collection: <A href="/collection/{token.contractId}">{collectionName}</A></div>
+            <div>Collection: <a href="/collection/{token.contractId}">{collectionName}</a></div>
             {#if token.rank}
                 <div>Ranking: {token.rank}</div>
             {/if}
-            <div>Owned by: <A href="/portfolio/{token.owner}">{formattedOwner}</A></div>
+            <div>Owned by: <a href="/portfolio/{token.owner}">{formattedOwner}</a></div>
             {#if token.approved && token.approved != 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ'}
-                <div>Approved Spender: <A href="/portfolio/{token.approved}">{formattedApproved}</A></div>
+                <div>Approved Spender: <a href="/portfolio/{token.approved}">{formattedApproved}</a></div>
             {/if}
-            <div>Mint Round: <A href="https://voi.observer/explorer/block/{token.mintRound}/transactions" target="_blank">{token.mintRound}</A></div>
+            <div>Mint Round: <a href="https://voi.observer/explorer/block/{token.mintRound}/transactions" target="_blank">{token.mintRound}</a></div>
             {#if royaltyPercentage > 0}
                 <div>Royalties: {royaltyPercentage / 100}%</div>
             {/if}

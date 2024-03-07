@@ -11,6 +11,7 @@
     import { reformatTokenName } from '$lib/utils/indexer';
     //@ts-ignore
     import Device from 'svelte-device-info';
+	import { abiTypeIsTransaction } from 'algosdk';
 
     $: isMobile = false;
     export let data: PageData;
@@ -48,9 +49,6 @@
         //window.location.href = token.metadata.image;
     }
 
-    const goToCollection = () => {
-        if (token) goto(`/collection/${token.contractId}`);
-    }
 </script>
 <MetaTags title={tokenName} 
     titleTemplate="%s | NFT Navigator"
@@ -88,18 +86,18 @@
                 </button>
                 {#if isMenuOpen}
                     <div class="menu">
-                        <button class="mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToMarketplace}>Marketplace <i class="fas fa-external-link-alt"></i></button>
-                        <button class="mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToContract}>Contract <i class="fas fa-external-link-alt"></i></button>
-                        <button class="mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={() => window.open('https://highforge.io/project/'+contractId)}>High Forge <i class="fas fa-external-link-alt"></i></button>
-                        <button class="bg-gray-200 dark:bg-gray-600 opacity-50 !cursor-not-allowed" on:click={goToProjectPage}>Project Page</button>
+                        <a class="mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToMarketplace}>Marketplace <i class="fas fa-external-link-alt"></i></a>
+                        <a class="mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToContract}>Contract <i class="fas fa-external-link-alt"></i></a>
+                        <a class="mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={() => window.open('https://highforge.io/project/'+contractId)}>High Forge <i class="fas fa-external-link-alt"></i></a>
+                        <a class="bg-gray-200 dark:bg-gray-600 opacity-50 !cursor-not-allowed" on:click={goToProjectPage}>Project Page</a>
                     </div>
                 {/if}
             </div>
         {:else}
-            <button class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToCollection}><i class='fas fa-arrow-left'></i> Collection</button>
-            <button class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToMarketplace}>Marketplace <i class="fas fa-external-link-alt"></i></button>
-            <button class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToContract}>Contract <i class="fas fa-external-link-alt"></i></button>
-            <button class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={() => window.open('https://highforge.io/project/'+contractId)}>High Forge <i class="fas fa-external-link-alt"></i></button>
+            <a class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" href={`/collection/${token?.contractId}`}><i class='fas fa-arrow-left'></i> Collection</a>
+            <a class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToMarketplace}>Marketplace <i class="fas fa-external-link-alt"></i></a>
+            <a class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToContract}>Contract <i class="fas fa-external-link-alt"></i></a>
+            <a class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={() => window.open('https://highforge.io/project/'+contractId)}>High Forge <i class="fas fa-external-link-alt"></i></a>
             <!--<button class="mr-2 bg-gray-200 dark:bg-gray-600 opacity-50 !cursor-not-allowed" on:click={goToProjectPage}>Project Page <i class="fas fa-external-link-alt"></i></button>-->
         {/if}
     </div>
@@ -117,7 +115,7 @@
         align-items: center;
         margin-bottom: 1rem;
     }
-    button {
+    a {
         padding: 0.5rem 1rem;
         border: none;
         border-radius: 0.5rem;
