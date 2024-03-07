@@ -18,7 +18,7 @@
     });
 </script>
 
-<div class="relative cursor-pointer transform hover:scale-110 transition-transform duration-200" on:click={() => goto(`/collection/${collection.contractId}`)}>
+<a class="relative cursor-pointer transform hover:scale-110 transition-transform duration-200" href={`/collection/${collection.contractId}`}>
     {#if tokens && tokens.length >= 1}
         <div class="{styleClass}">
             <div class="flex justify-center -space-x-36 group-hover:-space-x-48 transition-all duration-500">
@@ -59,7 +59,7 @@
             </div>
         </div>
     {/if}
-</div>
+</a>
 
 <style>
     img {
