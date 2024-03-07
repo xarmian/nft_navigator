@@ -37,7 +37,8 @@
 		"tslib": "^2.6.2",
 		"typescript": "^5.3.3",
 		"ulujs": "^0.2.4",
-		"vite": "^5.1.4"
+		"vite": "^5.1.4",
+		"avm-wallet-svelte": "^0.0.1"
 	},
 	"type": "module",
 	"dependencies": {

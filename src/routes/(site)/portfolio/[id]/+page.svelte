@@ -5,6 +5,9 @@
 	import { A } from 'flowbite-svelte';
     import { Tabs, TabItem, Indicator, Breadcrumb, BreadcrumbItem } from 'flowbite-svelte';
     import { HomeOutline, ChevronDoubleRightOutline } from 'flowbite-svelte-icons';
+    import { onMount, onDestroy } from 'svelte';
+    import { selectedWallet } from 'avm-wallet-svelte';
+	import { goto } from '$app/navigation';
 
     export let data: PageData;
     $: walletId = data.props.walletId;
@@ -12,6 +15,21 @@
     $: walletNFD = data.props.walletNFD;
     $: tokens = data.props.tokens;
     $: approvals = data.props.approvals;
+    let pageLoaded = false;
+
+    onMount(() => {
+        pageLoaded = true;
+    });
+
+    const unsub = selectedWallet.subscribe((value) => {
+        if (pageLoaded && value?.address) {
+            goto('/portfolio/' + value?.address);
+        }
+    });
+
+    onDestroy(() => {
+        unsub();
+    });
 
     $: formattedWallet = (walletIds) ? (walletIds[0].length > 8
         ? `${walletIds[0].slice(0, 8)}...${walletIds[0].slice(-8)}`

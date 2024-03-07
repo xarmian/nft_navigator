@@ -4,6 +4,14 @@
 	import { goto } from '$app/navigation';
 	import { DarkMode } from 'flowbite-svelte';
 	import Icon from '$lib/assets/android-chrome-192x192.png';
+	import { Web3Wallet, selectedWallet } from 'avm-wallet-svelte';
+	import { onMount } from 'svelte';
+
+	let showWalletSearch = false;
+
+	onMount(() => {
+		console.log($selectedWallet);
+	});
 
     const onSearch = (addr: string) => {
         goto(`/portfolio/${addr}`);
@@ -19,9 +27,30 @@
 		<img src="{Icon}" class="mr-3 h-12 rounded-2xl" alt="Logo" />
 		<div on:click={() => goto('/')} class="cursor-pointer text-2xl font-bold content-center hide-on-mobile">NFT Navigator</div>
         <div class="flex-grow content-center">
-            <WalletSearch onSubmit={onSearch} loadPreviousValue={false}/>
+			{#if $selectedWallet}
+				<div class="flex justify-center">
+					<div class="bg-white shadow rounded-lg dark:bg-gray-600 inline-flex">
+						<ul class="flex divide-x divide-gray-300 dark:divide-gray-500">
+							<button on:click={() => goto(`/portfolio/${$selectedWallet?.address}`)} class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer rounded-lg">My Portfolio</button>
+						</ul>
+					</div>
+				</div>
+			{/if}
         </div>
-		<DarkMode />
+		<div class="flex place-items-end">
+			{#if showWalletSearch}
+				<div class="mr-2 relative">
+		            <WalletSearch onSubmit={onSearch} loadPreviousValue={false}/>
+				</div>
+			{/if}
+			<button on:click={() => showWalletSearch = !showWalletSearch} class="h-10 w-10 rounded-2xl bg-slate-500 flex items-center justify-center mr-2">
+				<i class="fas fa-search cursor-pointer"></i>
+			</button>
+			<div class="w-48">
+				<Web3Wallet />
+			</div>
+			<DarkMode />
+		</div>
     </header>
 	<main>
 		<slot />
