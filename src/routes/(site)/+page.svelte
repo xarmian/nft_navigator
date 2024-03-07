@@ -172,7 +172,7 @@
         <div class="flex flex-wrap justify-center">
             {#each filterCollections.slice(0, displayCount) as collection (collection.contractId)}
                 <div class="inline-block">
-                    <CollectionComponent styleClass="ml-16 mr-16 mt-16" collection={collection}></CollectionComponent>
+                    <CollectionComponent styleClass="ml-14 mr-14 mt-8 mb-24" collection={collection}></CollectionComponent>
                 </div>
             {/each}
         </div>

@@ -23,7 +23,7 @@
 </script>
 
 <div class="app dark:text-white">
-    <header class="bg-gray-100 dark:bg-gray-700 py-4 px-8 flex">
+    <header class="bg-gray-100 dark:bg-gray-800 py-4 px-8 flex border-b border-b-gray-200 dark:border-b-gray-900">
 		<img src="{Icon}" class="mr-3 h-12 rounded-2xl" alt="Logo" />
 		<div on:click={() => goto('/')} class="cursor-pointer text-2xl font-bold content-center hide-on-mobile">NFT Navigator</div>
         <div class="flex-grow content-center">
