@@ -104,7 +104,7 @@
         {#if token}
             {#if flipped}
                 <div class="side cursor-pointer" transition:flip={{}} on:click={() => goto(infourl)}>
-                    <Card class="flex justify-between" style="height: 270px; width:240px;">
+                    <Card class="flex justify-between" style="height: 315px;width:290px;">
                         <div class="overflow-auto h-5/6">
                             <div class="text-2xl font-bold mb-2"><A on:click={() => goto(infourl)}><TokenName name={token.metadata.name}></TokenName></A></div>
                             {#each tokenProps as prop}
@@ -142,7 +142,7 @@
             <div class="side back" transition:flip={{}} on:click|stopPropagation>
                 <Card padding="none">
                     <div class="image-container relative rounded-t-lg overflow-hidden flex justify-center">
-                        <img src={token.metadata.image} alt={token.metadata.name} title={token.metadata.name} class="max-h-60 max-w-60 object-contain object-center"/>
+                        <img src={token.metadata.image} alt={token.metadata.name} title={token.metadata.name} class="max-h-72 max-w-72 object-contain object-center"/>
                         {#if token.rank}
                             <div class="absolute bottom-0 left-0 bg-gray-100 dark:bg-gray-400 text-black dark:text-gray-100 p-1 text-xs">
                                 <i class="fas fa-medal"></i> {token.rank}
@@ -218,8 +218,8 @@
 
 .card-container {
     position: relative;
-    height: 280px;
-    width: 240px;
+    height: 330px;
+    width: 290px;
 }
 
 .card {

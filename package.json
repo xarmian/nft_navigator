@@ -23,6 +23,7 @@
 		"@typescript-eslint/parser": "^6.21.0",
 		"@zerodevx/svelte-toast": "^0.9.5",
 		"autoprefixer": "^10.4.17",
+		"avm-wallet-svelte": "^0.0.1",
 		"eslint": "^8.57.0",
 		"eslint-config-prettier": "^8.10.0",
 		"eslint-plugin-svelte": "^2.35.1",
@@ -37,8 +38,7 @@
 		"tslib": "^2.6.2",
 		"typescript": "^5.3.3",
 		"ulujs": "^0.2.4",
-		"vite": "^5.1.4",
-		"avm-wallet-svelte": "^0.0.1"
+		"vite": "^5.1.4"
 	},
 	"type": "module",
 	"dependencies": {

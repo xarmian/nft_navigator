@@ -1,11 +1,13 @@
 import type { PageLoad } from './$types';
-import type { Token, Listing } from '$lib/data/types';
+import type { Token, Listing, IHighforgeProject } from '$lib/data/types';
 import { getTokens } from '$lib/utils/indexer';
+import voiGames from '$lib/data/voiGames.json';
 
 export const load = (async ({ params, fetch }) => {
 	const contractId = params.cid;
 	let tokens: Token[] = [];
 	let collectionName: string = '';
+	let isVoiGames: boolean = false;
 
 	if (contractId) {
 
@@ -54,11 +56,15 @@ export const load = (async ({ params, fetch }) => {
 		catch(err) {
 			console.error(err);
 		}
+
+		// check if included in voiGames
+		isVoiGames = (voiGames.find((v: IHighforgeProject) => v.applicationID === Number(contractId))) ? true : false;
 	}
 
 	return {
 		contractId: params.cid,
 		tokens,
 		collectionName,
+		isVoiGames: isVoiGames ? true : false,
 	};
 }) satisfies PageLoad;

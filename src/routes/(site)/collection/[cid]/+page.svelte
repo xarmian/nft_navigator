@@ -11,6 +11,7 @@
 	import Switch from '$lib/component/ui/Switch.svelte';
     import { MetaTags } from 'svelte-meta-tags';
     import { inview } from 'svelte-inview';
+    import voiGamesImage from '$lib/assets/voi-games-small.png';
 
     export let data: PageData;
     let contractId = data.contractId;
@@ -134,12 +135,14 @@
     <div>
         <div class="flex justify-between">
             <div class="flex flex-row">
-                <button on:click={() => window.open('https://highforge.io/project/'+contractId)} class="m-4 px-4 py-2 bg-blue-600 text-white rounded-md transition-colors duration-200 ease-in-out hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                <button on:click={() => window.open('https://highforge.io/project/'+contractId)} class="bg-opacity-20 m-4 px-4 py-2 bg-blue-600 text-gray-500 dark:text-gray-100 rounded-md transition-colors duration-200 ease-in-out hover:bg-blue-900 outline-1">
                     View on High Forge <i class="fas fa-external-link-alt"></i>
                 </button>
-                <button on:click={() => window.open('https://nft-games.boeieruurd.com/collections/'+contractId)} class="m-4 px-4 py-2 bg-blue-600 text-white rounded-md transition-colors duration-200 ease-in-out hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
-                    View on NFT Games Tracker <i class="fas fa-external-link-alt"></i>
-                </button>
+                {#if data.isVoiGames}
+                    <button on:click={() => window.open('https://nft-games.boeieruurd.com/collections/'+contractId)} class="bg-opacity-20 m-4 px-4 py-2 bg-blue-600 text-white rounded-md transition-colors duration-200 ease-in-out hover:bg-blue-900">
+                        <img src={voiGamesImage} class="h-12 inline-block" alt="Voi Games" /><i class="fas fa-external-link-alt inline-block"></i>
+                    </button>
+                {/if}
             </div>
             <div class="flex justify-end p-4">
                 <Switch label="For Sale" bind:checked={forSaleCollection} />
@@ -150,9 +153,9 @@
                 <input type="text" placeholder="Search" bind:value={searchText} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600" />
             </div>
         {/if}
-        <div class="flex flex-wrap flex-grow justify-center">
+        <div class="flex flex-wrap flex-grow justify-start">
             {#each filteredTokens.slice(0, displayCount) as token (token.tokenId)}
-                <div class="p-4">
+                <div class="p-1">
                     <TokenCard {token} />
                 </div>
             {/each}
