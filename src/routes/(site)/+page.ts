@@ -8,8 +8,15 @@ export const load = (async ({ fetch }) => {
     let collections: Collection[] = await getCollections({ fetch, includes: 'unique-owners', contractId: undefined });
     collections = collections.filter((c: Collection) => c.firstToken !== null);
 
+    voiGames.forEach((game: any) => {
+        collections.forEach((c: Collection) => {
+            if (c.contractId === game.applicationID) {
+                c.gameData = game;
+            }
+        });
+    });
+
 	return {
 		collections,
-        voiGames,
 	};
 }) satisfies PageLoad;

@@ -10,9 +10,14 @@ export const filters = writable({
     currency: '*',
 });
 
-export const sort = writable({
-    by: 'Name',
-    direction: 'Ascending',
+export const collectionSort = writable({
+    by: 'Mint',
+    direction: 'Descending',
+});
+
+export const saleSort = writable({
+    by: 'List',
+    direction: 'Descending',
 });
 
 export const currencies = writable(<Currency[]>[]);

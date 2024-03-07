@@ -27,15 +27,17 @@
 		<img src="{Icon}" class="mr-3 h-12 rounded-2xl" alt="Logo" />
 		<div on:click={() => goto('/')} class="cursor-pointer text-2xl font-bold content-center hide-on-mobile">NFT Navigator</div>
         <div class="flex-grow content-center">
-			{#if $selectedWallet}
-				<div class="flex justify-center">
-					<div class="bg-white shadow rounded-lg dark:bg-gray-600 inline-flex">
-						<ul class="flex divide-x divide-gray-300 dark:divide-gray-500">
-							<button on:click={() => goto(`/portfolio/${$selectedWallet?.address}`)} class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer rounded-lg">My Portfolio</button>
-						</ul>
-					</div>
-				</div>
-			{/if}
+		<div class="flex justify-center">
+			<div class="bg-white shadow rounded-lg overflow-hidden dark:bg-gray-600 inline-flex">
+				<ul class="flex divide-x divide-gray-300 dark:divide-gray-500">
+					<button on:click={() => goto(`/`)} class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer overflow-hidden">Collections</button>
+					<button on:click={() => goto(`/forsale`)} class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">For Sale</button>
+					{#if $selectedWallet}
+						<button on:click={() => goto(`/portfolio/${$selectedWallet?.address}`)} class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">My Portfolio</button>
+					{/if}
+				</ul>
+			</div>
+		</div>
         </div>
 		<div class="flex place-items-end">
 			{#if showWalletSearch}
