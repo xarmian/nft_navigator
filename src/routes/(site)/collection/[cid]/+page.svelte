@@ -132,19 +132,19 @@
             {/each}
         </div>
     {/if}
-    <div>
+    <div class="w-full">
         <div class="flex justify-between">
-            <div class="flex flex-row">
-                <button on:click={() => window.open('https://highforge.io/project/'+contractId)} class="bg-opacity-20 m-4 px-4 py-2 bg-blue-600 text-gray-500 dark:text-gray-100 rounded-md transition-colors duration-200 ease-in-out hover:bg-blue-900 outline-1">
+            <div class="flex">
+                <button on:click={() => window.open('https://highforge.io/project/'+contractId)} class="bg-opacity-20 m-4 px-4 py-1 bg-blue-600 text-gray-500 dark:text-gray-100 rounded-md transition-colors duration-200 ease-in-out hover:bg-blue-900 outline-1">
                     View on High Forge <i class="fas fa-external-link-alt"></i>
                 </button>
                 {#if data.isVoiGames}
-                    <button on:click={() => window.open('https://nft-games.boeieruurd.com/collections/'+contractId)} class="bg-opacity-20 m-4 px-4 py-2 bg-blue-600 text-white rounded-md transition-colors duration-200 ease-in-out hover:bg-blue-900">
+                    <button on:click={() => window.open('https://nft-games.boeieruurd.com/collections/'+contractId)} class="bg-opacity-20 m-4 px-4 py-1 bg-blue-600 text-white rounded-md transition-colors duration-200 ease-in-out hover:bg-blue-900">
                         <img src={voiGamesImage} class="h-12 inline-block" alt="Voi Games" /><i class="fas fa-external-link-alt inline-block"></i>
                     </button>
                 {/if}
             </div>
-            <div class="flex justify-end p-4">
+            <div class="p-4">
                 <Switch label="For Sale" bind:checked={forSaleCollection} />
             </div>
         </div>
