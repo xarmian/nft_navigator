@@ -39,7 +39,7 @@
                         <td class="dark:border-gray-500">{new Date(sale.timestamp*1000).toLocaleString()}</td>
                         <td class="dark:border-gray-500"><a href={'https://voi.observer/explorer/block/'+sale.round+'/transactions'} target="_blank">{sale.round}</a></td>
                         <td class="dark:border-gray-500"><a href={'https://voi.observer/explorer/transaction/'+sale.transactionId} target="_blank">{sale.transactionId.slice(0,12)}...</a></td>
-                        <td class="dark:border-gray-500"><a href={`/contract/${sale.collectionId}/token/${sale.tokenId}`}>{sale.tokenId}</a></td>
+                        <td class="dark:border-gray-500"><a href={`/collection/${sale.collectionId}/token/${sale.tokenId}`}>{sale.tokenId}</a></td>
                         <td class="dark:border-gray-500">
                             {sale.seller.slice(0,8)}...{sale.seller.slice(-8)}
                             <i use:copy={sale.seller} class="fas fa-copy pointer" on:svelte-copy={() => toast.push(`Wallet Copied to Clipboard:<br/> ${sale.seller.substring(0,20)}...`)}></i>
