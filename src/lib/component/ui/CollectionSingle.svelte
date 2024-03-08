@@ -66,7 +66,7 @@
                     {/each}
                 </a>
             {:else}
-                <div class="side back bg-white dark:bg-black relative" transition:flip={{}} on:click|stopPropagation>
+                <div class="side back bg-gray-100 dark:bg-black relative" transition:flip={{}} on:click|stopPropagation>
                     <div class="image-container relative rounded-lg overflow-hidden flex justify-center">
                         <img src={metadata.image} alt={metadata.name} title={metadata.name.replace(/[1#]/g, '')} class="max-h-60 max-w-60 object-contain object-center"/>
                         <div class="absolute bottom-1 right-1 bg-black bg-opacity-50 text-white text-sm p-1 rounded">
