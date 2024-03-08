@@ -8,7 +8,6 @@
     import { inview } from 'svelte-inview';
     import Select from '$lib/component/ui/Select.svelte';
 	import { onMount } from 'svelte';
-	import { UserRemoveOutline } from 'flowbite-svelte-icons';
     // @ts-ignore
     import Device from 'svelte-device-info';
     
@@ -18,42 +17,50 @@
     let displayCount = ($userPreferences.cleanGridView) ? 24 : 12;
     let textFilter = '';
     let isMobile = false;
+    let isMounted = false;
 
-    onMount(() => {
+    onMount(async () => {
+        isMounted = true;
         isMobile = Device.isMobile;
     });
 
     $: {
-        if ($filters.voiGames) {
-            filterCollections = collections.filter((c: Collection) => c.gameData);
-        } else {
-            filterCollections = collections;
-        }
-
-        filterCollections = filterCollections.filter((c: Collection) => {
-            return JSON.parse(c.firstToken?.metadata??"{}")?.name?.toLowerCase().includes(textFilter.toLowerCase());
-        });
-
-        // apply sort.by and sort.direction to filterCollections
-        if ($sort.by === 'Randomize') {
-            filterCollections = filterCollections.sort(() => Math.random() - 0.5);
-        }
-        else {
-            if ($sort.by === 'Name') {
-                filterCollections = filterCollections.sort((a: Collection, b: Collection) => {
-                    return JSON.parse(a.firstToken?.metadata??"{}")?.name.localeCompare(JSON.parse(b.firstToken?.metadata??"{}")?.name);
-                });
-            } else if ($sort.by === 'Mint') {
-                filterCollections = filterCollections.sort((a: Collection, b: Collection) => {
-                    return a.mintRound - b.mintRound;
-                });
+        if (isMounted) {
+            if ($filters.voiGames) {
+                filterCollections = collections.filter((c: Collection) => c.gameData);
+            } else {
+                filterCollections = collections;
             }
 
-            if ($sort.direction === 'Descending') {
-                filterCollections = filterCollections.reverse();
+            filterCollections = filterCollections.filter((c: Collection) => {
+                return JSON.parse(c.firstToken?.metadata??"{}")?.name?.toLowerCase().includes(textFilter.toLowerCase());
+            });
+
+            // apply sort.by and sort.direction to filterCollections
+            if ($sort.by === 'Randomize') {
+                filterCollections = filterCollections.sort(() => Math.random() - 0.5);
             }
+            else {
+                if ($sort.by === 'Name') {
+                    filterCollections = filterCollections.sort((a: Collection, b: Collection) => {
+                        return JSON.parse(a.firstToken?.metadata??"{}")?.name.localeCompare(JSON.parse(b.firstToken?.metadata??"{}")?.name);
+                    });
+                } else if ($sort.by === 'Mint') {
+                    filterCollections = filterCollections.sort((a: Collection, b: Collection) => {
+                        return a.mintRound - b.mintRound;
+                    });
+                } else if ($sort.by === 'Popularity') {
+                    filterCollections = filterCollections.sort((a: Collection, b: Collection) => {
+                        return (a.popularity??0) - (b.popularity??0);
+                    });
+                }
+
+                if ($sort.direction === 'Descending') {
+                    filterCollections = filterCollections.reverse();
+                }
+            }
+            displayCount = ($userPreferences.cleanGridView) ? 24 : 12;
         }
-        displayCount = ($userPreferences.cleanGridView) ? 24 : 12;
     }
 
     function showMore() {
@@ -65,8 +72,8 @@
 
 <div class="flex justify-between {isMobile ? 'flex-col' : 'flex-row'}">
     <div class="m-2 flex justify-start">
-        <Select options={[{id: 'Mint', name: 'Mint Date'},{id: 'Name', name: 'Name'},{id: 'Randomize', name: 'Randomize'}]} bind:value={$sort.by} containerClass="m-1"></Select>
-        <Select options={[{id: 'Ascending', name: 'Ascending'}, {id: 'Descending', name: 'Descending'}]} bind:value={$sort.direction} containerClass="m-1"></Select>
+        <Select options={[{id:'Popularity', name: 'Popularity'},{id: 'Mint', name: 'Mint Date'},{id: 'Name', name: 'Name'},{id: 'Randomize', name: 'Randomize'}]} bind:value={$sort.by} containerClass="m-1"></Select>
+        <Select options={[{id: 'Descending', name: 'Descending'},{id: 'Ascending', name: 'Ascending'}]} bind:value={$sort.direction} containerClass="m-1"></Select>
     </div>
     <div class="justify-end">
         <div class="relative self-start m-2 mr-6">
@@ -89,15 +96,17 @@
 </div>
 <div class="pb-16">
     <div class="flex flex-wrap justify-center">
-        {#each filterCollections.slice(0, displayCount) as collection (collection.contractId)}
-            <div class="inline-block">
-                {#if $userPreferences.cleanGridView}
-                    <CollectionSingle collection={collection}></CollectionSingle>
-                {:else}
-                    <CollectionComponent styleClass='ml-14 mr-14 mt-8 mb-24' collection={collection}></CollectionComponent>
-                {/if}
-            </div>
-        {/each}
+        {#if isMounted}
+            {#each filterCollections.slice(0, displayCount) as collection (collection.contractId)}
+                <div class="inline-block">
+                    {#if $userPreferences.cleanGridView}
+                        <CollectionSingle collection={collection}></CollectionSingle>
+                    {:else}
+                        <CollectionComponent styleClass='ml-14 mr-14 mt-8 mb-24' collection={collection}></CollectionComponent>
+                    {/if}
+                </div>
+            {/each}
+        {/if}
     </div>
     {#if filterCollections.length > displayCount}
         <div class="sentinel" use:inview={{ threshold: 1 }} on:inview_enter={showMore}></div>

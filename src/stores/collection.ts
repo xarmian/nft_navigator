@@ -11,7 +11,7 @@ export const filters = writable({
 });
 
 export const collectionSort = writable({
-    by: 'Mint',
+    by: 'Popularity',
     direction: 'Descending',
 });
 
@@ -23,7 +23,7 @@ export const saleSort = writable({
 export const currencies = writable(<Currency[]>[]);
 
 export const userPreferences = writable({
-    cleanGridView: false,
+    cleanGridView: true,
 });
 
 // Path: src/stores/collection.ts

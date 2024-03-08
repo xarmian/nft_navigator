@@ -34,6 +34,7 @@ export interface Collection {
     mintRound: number;
     tokens: Token[];
     uniqueOwners?: number | undefined;
+    popularity?: number;
 }
 
 export interface RawToken {

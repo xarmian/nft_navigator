@@ -1,4 +1,4 @@
-import type { Token, Collection, Metadata } from '$lib/data/types';
+import type { Token, Collection, Metadata, Sale } from '$lib/data/types';
 
 const indexerBaseURL = "https://arc72-idx.nftnavigator.xyz/nft-indexer/v1";
 
@@ -120,6 +120,24 @@ export const getCollections = async (params: getCollectionsParams): Promise<Coll
         return [];
     }
 }
+
+export const getSales = async (contractId: number | null = null, limit: number | null = null, fetch: FetchFunction): Promise<Sale[]> => {
+    let url = `${indexerBaseURL}/mp/sales?`;
+    if (contractId) {
+        url += `contractId=${contractId}`;
+    }
+    if (limit) {
+        url += `&limit=${limit}`;
+    }
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        return data.sales;
+    } catch (err) {
+        console.error(err);
+        return [];
+    }
+};
 
 export async function populateTokenRanking(contractId: number, tokens: Token[], fetch: FetchFunction): Promise<Token[]> {
     // if we have more than one token, use the calculateRarityScore function to get the rarity score for each token
