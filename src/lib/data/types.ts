@@ -52,7 +52,7 @@ export interface Metadata {
     image: string;
     image_integrity: string;
     image_mimetype: string;
-    properties: object;
+    properties: Record<string, string>;
     royalties: string;
 }
 

@@ -120,3 +120,87 @@ export const getCollections = async (params: getCollectionsParams): Promise<Coll
         return [];
     }
 }
+
+export async function populateTokenRanking(contractId: number, tokens: Token[], fetch: FetchFunction): Promise<Token[]> {
+    // if we have more than one token, use the calculateRarityScore function to get the rarity score for each token
+    if (tokens.length > 1) {
+        const aggregateTraitCount: Record<string, Record<string, number>> = {};
+        const totalNFTsInCollection = tokens.length;
+        tokens.forEach((token: Token) => {
+            for (const category in token.metadata.properties) {
+                if (!aggregateTraitCount[category]) {
+                    aggregateTraitCount[category] = {};
+                }
+                const traitName = token.metadata.properties[category];
+                if (!aggregateTraitCount[category][traitName]) {
+                    aggregateTraitCount[category][traitName] = 0;
+                }
+                aggregateTraitCount[category][traitName]++;
+            }
+        });
+
+        const rarityArray: { tokenId: number; rarity: number }[] = [];
+        tokens.forEach((token: Token) => {
+            const rarity = calculateRarityScore(aggregateTraitCount, token.metadata.properties, totalNFTsInCollection);
+            rarityArray.push({ tokenId: token.tokenId, rarity });
+        });
+
+        rarityArray.sort((a, b) => b.rarity - a.rarity);
+
+        let currentRank = 1;
+        let previousRarity: number = 0; // Initialize previousRarity with a default value of 0
+
+        tokens.forEach((token: Token) => {
+            const rarity = rarityArray.find((r) => r.tokenId === token.tokenId)?.rarity;
+            if (rarity === previousRarity) {
+                token.rank = currentRank;
+            } else {
+                token.rank = rarityArray.findIndex((r) => r.rarity === rarity) + 1;
+                currentRank = token.rank;
+                previousRarity = rarity as number; // Cast rarity as number
+            }
+        });
+
+        return tokens;
+    }
+
+    const rankingUrl = `https://test-voi.api.highforge.io/assets/traitInfo/${contractId}`;
+    const assetIDs = tokens.filter((token: Token) => !token.rank).map((token: Token) => token.tokenId);
+    if (assetIDs.length > 0) {
+        try {
+            const resp = await fetch(rankingUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ assetIDs })
+            });
+            const rankingData = await resp.json();
+            tokens.forEach((token: Token) => {
+                // rankingData.assets is an object with a key that is the token id
+                const rankingToken = rankingData.assets[token.tokenId];
+                if (rankingToken) {
+                    token.rank = rankingToken['HF--rank'];
+                }
+            });
+        }
+        catch(err) {
+            console.error(err);
+        }
+    }
+    return tokens;
+}
+
+export function calculateRarityScore(
+    aggregateTraitCount: Record<string, Record<string, number>>, // a map that tracks categories -> traits -> traitCount
+    nftProperties: Record<string, string>, // the current NFT being scored
+    totalNFTsInCollection: number, // number of NFTs currently minted in the project
+  ) {
+    let rarityScore = 0;
+    for (const category in nftProperties) {
+      const traitName = nftProperties[category];
+      const totalOccurrence = aggregateTraitCount[category][traitName] ?? 1;
+      rarityScore += totalNFTsInCollection / totalOccurrence;
+    }
+    return rarityScore;
+}

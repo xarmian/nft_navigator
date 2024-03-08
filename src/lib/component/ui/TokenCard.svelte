@@ -4,6 +4,7 @@
     import { A, Card } from 'flowbite-svelte';
 	import { onMount } from 'svelte';
 	import { getCurrency } from '$lib/utils/currency';
+	import { populateTokenRanking } from '$lib/utils/indexer';
 
     export let token: Token | null = null;
     export let listing: Listing | null = null;
@@ -39,6 +40,20 @@
             
             currency = await getCurrency(listing.currency);
         }
+
+        if (token) {
+            tokenProps = Object.keys(token.metadata.properties).map((key) => {
+                return { trait_type: key, value: token?.metadata.properties[key as keyof typeof token.metadata.properties] };
+            });
+
+            infourl = (`/collection/${token.contractId}/token/${token.tokenId}`);
+            collectionurl = `/collection/${token.contractId}`;
+            marketurl = `https://nautilus.sh/#/collection/${token.contractId}/token/${token.tokenId}`;
+
+            populateTokenRanking(token.contractId,[token],fetch).then((tokens) => {
+                token = tokens[0];
+            });
+        }
     });
 
     let tokenProps: any[] = [];
@@ -61,41 +76,6 @@
     let infourl = '';
     let marketurl = '';
     let collectionurl = '';
-    $: {
-        if (token) {
-            tokenProps = Object.keys(token.metadata.properties).map((key) => {
-                return { trait_type: key, value: token?.metadata.properties[key as keyof typeof token.metadata.properties] };
-            });
-
-            infourl = (`/collection/${token.contractId}/token/${token.tokenId}`);
-            collectionurl = `/collection/${token.contractId}`;
-            marketurl = `https://nautilus.sh/#/collection/${token.contractId}/token/${token.tokenId}`;
-
-            if (token.rank == null) {
-                const rankingUrl = `https://test-voi.api.highforge.io/assets/traitInfo/${token.contractId}`;
-                try {
-                    const assetIDs = [token.tokenId];
-                    fetch(rankingUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ assetIDs })
-                    }).then((response) => response.json()).then((rankingData) => {
-                        if (rankingData && token) {
-                            const rankingToken = rankingData.assets[token.tokenId];
-                            if (rankingToken && token) {
-                                token.rank = rankingToken['HF--rank'];
-                            }
-                        }
-                   });
-                }
-                catch(err) {
-                    console.error(err);
-                }
-            }
-        }
-    }
 </script>
 
 <div class="card-container" on:mouseenter={() => setTimeout(() => flipped = true,100)} on:mouseleave={() => setTimeout(() => flipped = false,100)}>

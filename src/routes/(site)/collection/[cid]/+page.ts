@@ -1,6 +1,6 @@
 import type { PageLoad } from './$types';
 import type { Token, Listing, IHighforgeProject } from '$lib/data/types';
-import { getTokens } from '$lib/utils/indexer';
+import { getTokens, populateTokenRanking } from '$lib/utils/indexer';
 import voiGames from '$lib/data/voiGames.json';
 
 export const load = (async ({ params, fetch }) => {
@@ -31,31 +31,9 @@ export const load = (async ({ params, fetch }) => {
 			console.error(err);
 		}
 
-		// get ranking data for collection
-		const rankingUrl = `https://test-voi.api.highforge.io/assets/traitInfo/${contractId}`;
-		try {
-			const assetIDs = tokens.map((token: Token) => token.tokenId);
-			const response = await fetch(rankingUrl, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({ assetIDs })
-			});
-			const rankingData = await response.json();
-			if (rankingData) {
-				tokens.forEach((token: Token) => {
-					// rankingData.assets is an object with a key that is the token id
-					const rankingToken = rankingData.assets[token.tokenId];
-					if (rankingToken) {
-						token.rank = rankingToken['HF--rank'];
-					}
-				});
-			}
-		}
-		catch(err) {
-			console.error(err);
-		}
+		populateTokenRanking(Number(contractId),tokens,fetch).then((t) => {
+			tokens = t;
+		});
 
 		// check if included in voiGames
 		isVoiGames = (voiGames.find((v: IHighforgeProject) => v.applicationID === Number(contractId))) ? true : false;
