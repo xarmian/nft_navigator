@@ -49,7 +49,7 @@
 
 </script>
 
-<div class="card-container cursor-pointer m-1" on:mouseenter={() => setTimeout(() => flipped = true,100)} on:mouseleave={() => setTimeout(() => flipped = false,100)}>
+<div class="card-container cursor-pointer rounded-xl overflow-hidden m-1" on:mouseenter={() => setTimeout(() => flipped = true,100)} on:mouseleave={() => setTimeout(() => flipped = false,100)}>
     <div class="card">
         {#if token}
             {#if flipped}
