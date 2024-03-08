@@ -6,11 +6,15 @@
 	import Icon from '$lib/assets/android-chrome-192x192.png';
 	import { Web3Wallet, selectedWallet } from 'avm-wallet-svelte';
 	import { onMount } from 'svelte';
+	//@ts-ignore
+	import Device from 'svelte-device-info';
 
 	let showWalletSearch = false;
+	let isMobile = false;
+	let showMenu = false;
 
 	onMount(() => {
-		console.log($selectedWallet);
+		isMobile = Device.isMobile;
 	});
 
     const onSearch = (addr: string) => {
@@ -23,23 +27,23 @@
 </script>
 
 <div class="app dark:text-white">
-    <header class="bg-gray-100 dark:bg-gray-800 py-4 px-8 flex border-b border-b-gray-200 dark:border-b-gray-900">
+    <header class="bg-gray-100 dark:bg-gray-800 py-4 px-4 flex border-b border-b-gray-200 dark:border-b-gray-900 relative">
 		<img src="{Icon}" class="mr-3 h-12 rounded-2xl" alt="Logo" />
-		<div on:click={() => goto('/')} class="cursor-pointer text-2xl font-bold content-center hide-on-mobile">NFT Navigator</div>
-        <div class="flex-grow content-center">
-		<div class="flex justify-center">
-			<div class="bg-white shadow rounded-lg overflow-hidden dark:bg-gray-600 inline-flex">
-				<ul class="flex divide-x divide-gray-300 dark:divide-gray-500">
-					<a href='/' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer overflow-hidden">Collections</a>
-					<a href='/forsale' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">For Sale</a>
-					{#if $selectedWallet}
-						<a href='/portfolio/{$selectedWallet?.address}' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">My Portfolio</a>
-					{/if}
-				</ul>
+		<div on:click={() => goto('/')} class="cursor-pointer text-2xl font-bold content-center">NFT Navigator</div>
+		<div class="flex-grow content-center hide-on-mobile">
+			<div class="flex justify-center">
+				<div class="bg-white shadow rounded-lg overflow-hidden dark:bg-gray-600 inline-flex">
+					<ul class="flex divide-x divide-gray-300 dark:divide-gray-500">
+						<a href='/' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer overflow-hidden">Collections</a>
+						<a href='/forsale' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">For Sale</a>
+						{#if $selectedWallet}
+							<a href='/portfolio/{$selectedWallet?.address}' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">My Portfolio</a>
+						{/if}
+					</ul>
+				</div>
 			</div>
-		</div>
         </div>
-		<div class="flex place-items-end">
+		<div class="flex place-items-end hide-on-mobile">
 			{#if showWalletSearch}
 				<div class="mr-2 relative">
 		            <WalletSearch onSubmit={onSearch} loadPreviousValue={false}/>
@@ -52,6 +56,24 @@
 				<Web3Wallet />
 			</div>
 			<DarkMode />
+		</div>
+		<div class="ml-auto hide-on-desktop relative content-end flex flex-row">
+			<DarkMode />
+			<button on:click={() => showMenu = !showMenu} class="h-10 w-10 rounded-2xl bg-slate-500 flex items-center justify-center mr-2">
+				<i class="fas fa-bars cursor-pointer"></i>
+			</button>
+			{#if showMenu}
+				<div class="absolute top-full right-0 bg-white dark:bg-gray-600 rounded-lg shadow-lg z-50" on:click={() => showMenu = false}>
+					<ul class="flex flex-col divide-y divide-gray-300 dark:divide-gray-500">
+						<a href='/' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer overflow-hidden">Collections</a>
+						<a href='/forsale' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">For Sale</a>
+						{#if $selectedWallet}
+							<a href='/portfolio/{$selectedWallet?.address}' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">My Portfolio</a>
+						{/if}
+					</ul>
+					<Web3Wallet/>
+				</div>
+			{/if}
 		</div>
     </header>
 	<main>
@@ -78,6 +100,11 @@
 <style>
     @media (max-width: 600px) {
         .hide-on-mobile {
+            display: none;
+        }
+    }
+    @media (min-width: 601px) {
+        .hide-on-desktop {
             display: none;
         }
     }

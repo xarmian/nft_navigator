@@ -1,18 +1,27 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-    import { filters, collectionSort as sort } from '../../stores/collection';
+    import { filters, collectionSort as sort, userPreferences } from '../../stores/collection';
     import type { Collection, Listing, Token } from '$lib/data/types';
     import CollectionComponent from '$lib/component/ui/Collection.svelte';
+    import CollectionSingle from '$lib/component/ui/CollectionSingle.svelte';
     import Switch from '$lib/component/ui/Switch.svelte';
     import { inview } from 'svelte-inview';
     import Select from '$lib/component/ui/Select.svelte';
 	import { onMount } from 'svelte';
+	import { UserRemoveOutline } from 'flowbite-svelte-icons';
+    // @ts-ignore
+    import Device from 'svelte-device-info';
     
     export let data: PageData;
     let collections: Collection[] = data.collections;
     let filterCollections: Collection[] = [];
-    let displayCount = 12;
+    let displayCount = ($userPreferences.cleanGridView) ? 24 : 12;
     let textFilter = '';
+    let isMobile = false;
+
+    onMount(() => {
+        isMobile = Device.isMobile;
+    });
 
     $: {
         if ($filters.voiGames) {
@@ -44,22 +53,23 @@
                 filterCollections = filterCollections.reverse();
             }
         }
+        displayCount = ($userPreferences.cleanGridView) ? 24 : 12;
     }
 
     function showMore() {
-        displayCount += 12;
+        displayCount += ($userPreferences.cleanGridView) ? 24 : 12;
     }
 
     let inputElement: HTMLInputElement;
 </script>
 
-<div class="flex justify-between">
-    <div class="m-4 flex justify-start">
+<div class="flex justify-between {isMobile ? 'flex-col' : 'flex-row'}">
+    <div class="m-2 flex justify-start">
         <Select options={[{id: 'Mint', name: 'Mint Date'},{id: 'Name', name: 'Name'},{id: 'Randomize', name: 'Randomize'}]} bind:value={$sort.by} containerClass="m-1"></Select>
         <Select options={[{id: 'Ascending', name: 'Ascending'}, {id: 'Descending', name: 'Descending'}]} bind:value={$sort.direction} containerClass="m-1"></Select>
     </div>
-    <div class="m-4 flex justify-end">
-        <div class="relative self-start mr-6">
+    <div class="justify-end">
+        <div class="relative self-start m-2 mr-6">
             <input type="text" placeholder="Search" bind:value={textFilter} bind:this={inputElement} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600 w-full pr-8"/>
             {#if textFilter}
                 <button class="absolute inset-y-0 right-0 pr-3 flex items-center" on:click={() => { textFilter = ''; inputElement.focus(); }}>
@@ -69,14 +79,23 @@
                 </button>
             {/if}
         </div>
-        <Switch bind:checked={$filters.voiGames} label="Voi Games"></Switch>
+        <div class='flex flex-row m-2'>
+            <Switch bind:checked={$filters.voiGames} label="Voi Games"></Switch>
+            <Switch bind:checked={$userPreferences.cleanGridView}>
+                <i class="fas fa-th"></i>
+            </Switch>
+        </div>
     </div>
 </div>
 <div class="pb-16">
     <div class="flex flex-wrap justify-center">
         {#each filterCollections.slice(0, displayCount) as collection (collection.contractId)}
             <div class="inline-block">
-                <CollectionComponent styleClass="ml-14 mr-14 mt-8 mb-24" collection={collection}></CollectionComponent>
+                {#if $userPreferences.cleanGridView}
+                    <CollectionSingle collection={collection}></CollectionSingle>
+                {:else}
+                    <CollectionComponent styleClass='ml-14 mr-14 mt-8 mb-24' collection={collection}></CollectionComponent>
+                {/if}
             </div>
         {/each}
     </div>
@@ -88,5 +107,8 @@
     .sentinel {
         height: 1px;
         width: 100%;
+    }
+    @media (max-width: 600px) {
+
     }
 </style>

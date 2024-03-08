@@ -1,5 +1,5 @@
 <script lang="ts">
-    export let label: string;
+    export let label: string = '';
     export let checked: boolean = false;
     export let onChange: Function | null = null;
     export let title = '';
@@ -15,7 +15,7 @@
       <input type="checkbox" bind:checked={checked}>
       <span class="slider round"></span>
   </label>
-  <span class="label-text">{label}</span>
+  <span class="label-text">{label}<slot/></span>
 </div>
 
   <style>
@@ -77,5 +77,6 @@
   .label-text {
     margin: 0px 12px 0px 0px;
     vertical-align: middle;
+    white-space: nowrap;
   }
 </style>

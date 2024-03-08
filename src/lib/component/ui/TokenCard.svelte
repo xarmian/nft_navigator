@@ -111,6 +111,7 @@
                                     <div class="font-bold inline">{prop.trait_type}</div>: {prop.value}
                                 </div>
                             {/each}
+                            <div class="text-xs mt-2">Owner: {token.owner.slice(0,6)+'...'+token.owner.slice(-8)}</div>
                         </div>
                         <hr class="w-full my-2"/>
                         <div class="flex justify-evenly">

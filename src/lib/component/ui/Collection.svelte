@@ -12,7 +12,7 @@
     let tokens: Token[] = [];
 
     onMount(() => {
-        getTokens({ contractId: collection.contractId, owner: selectedAddress, fetch, limit: 3 }).then((data: Token[]) => {
+        getTokens({ contractId: collection.contractId, owner: selectedAddress, limit: 3 }).then((data: Token[]) => {
             tokens = data;
         });
     });
@@ -48,7 +48,7 @@
                     </div>
                 </div>    
             </div>
-            <div class="absolute -top-4 right-4 bg-black bg-opacity-50 text-white p-4 z-40 rounded-md">
+            <div class="absolute -top-4 right-0 bg-black bg-opacity-70 text-white p-4 z-40 rounded-md">
                 {#if collection.gameData}
                     <div class="voi-games-logo z-10"><img class="h-8 bg-lime-300 opacity-50 rounded-tr-md" src={voiGamesImage} /></div>
                 {/if}

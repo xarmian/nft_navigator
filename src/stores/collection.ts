@@ -22,4 +22,8 @@ export const saleSort = writable({
 
 export const currencies = writable(<Currency[]>[]);
 
+export const userPreferences = writable({
+    cleanGridView: false,
+});
+
 // Path: src/stores/collection.ts

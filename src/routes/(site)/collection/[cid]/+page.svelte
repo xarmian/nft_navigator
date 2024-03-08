@@ -145,7 +145,7 @@
                 {/if}
             </div>
             <div class="p-4">
-                <Switch label="For Sale" bind:checked={forSaleCollection} />
+                <Switch label="For Sale" bind:checked={forSaleCollection} ></Switch>
             </div>
         </div>
         {#if isMobile}

@@ -150,7 +150,7 @@
                         </th>
                         <th class="px-4 py-3 align-top">
                             <div>Sale Price</div>
-                            <Switch label="" bind:checked={showOnlySales} title="Toggle only marketplace sales" /> 
+                            <Switch label="" bind:checked={showOnlySales} title="Toggle only marketplace sales"></Switch> 
                         </th>
                         <th></th>
                     </tr>
