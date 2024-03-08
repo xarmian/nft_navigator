@@ -28,8 +28,10 @@
 
 <div class="app dark:text-white">
     <header class="bg-gray-100 dark:bg-gray-800 py-4 px-4 flex border-b border-b-gray-200 dark:border-b-gray-900 relative">
-		<img src="{Icon}" class="mr-3 h-12 rounded-2xl" alt="Logo" />
-		<div on:click={() => goto('/')} class="cursor-pointer text-2xl font-bold content-center">NFT Navigator</div>
+		<a href="/" class="absolute top-0 left-0 p-4 flex flex-row space-x-2">
+			<img src="{Icon}" class="h-12 rounded-2xl" alt="Logo" />
+			<div class="cursor-pointer text-2xl font-bold content-center">NFT Navigator</div>
+		</a>
 		<div class="flex-grow content-center hide-on-mobile">
 			<div class="flex justify-center">
 				<div class="bg-white shadow rounded-lg overflow-hidden dark:bg-gray-600 inline-flex">

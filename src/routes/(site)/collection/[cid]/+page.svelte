@@ -136,7 +136,7 @@
         <div class="flex justify-between">
             <div class="flex">
                 <button on:click={() => window.open('https://highforge.io/project/'+contractId)} class="bg-opacity-20 m-4 px-4 py-1 bg-blue-600 text-gray-500 dark:text-gray-100 rounded-md transition-colors duration-200 ease-in-out hover:bg-blue-900 outline-1">
-                    View on High Forge <i class="fas fa-external-link-alt"></i>
+                    {isMobile ? 'High Forge' : 'View on High Forge'} <i class="fas fa-external-link-alt"></i>
                 </button>
                 {#if data.isVoiGames}
                     <button on:click={() => window.open('https://nft-games.boeieruurd.com/collections/'+contractId)} class="bg-opacity-20 m-4 px-4 py-1 bg-blue-600 text-white rounded-md transition-colors duration-200 ease-in-out hover:bg-blue-900">
@@ -153,7 +153,7 @@
                 <input type="text" placeholder="Search" bind:value={searchText} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600" />
             </div>
         {/if}
-        <div class="flex flex-wrap flex-grow justify-start">
+        <div class="flex flex-wrap flex-grow {isMobile ? 'justify-center' : 'justify-start'}">
             {#each filteredTokens.slice(0, displayCount) as token (token.tokenId)}
                 <div class="p-1">
                     <TokenCard {token} />
