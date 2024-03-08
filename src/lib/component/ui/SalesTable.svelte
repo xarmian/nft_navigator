@@ -8,7 +8,7 @@
     let sales: Sale[] = [];
 
     onMount(async () => {
-        const url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/sales/?collectionId=${collectionId}&limit=10`;
+        const url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/sales/?collectionId=${collectionId}`;
         try {
             const data = await fetch(url).then((response) => response.json());
             if (data.sales) sales = data.sales;
