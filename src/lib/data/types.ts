@@ -72,9 +72,15 @@ export interface Listing {
 
 export interface Sale {
     transactionId: string;
+    seller: string;
     buyer: string;
     price: number;
+    currency: number;
     timestamp: number;
+    tokenId: number;
+    collectionId: number;
+    listing: Listing;
+    round: number;
 }
 
 export interface Currency {

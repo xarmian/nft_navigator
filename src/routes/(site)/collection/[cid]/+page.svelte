@@ -12,6 +12,8 @@
     import { MetaTags } from 'svelte-meta-tags';
     import { inview } from 'svelte-inview';
     import voiGamesImage from '$lib/assets/voi-games-small.png';
+    import Select from '$lib/component/ui/Select.svelte';
+    import SalesTable from '$lib/component/ui/SalesTable.svelte';
 
     export let data: PageData;
     let contractId = data.contractId;
@@ -24,6 +26,7 @@
     let isMobile = false;
     let searchText = '';
     let forSaleCollection = false;
+    let displayTab = 'tokens';
 
     onMount(() => {
         isMobile = Device.isMobile;
@@ -103,7 +106,7 @@
     </svelte:fragment>
 </BreadcrumbCustom>
 <div class="flex pb-16">
-    {#if !isMobile}
+    {#if !isMobile && displayTab == 'tokens'}
         <div class="p-4">
             <div class="relative self-start">
                 <input type="text" placeholder="Search" bind:value={searchText} bind:this={inputElement} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600 w-full pr-10"/>
@@ -144,24 +147,31 @@
                     </button>
                 {/if}
             </div>
-            <div class="p-4">
-                <Switch label="For Sale" bind:checked={forSaleCollection} ></Switch>
+            <div class="p-4 flex flex-row">
+                {#if displayTab == 'tokens'}
+                    <Switch label="For Sale" bind:checked={forSaleCollection} ></Switch>
+                {/if}
+                <Select bind:value={displayTab} options={[{id: 'tokens',name:'Tokens'},{id:'sales',name:'Sales'}]}></Select>
             </div>
         </div>
-        {#if isMobile}
-            <div class="flex pl-4 justify-center">
-                <input type="text" placeholder="Search" bind:value={searchText} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600" />
-            </div>
-        {/if}
-        <div class="flex flex-wrap flex-grow {isMobile ? 'justify-center' : 'justify-start'}">
-            {#each filteredTokens.slice(0, displayCount) as token (token.tokenId)}
-                <div class="p-1">
-                    <TokenCard {token} />
+        {#if displayTab == 'tokens'}
+            {#if isMobile}
+                <div class="flex pl-4 justify-center">
+                    <input type="text" placeholder="Search" bind:value={searchText} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600" />
                 </div>
-            {/each}
-        </div>
-        {#if filteredTokens.length > displayCount}
-            <div class="sentinel" use:inview={{ threshold: 1 }} on:inview_enter={showMore}></div>
+            {/if}
+            <div class="flex flex-wrap flex-grow {isMobile ? 'justify-center' : 'justify-start'}">
+                {#each filteredTokens.slice(0, displayCount) as token (token.tokenId)}
+                    <div class="p-1">
+                        <TokenCard {token} />
+                    </div>
+                {/each}
+            </div>
+            {#if filteredTokens.length > displayCount}
+                <div class="sentinel" use:inview={{ threshold: 1 }} on:inview_enter={showMore}></div>
+            {/if}
+        {:else if displayTab == 'sales'}
+            <SalesTable collectionId={Number(contractId)} />
         {/if}
     </div>
 </div>
