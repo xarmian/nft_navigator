@@ -66,7 +66,7 @@ export interface Listing {
     price: number;
     currency: number;
     seller: string;
-    timestamp: number;
+    createTimestamp: number;
     sale: null | Sale;
     delete: null | object;
 }

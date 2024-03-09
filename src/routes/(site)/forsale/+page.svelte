@@ -67,6 +67,19 @@
                     }
                 });
             }
+            else if ($sort.by === 'List') {
+                filterTokens = filterTokens.sort((a: Token, b: Token) => {
+                    if (a.marketData?.createTimestamp && b.marketData?.createTimestamp) {
+                        return a.marketData.createTimestamp - b.marketData.createTimestamp;
+                    } else if (a.marketData?.createTimestamp) {
+                        return -1;
+                    } else if (b.marketData?.createTimestamp) {
+                        return 1;
+                    } else {
+                        return 0;
+                    }
+                });
+            }
 
             if ($sort.direction === 'Descending') {
             filterTokens = filterTokens.reverse();
