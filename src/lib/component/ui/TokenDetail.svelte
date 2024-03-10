@@ -5,6 +5,7 @@
     //@ts-ignore
     import Device from 'svelte-device-info';
 	import { populateTokenRanking } from '$lib/utils/indexer';
+    import { zeroAddress } from '$lib/data/constants';
 
     export let token: Token;
     let isMobile = false;
@@ -99,36 +100,41 @@
         
     const collectionName = token?.metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
 </script>
-<div class="flex" class:flex-col={isMobile}>
+<div class="flex items-start" class:flex-col={isMobile}>
     <img src={token.metadata.image} class="max-w-72 object-contain mr-3 rounded-xl"/>
-    <div class="text-left">
+    <div class="text-left flex-grow">
         <div class="mb-2">
             {token.metadata?.description??''}
         </div>
         <div class="text-2xl font-bold mb-2 text-purple-900 dark:text-purple-100"><a href="/collection/{token.contractId}/token/{token.tokenId}"><TokenName name={token.metadata.name}></TokenName></a></div>
-        <div class="mb-2">
-            <div>Token ID: {token.tokenId}
-            {#if collection}
-                / {collection.totalSupply}
-            {/if}
-            </div>
-            <div>Collection: <a href="/collection/{token.contractId}">{collectionName}</a></div>
+        <div class="grid-cols-2 gap-x-4 gap-y-2 mb-2 inline-grid">
+            <div class="font-bold">Token ID:</div>
+            <div>{token.tokenId} {#if collection}/ {collection.totalSupply}{/if}</div>
+            <div class="font-bold">Collection:</div>
+            <div><a href="/collection/{token.contractId}">{collectionName}</a></div>
             {#if token.rank}
-                <div>Ranking: {token.rank}</div>
+                <div class="font-bold">Ranking:</div>
+                <div>{token.rank}</div>
             {/if}
-            <div>Owned by: <a href="/portfolio/{token.owner}">{formattedOwner}</a></div>
-            {#if token.approved && token.approved != 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ'}
-                <div>Approved Spender: <a href="/portfolio/{token.approved}">{formattedApproved}</a></div>
+            <div class="font-bold">Owned by:</div>
+            <div><a href="/portfolio/{token.owner}">{formattedOwner}</a></div>
+            {#if token.approved && token.approved != zeroAddress}
+                <div class="font-bold">Approved Spender:</div>
+                <div><a href="/portfolio/{token.approved}">{formattedApproved}</a></div>
             {/if}
-            <div>Mint Round: <a href="https://voi.observer/explorer/block/{token.mintRound}/transactions" target="_blank">{token.mintRound}</a></div>
+            <div class="font-bold">Mint Round:</div>
+            <div><a href="https://voi.observer/explorer/block/{token.mintRound}/transactions" target="_blank">{token.mintRound}</a></div>
             {#if royaltyPercentage > 0}
-                <div>Royalties: {royaltyPercentage / 100}%</div>
+                <div class="font-bold">Royalties:</div>
+                <div>{royaltyPercentage / 100}%</div>
             {/if}
-        </div>
-        <div class="flex flex-wrap">
-            {#each tokenProps as prop}
-                <div style="color: {prop.fgcolor}; background-color: {prop.bgcolor}" class="p-2 m-1 text-md rounded-xl">{prop.trait_type}: {prop.value}</div>
-            {/each}
         </div>
     </div>
+</div>
+<div class="flex flex-wrap w-full">
+    {#each tokenProps as prop}
+        <div class="p-2 m-1 text-md rounded-xl max-w-56 text-nowrap overflow-ellipsis overflow-hidden" style="color: {prop.fgcolor}; background-color: {prop.bgcolor}">
+            <span class="font-bold">{prop.trait_type}:</span> {prop.value}
+        </div>
+    {/each}
 </div>

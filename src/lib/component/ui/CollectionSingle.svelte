@@ -1,14 +1,8 @@
 <script lang="ts">
-    import type { Token, Collection } from '$lib/data/types';
-    import { onMount } from 'svelte';
-    import { Card } from 'flowbite-svelte';
+    import type { Collection } from '$lib/data/types';
     import voiGamesImage from '$lib/assets/voi-games-small.png';
-    import { getTokens } from '$lib/utils/indexer';
-    import TokenName from './TokenName.svelte';
-	import { goto } from '$app/navigation';
 
     export let collection: Collection;
-    export let selectedAddress: string = '';
     const token = collection.firstToken;
 
     const metadata = JSON.parse(token.metadata);
@@ -49,32 +43,30 @@
 
 </script>
 
-<div class="card-container cursor-pointer rounded-xl overflow-hidden m-1" on:mouseenter={() => setTimeout(() => flipped = true,100)} on:mouseleave={() => setTimeout(() => flipped = false,100)}>
+<div class="card-container cursor-pointer rounded-xl overflow-hidden m-1" >
     <div class="card">
         {#if token}
-            {#if flipped}
-                <a class="side back bg-gray-100 dark:bg-gray-900 p-4 rounded-xl" transition:flip={{}} href='/collection/{collection.contractId}'>
-                    {#if collection.gameData}
-                        <img class="h-12 inline bg-white dark:bg-gray-200 opacity-100 rounded-3xl absolute bottom-2 right-2" src={voiGamesImage} />
-                    {/if}
-                    <h2 class="text-2xl font-bold mb-2">{metadata.name.replace(/[1#]/g, '')}</h2>
-                    {#each data as item}
-                        <div class="flex justify-start space-x-2">
-                            <i class={item.icon + ' text-gray-400'}></i>
-                            <p class="text-sm">{item.name}: {item.value}</p>
+            <a href="/collection/{collection.contractId}">
+                <div class="side back bg-gray-200 dark:bg-gray-900 relative rounded-lg flex flex-col">
+                    <div class="image-container relative overflow-hidden flex justify-center bg-gray-10 dark:bg-black">
+                        <img src={metadata.image} alt={metadata.name} title={metadata.name.replace(/[1#]/g, '')} class="max-h-60 h-60 max-w-60 object-contain object-center"/>
+                    </div>
+                    <div class='p-2 flex flex-col flex-grow'>
+                        <div class="flex justify-between space-x-1">
+                            <div class="text-sm font-bold">{metadata.name.replace(/[1#]/g, '')}</div>
+                            <a href="/portfolio/{collection.creator}" on:click|stopPropagation class="text-xs text-gray-600 dark:text-gray-300">{collection.creator.slice(0,6)+'...'+collection.creator.slice(-8)}</a>
                         </div>
-                    {/each}
-                </a>
-            {:else}
-                <div class="side back bg-gray-100 dark:bg-black relative" transition:flip={{}} on:click|stopPropagation>
-                    <div class="image-container relative rounded-lg overflow-hidden flex justify-center">
-                        <img src={metadata.image} alt={metadata.name} title={metadata.name.replace(/[1#]/g, '')} class="max-h-60 max-w-60 object-contain object-center"/>
-                        <div class="absolute bottom-1 right-1 bg-black bg-opacity-50 text-white text-sm p-1 rounded">
-                            {metadata.name.replace(/[1#]/g, '')}
+                        <div class="content-end flex-grow">
+                            {#each data as item}
+                                <div class="flex justify-start space-x-2 text-gray-700 dark:text-gray-200">
+                                    <i class={item.icon + ' text-gray-600 dark:text-gray-400'}></i>
+                                    <p class="text-sm">{item.name}: {item.value}</p>
+                                </div>
+                            {/each}
                         </div>
                     </div>
                 </div>
-            {/if}
+            </a>
         {/if}
     </div>
 </div>
@@ -85,7 +77,7 @@
 }
 .card-container {
     position: relative;
-    height: 15rem;
+    height: 22rem;
     width: 15rem;
 }
 
@@ -101,6 +93,5 @@
     height: 100%;
     width: 100%;
     overflow: hidden;
-    color: #42529e;
 }
 </style>

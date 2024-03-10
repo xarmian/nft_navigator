@@ -35,6 +35,7 @@ export interface Collection {
     tokens: Token[];
     uniqueOwners?: number | undefined;
     popularity?: number;
+    creator: string;
 }
 
 export interface RawToken {

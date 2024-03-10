@@ -58,23 +58,6 @@
         images: [{ url: token?.metadata?.image??'' }],
     }} />
 <svelte:window on:click={closeMenu} />
-<Breadcrumb aria-label="Navigation breadcrumb" solid>
-    <BreadcrumbItem href="/" class="hover:text-blue-800" >
-        <svelte:fragment slot="icon">
-            <HomeOutline class="w-4 h-4 me-2 inline" />
-          </svelte:fragment>Home
-    </BreadcrumbItem>
-    <BreadcrumbItem href="/collection/{contractId}" class="hover:text-blue-800">
-        <svelte:fragment slot="icon">
-            <ChevronDoubleRightOutline class="w-4 h-4 me-2 inline" />
-          </svelte:fragment>Collection ({collectionName})
-    </BreadcrumbItem>
-    <BreadcrumbItem href="/collection/{contractId}/token/{tokenId}" class="hover:text-blue-800">
-        <svelte:fragment slot="icon">
-            <ChevronDoubleRightOutline class="w-4 h-4 me-2 inline" />
-          </svelte:fragment>{tokenName}
-    </BreadcrumbItem>
-</Breadcrumb>
 <div class="m-5">
     <div class="button-bar">
         {#if isMobile}

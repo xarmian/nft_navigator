@@ -8,6 +8,7 @@
 	import { onMount } from 'svelte';
 	//@ts-ignore
 	import Device from 'svelte-device-info';
+	import type { MouseEventHandler } from 'svelte/elements';
 
 	let showWalletSearch = false;
 	let isMobile = false;
@@ -15,6 +16,14 @@
 
 	onMount(() => {
 		isMobile = Device.isMobile;
+
+		// click outside menu to close
+		document.addEventListener('click', (e: MouseEvent) => {
+			// @ts-expect-error - closest does exist
+			if (showMenu && !e.target?.closest('.absolute')) {
+				showMenu = false;
+			}
+		});
 	});
 
     const onSearch = (addr: string) => {
@@ -27,57 +36,60 @@
 </script>
 
 <div class="app dark:text-white">
-    <header class="bg-gray-100 dark:bg-gray-800 py-4 px-4 flex border-b border-b-gray-200 dark:border-b-gray-900 relative">
-		<a href="/" class="absolute top-0 left-0 p-4 flex flex-row space-x-2">
-			<img src="{Icon}" class="h-12 rounded-2xl" alt="Logo" />
-			<div class="cursor-pointer text-2xl font-bold content-center">NFT Navigator</div>
-		</a>
-		<div class="flex-grow content-center hide-on-mobile">
-			<div class="flex justify-center">
-				<div class="bg-white shadow rounded-lg overflow-hidden dark:bg-gray-600 inline-flex">
-					<ul class="flex divide-x divide-gray-300 dark:divide-gray-500">
-						<a href='/' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer overflow-hidden">Collections</a>
-						<a href='/forsale' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">For Sale</a>
-						{#if $selectedWallet}
-							<a href='/portfolio/{$selectedWallet?.address}' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">My Portfolio</a>
+	<header class="bg-gray-100 dark:bg-gray-800 py-4 px-4 flex flex-col border-b border-b-gray-200 dark:border-b-gray-900 relative">
+		<div class="flex">
+			<div class="flex-start">
+				<a href="/" class="absolute top-0 left-0 p-4 flex flex-row space-x-2">
+					<img src="{Icon}" class="h-12 rounded-2xl" alt="Logo" />
+					<div class="cursor-pointer text-2xl font-bold content-center">NFT Navigator</div>
+				</a>
+			</div>
+			{#if !isMobile}
+				<div class="flex items-center space-x-2 flex-grow justify-center p-2">
+					<a href="/" class="hover:text-blue-500">Home</a>
+					<span class="text-gray-400">|</span>
+					<a href="/forsale" class="hover:text-blue-500">For Sale</a>
+					{#if $selectedWallet}
+						<span class="text-gray-400">|</span>
+						<a href="/portfolio/{$selectedWallet?.address}" class="hover:text-blue-500">My Portfolio</a>
+					{/if}
+				</div>
+			{:else}
+				<div class="flex-grow p-2">&nbsp;</div>
+			{/if}
+			<div class="absolute top-0 right-0 flex p-4 flex-row space-x-2">
+				{#if !isMobile}
+					<div class="flex place-items-end">
+						<div class="w-48">
+							<Web3Wallet />
+						</div>
+					</div>
+				{/if}
+				<div class="ml-auto relative content-end flex flex-row">
+					<DarkMode />
+					{#if isMobile}
+						<button on:click|stopPropagation={() => showMenu = !showMenu} class="h-10 w-10 rounded-2xl bg-slate-500 flex items-center justify-center mr-2">
+							<i class="fas fa-bars cursor-pointer"></i>
+						</button>
+						{#if showMenu}
+							<div class="absolute top-full right-0 bg-white dark:bg-gray-600 rounded-lg shadow-lg z-50 text-nowrap" on:click|stopPropagation={() => showMenu = false}>
+								<ul class="flex flex-col divide-y divide-gray-300 dark:divide-gray-500">
+									<a href='/' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer overflow-hidden">Home</a>
+									<a href='/forsale' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">For Sale</a>
+									{#if $selectedWallet}
+										<a href='/portfolio/{$selectedWallet?.address}' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">My Portfolio</a>
+									{/if}
+								</ul>
+								{#if isMobile}
+									<Web3Wallet/>
+								{/if}
+							</div>
 						{/if}
-					</ul>
+					{/if}
 				</div>
 			</div>
-        </div>
-		<div class="flex place-items-end hide-on-mobile">
-			{#if showWalletSearch}
-				<div class="mr-2 relative">
-		            <WalletSearch onSubmit={onSearch} loadPreviousValue={false}/>
-				</div>
-			{/if}
-			<button on:click={() => showWalletSearch = !showWalletSearch} class="h-10 w-10 rounded-2xl bg-slate-500 flex items-center justify-center mr-2">
-				<i class="fas fa-search cursor-pointer"></i>
-			</button>
-			<div class="w-48">
-				<Web3Wallet />
-			</div>
-			<DarkMode />
-		</div>
-		<div class="ml-auto hide-on-desktop relative content-end flex flex-row">
-			<DarkMode />
-			<button on:click={() => showMenu = !showMenu} class="h-10 w-10 rounded-2xl bg-slate-500 flex items-center justify-center mr-2">
-				<i class="fas fa-bars cursor-pointer"></i>
-			</button>
-			{#if showMenu}
-				<div class="absolute top-full right-0 bg-white dark:bg-gray-600 rounded-lg shadow-lg z-50" on:click={() => showMenu = false}>
-					<ul class="flex flex-col divide-y divide-gray-300 dark:divide-gray-500">
-						<a href='/' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer overflow-hidden">Collections</a>
-						<a href='/forsale' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">For Sale</a>
-						{#if $selectedWallet}
-							<a href='/portfolio/{$selectedWallet?.address}' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">My Portfolio</a>
-						{/if}
-					</ul>
-					<Web3Wallet/>
-				</div>
-			{/if}
-		</div>
-    </header>
+		</div>		
+	</header>
 	<main>
 		<slot />
 	</main>
@@ -99,15 +111,3 @@
 		<hr class="my-6 border-gray-200 sm:mx-auto dark:border-gray-700 lg:my-8" />
 	 </Footer>-->
 </div>
-<style>
-    @media (max-width: 600px) {
-        .hide-on-mobile {
-            display: none;
-        }
-    }
-    @media (min-width: 601px) {
-        .hide-on-desktop {
-            display: none;
-        }
-    }
-</style>

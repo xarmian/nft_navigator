@@ -14,6 +14,9 @@
     import voiGamesImage from '$lib/assets/voi-games-small.png';
     import Select from '$lib/component/ui/Select.svelte';
     import SalesTable from '$lib/component/ui/SalesTable.svelte';
+    import { page } from '$app/stores';
+
+    const forsale = $page.url.searchParams.get('forsale');
 
     export let data: PageData;
     let contractId = data.contractId;
@@ -25,7 +28,7 @@
     let filters = {} as { [key: string]: string };
     let isMobile = false;
     let searchText = '';
-    let forSaleCollection = false;
+    let forSaleCollection = (typeof forsale === 'string') ? true : false;
     let displayTab = 'tokens';
 
     onMount(() => {
@@ -90,7 +93,7 @@
         title: `${collectionName} | NFT Navigator`,
         images: [{ url: tokens[0]?.metadata?.image??'' }],
     }} />
-<BreadcrumbCustom aria-label="Navigation breadcrumb" solidClass="flex px-5 py-3 text-gray-700 border border-gray-200 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 justify-between" solid>
+<!--<BreadcrumbCustom aria-label="Navigation breadcrumb" solidClass="flex px-5 py-3 text-gray-700 border border-gray-200 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 justify-between" solid>
     <BreadcrumbItem href="/" class="hover:text-blue-800" >
         <svelte:fragment slot="icon">
             <HomeOutline class="w-4 h-4 me-2 inline" />
@@ -104,7 +107,7 @@
     <svelte:fragment slot="right">
         <div></div>
     </svelte:fragment>
-</BreadcrumbCustom>
+</BreadcrumbCustom>-->
 <div class="flex pb-16">
     {#if !isMobile && displayTab == 'tokens'}
         <div class="p-4">

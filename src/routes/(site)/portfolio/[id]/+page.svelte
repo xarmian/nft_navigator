@@ -3,11 +3,16 @@
     import type { Token } from '$lib/data/types';
     import TokenComponent from '$lib/component/ui/TokenDetail.svelte';
 	import { A } from 'flowbite-svelte';
-    import { Tabs, TabItem, Indicator, Breadcrumb, BreadcrumbItem } from 'flowbite-svelte';
-    import { HomeOutline, ChevronDoubleRightOutline } from 'flowbite-svelte-icons';
+    import { Tabs, TabItem, Indicator } from 'flowbite-svelte';
     import { onMount, onDestroy } from 'svelte';
     import { selectedWallet } from 'avm-wallet-svelte';
 	import { goto } from '$app/navigation';
+    import type { Currency } from '$lib/data/types';
+    import { toast } from '@zerodevx/svelte-toast';
+    import { copy } from 'svelte-copy';
+    // @ts-ignore
+    import Device from 'svelte-device-info';
+    import { getWalletBalance, getCurrency } from '$lib/utils/currency';
 
     export let data: PageData;
     $: walletId = data.props.walletId;
@@ -16,10 +21,25 @@
     $: tokens = data.props.tokens;
     $: approvals = data.props.approvals;
     let pageLoaded = false;
+    let isMobile: boolean | null = null;
+    
+    let voiBalance: number;
+    let viaBalance: number;
 
-    onMount(() => {
+    onMount(async () => {
         pageLoaded = true;
+        isMobile = Device.isMobile;
+
     });
+
+    $: {
+        getWalletBalance(walletIds[0],0).then((balance) => {
+            voiBalance = balance;
+        });
+        getWalletBalance(walletIds[0],6779767).then((balance) => {
+            viaBalance = balance;
+        });
+    }
 
     const unsub = selectedWallet.subscribe((value) => {
         if (pageLoaded && value?.address) {
@@ -32,24 +52,58 @@
     });
 
     $: formattedWallet = (walletIds) ? (walletIds[0].length > 8
-        ? `${walletIds[0].slice(0, 8)}...${walletIds[0].slice(-8)}`
+        ? `${walletIds[0].slice(0, 6)}...${walletIds[0].slice(-6)}`
         : walletIds[0]) : '';
 </script>
 
-<Breadcrumb aria-label="Navigation breadcrumb" solid>
-    <BreadcrumbItem href="/" class="hover:text-blue-800" >
-        <svelte:fragment slot="icon">
-            <HomeOutline class="w-4 h-4 me-2 inline" />
-          </svelte:fragment>Collections
-    </BreadcrumbItem>
-    <BreadcrumbItem href="/portfolio/{walletIds[0]}" class="hover:text-blue-800">
-        <svelte:fragment slot="icon">
-            <ChevronDoubleRightOutline class="w-4 h-4 me-2 inline" />
-          </svelte:fragment>Portfolio (<A href="https://voi.observer/explorer/account/{walletIds[0]}" target="_blank">{walletNFD??formattedWallet}</A>)
-    </BreadcrumbItem>
-</Breadcrumb>
 <div class="text-center">
-    <Tabs style="underline" defaultClass="flex rounded-lg divide-x rtl:divide-x-reverse divide-gray-200 shadow dark:divide-gray-700 justify-center">
+        <div class="flex justify-center items-center w-full mx-2">
+            <div class="flex flex-row {isMobile ? 'p-4' : 'p-8'} mt-2 bg-slate-100 dark:bg-slate-700 shadow-lg rounded-2xl space-x-8">
+                <div>
+                    <div class="flex flex-row space-x-2 text-2xl font-bold mb-0">
+                        <div class="text-blue dark:text-blue-100">
+                        {walletNFD??formattedWallet}
+                        {#if !walletNFD}
+                            <i use:copy={walletIds[0]} class="fas fa-copy pointer" on:svelte-copy={() => toast.push(`Wallet Copied to Clipboard:<br/> ${walletIds[0].substring(0,20)}...`)}></i>
+                        {/if}
+                        </div>
+                    </div>
+                    {#if walletNFD}
+                        <div class="text-sm font-bold mb-4 text-left">
+                            {formattedWallet}
+                            <i use:copy={walletIds[0]} class="fas fa-copy pointer" on:svelte-copy={() => toast.push(`Wallet Copied to Clipboard:<br/> ${walletIds[0].substring(0,20)}...`)}></i>
+                        </div>
+                    {/if}
+                    <div class="text-sm font-bold mb-4 text-left">
+                        <a href="https://voi.observer/explorer/account/{walletIds[0]}" target="_blank" class="text-blue-500 hover:text-blue-700 underline">
+                            Voi Observer
+                            <i class="fas fa-external-link-alt"></i>
+                        </a>
+                    </div>
+                    <div class="text-sm font-bold mb-4 text-left">
+                        <a href="https://shellyssandbox.xyz/#/account/{walletIds[0]}" target="_blank" class="text-blue-500 hover:text-blue-700 underline">
+                            ARC-200 Balances
+                            <i class="fas fa-external-link-alt"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="flex flex-col items-start">
+                    {#if voiBalance != undefined}
+                        <div class="flex flex-col items-end w-full">
+                            <div class="text-lg font-bold text-green-500 dark:text-green-300">{(voiBalance / Math.pow(10,6)).toLocaleString()}</div>
+                            <div class="text-md font-bold text-gray-500 dark:text-gray-300 mb-2">VOI</div>
+                        </div>
+                    {/if}
+                    {#if viaBalance != undefined}
+                        <div class="flex flex-col items-end w-full">
+                            <div class="text-lg font-bold text-green-500 dark:text-green-300">{(viaBalance / Math.pow(10,6)).toLocaleString()}</div>
+                            <div class="text-md font-bold text-gray-500 dark:text-gray-300 mb-2">VIA</div>
+                        </div>
+                    {/if}
+                </div>
+            </div>
+        </div>
+    <Tabs style="underline" defaultClass="flex place-items-end rounded-lg divide-x rtl:divide-x-reverse divide-gray-200 shadow dark:divide-gray-700 justify-center">
         <TabItem open>
             <div slot="title">
                 <div class="inline">Portfolio</div>

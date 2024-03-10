@@ -4,6 +4,31 @@ import { arc200 as Contract } from "ulujs";
 import { currencies } from '../../stores/collection';
 import { get } from 'svelte/store';
 
+export const getWalletBalance = async (address: string, assetId: number): Promise<number> => {
+    try {
+        if (assetId == 0) throw new Error('Native Token');
+        const ctc = new Contract(assetId, algodClient, algodIndexer);
+        const balance = await ctc.arc200_balanceOf(address);
+        return (balance.success) ? Number(balance.returnValue) : 0;
+    }
+    catch (err) {
+        try {
+            if (assetId === 0) {
+                const accountInfo = await algodClient.accountInformation(address).do();
+                return accountInfo.amount;
+            }
+            else {
+                const accountInfo = await algodClient.accountInformation(address).do();
+                const assetHolding = accountInfo.assets.find((a: { assetId: number }) => a.assetId === assetId);
+                return (assetHolding) ? assetHolding.amount : 0;
+            }
+        }
+        catch (err) {
+            return 0;
+        }
+    } 
+}
+
 // get currency from store if available, otherwise pull from blockchain
 export const getCurrency = async (assetId: number): Promise<Currency | null> => {
     switch (assetId) {
