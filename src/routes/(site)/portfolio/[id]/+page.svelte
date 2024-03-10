@@ -67,7 +67,7 @@
 
 <div class="text-center">
     <div class="relative w-full h-full">
-        <div class="flex h-full w-full absolute -z-10 blur-sm opacity-90">
+        <div class="flex h-full w-full absolute -z-10">
             <div class="flex h-full w-full absolute -z-10 blur-sm opacity-50">
                 {#each headerTokens as token (token)}
                     <div class="flex-grow bg-cover bg-center inline-block" style="background-image: url({token.metadata.image});">&nbsp;</div>
