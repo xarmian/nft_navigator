@@ -21,10 +21,6 @@
         if (!collection) {
             getCollection(token.contractId);
 
-            formattedOwner = token.ownerNFD ? token.ownerNFD as string : token.owner.length > 16
-                ? `${token.owner.slice(0, 8)}...${token.owner.slice(-8)}`
-                : token.owner;
-
             if (token.metadata.royalties) {
                 const decodedRoyalties = atob(token.metadata.royalties);
 
@@ -38,6 +34,11 @@
                 royaltyPercentage = (bytes[0] << 8) | bytes[1];
             }
         }
+
+        formattedOwner = token.ownerNFD ? token.ownerNFD as string : token.owner.length > 16
+                ? `${token.owner.slice(0, 8)}...${token.owner.slice(-8)}`
+                : token.owner;
+
     }
 
     const getCollection = async (contractId: number) => {
