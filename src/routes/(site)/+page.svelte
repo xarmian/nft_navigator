@@ -14,7 +14,8 @@
     export let data: PageData;
     let collections: Collection[] = data.collections;
     let filterCollections: Collection[] = [];
-    let displayCount = ($userPreferences.cleanGridView) ? 24 : 12;
+    let displayCount = 0;
+    let cardsPerLoad = 0;
     let textFilter = '';
     let isMobile = false;
     let isMounted = false;
@@ -26,7 +27,8 @@
         // get viewport height
         const viewHeight = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
         const viewWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-        displayCount = Math.ceil(viewHeight / 352) * Math.ceil(viewWidth / 250);
+        displayCount = Math.ceil(viewHeight / 352) * Math.floor(viewWidth / 240);
+        cardsPerLoad = displayCount;
         console.log('displayCount', displayCount);
     });
 
@@ -65,12 +67,12 @@
                     filterCollections = filterCollections.reverse();
                 }
             }
-            //displayCount = ($userPreferences.cleanGridView) ? 24 : 12;
+            // displayCount = ($userPreferences.cleanGridView) ? 24 : 12;
         }
     }
 
     function showMore() {
-        displayCount += ($userPreferences.cleanGridView) ? 24 : 12;
+        displayCount += cardsPerLoad;
     }
 
     let inputElement: HTMLInputElement;
