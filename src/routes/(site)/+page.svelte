@@ -22,6 +22,12 @@
     onMount(async () => {
         isMounted = true;
         isMobile = Device.isMobile;
+
+        // get viewport height
+        const viewHeight = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+        const viewWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+        displayCount = Math.ceil(viewHeight / 352) * Math.ceil(viewWidth / 250);
+        console.log('displayCount', displayCount);
     });
 
     $: {
@@ -59,7 +65,7 @@
                     filterCollections = filterCollections.reverse();
                 }
             }
-            displayCount = ($userPreferences.cleanGridView) ? 24 : 12;
+            //displayCount = ($userPreferences.cleanGridView) ? 24 : 12;
         }
     }
 
