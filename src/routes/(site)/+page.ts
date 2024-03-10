@@ -8,6 +8,22 @@ export const load = (async ({ fetch }) => {
     let collections: Collection[] = await getCollections({ fetch, includes: 'unique-owners', contractId: undefined });
     collections = collections.filter((c: Collection) => c.firstToken !== null);
 
+    // get highforge project data from https://test-voi.api.highforge.io/projects
+    const url = 'https://test-voi.api.highforge.io/projects';
+    const response = await fetch(url);
+    const data = await response.json();
+    const projects = data.results;
+
+    // for each project, replace collection's firstToken url with projects.coverImageURL
+    collections.forEach((c: Collection) => {
+        projects.forEach((p: any) => {
+            if (c.contractId === p.applicationID) {
+                const metadata = JSON.parse(c.firstToken.metadata);
+                c.firstToken.metadata = JSON.stringify({ ...metadata, image: p.coverImageURL });
+            }
+        });
+    });
+
     const sales = await getSales(null,200,fetch);
     const popularity = sales.reduce((acc: any, sale: any) => {
         if (acc[sale.collectionId]) {

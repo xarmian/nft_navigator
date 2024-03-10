@@ -64,6 +64,11 @@
                                 </div>
                             {/each}
                         </div>
+                        {#if collection.gameData}
+                            <div class="flex justify-center absolute bottom-0 right-0">
+                                <img src={voiGamesImage} class="h-8" alt="Voi Games" />
+                            </div>
+                        {/if}
                     </div>
                 </div>
             </a>
