@@ -95,7 +95,7 @@
         images: [{ url: data.collection?.highforgeData?.coverImageURL ?? tokens[0]?.metadata?.image ?? '' }],
     }} />
 
-<div class="justify-between h-60 overflow-hidden overflow-ellipsis relative flex flex-row">
+<div class="justify-between h-60 overflow-hidden overflow-ellipsis relative flex flex-row text-white">
     <img src="{data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata.image}" class="w-1/3 object-cover" />
     <img src="{data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata.image}" class="w-1/3 object-cover" />
     <div class="mask_dark flex justify-center h-full position absolute w-full content-center bg-slate-100 dark:bg-slate-800">
