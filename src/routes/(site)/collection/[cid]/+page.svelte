@@ -92,7 +92,7 @@
     openGraph={{
         url: `https://nftnavigator.xyz/collection/${contractId}`,
         title: `${collectionName} | NFT Navigator`,
-        images: [{ url: tokens[0]?.metadata?.image??'' }],
+        images: [{ url: data.collection?.highforgeData?.coverImageURL ?? tokens[0]?.metadata?.image ?? '' }],
     }} />
 
 <div class="justify-between h-60 overflow-hidden overflow-ellipsis relative flex flex-row">
