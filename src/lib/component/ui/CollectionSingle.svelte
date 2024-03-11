@@ -85,6 +85,17 @@
     height: 22rem;
     width: 15rem;
 }
+@media (max-width: 768px) {
+    .card-container {
+        height: 26rem;
+        width: calc(100vw - 8rem);
+    }
+    .image-container img {
+        max-height: 18rem;
+        max-width: unset;
+        height: 18rem;
+    }
+}
 
 .card {
     width: 100%;

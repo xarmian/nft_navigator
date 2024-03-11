@@ -95,11 +95,11 @@
         images: [{ url: data.collection?.highforgeData?.coverImageURL ?? tokens[0]?.metadata?.image ?? '' }],
     }} />
 
-<div class="justify-between h-60 overflow-hidden overflow-ellipsis relative flex flex-row text-white">
-    <img src="{data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata.image}" class="w-1/2 object-cover" />
-    <img src="{data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata.image}" class="w-1/2 object-cover" />
+<div class="banner_container h-60 justify-between overflow-hidden overflow-ellipsis relative flex flex-row text-white">
+    <img src="{data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata.image}" class="banner_img object-cover" />
+    <img src="{data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata.image}" class="banner_img2 w-1/2 object-cover" />
     <div class="mask_dark flex justify-center h-full position absolute w-full content-center bg-slate-100 dark:bg-slate-800">
-        <div class="flex h-full {isMobile ? 'w-full' : 'w-1/2'} pl-4 pr-4 place-items-center space-between flex-col space-y-1">
+        <div class="collection_detail flex h-full pl-4 pr-4 place-items-center space-between flex-col space-y-1">
             {#if data.collection?.highforgeData}
                 <div class="p-4 overflow-hidden mb-auto">
                     <div class="text-4xl font-bold">{data.collection?.highforgeData?.title??collectionName}</div>
@@ -233,5 +233,26 @@
     }
     .mask_dark {
         background: radial-gradient(circle at center, rgba(0,0,0,1) 20%, rgba(0,0,0,1), rgba(0,0,0,0), rgba(0,0,0,1) 100%);
+    }
+    .banner_img, .collection_detail {
+        width: 50%;
+    }
+    @media (max-width: 768px) {
+        .mask_dark {
+            background: rgba(0,0,0,0.4);
+        }
+        .banner_img {
+            filter: blur(5px);
+            width: 100%;
+        }
+        .banner_img2 {
+            display:none;
+        }
+        .banner_container {
+            height: fit-content;
+        }
+        .collection_detail {
+            width: 100%;
+        }
     }
 </style>
