@@ -96,8 +96,8 @@
     }} />
 
 <div class="justify-between h-60 overflow-hidden overflow-ellipsis relative flex flex-row text-white">
-    <img src="{data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata.image}" class="w-1/3 object-cover" />
-    <img src="{data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata.image}" class="w-1/3 object-cover" />
+    <img src="{data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata.image}" class="w-1/2 object-cover" />
+    <img src="{data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata.image}" class="w-1/2 object-cover" />
     <div class="mask_dark flex justify-center h-full position absolute w-full content-center bg-slate-100 dark:bg-slate-800">
         <div class="flex h-full {isMobile ? 'w-full' : 'w-1/2'} pl-4 pr-4 place-items-center space-between flex-col space-y-1">
             {#if data.collection?.highforgeData}
