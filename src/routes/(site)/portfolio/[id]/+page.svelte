@@ -53,29 +53,24 @@
     });
 
     $: formattedWallet = (walletIds) ? (walletIds[0].length > 8
-        ? `${walletIds[0].slice(0, 6)}...${walletIds[0].slice(-6)}`
+        ? `${walletIds[0].slice(0, (isMobile ? 4 : 6))}...${walletIds[0].slice((isMobile ? -4 : -6))}`
         : walletIds[0]) : '';
 
     $: {
         headerTokens = tokens.slice();
-        headerTokens = headerTokens.sort(() => Math.random() - 0.5).slice(0,6);
+        headerTokens = headerTokens.sort(() => Math.random() - 0.5).slice(0,(isMobile ? 3 : 6));
     }
-    // get randomized array of tokens
-    //console.log(randomTokens);
-    //randomTokens.sort(() => Math.random() - 0.5);
 </script>
 
 <div class="text-center">
-    <div class="relative w-full h-full">
-        <div class="flex h-full w-full absolute -z-10">
-            <div class="flex h-full w-full absolute -z-10 blur-sm opacity-50">
-                {#each headerTokens as token (token)}
-                    <div class="flex-grow bg-cover bg-center inline-block" style="background-image: url({token.metadata.image});">&nbsp;</div>
-                {/each}
-            </div>
+    <div class="relative w-full h-full overflow-hidden">
+        <div class="flex h-full w-full absolute blur-xsm -z-10 opacity-60">
+            {#each headerTokens as token (token)}
+                <div class="flex-grow bg-cover bg-center inline-block" style="background-image: url({token.metadata.image});">&nbsp;</div>
+            {/each}
         </div>
         <div class="flex justify-center items-center w-full mx-2">
-            <div class="flex flex-row {isMobile ? 'p-4' : 'p-8'} mt-2 bg-slate-100 dark:bg-slate-700 shadow-lg rounded-2xl space-x-8 opacity-80">
+            <div class="flex flex-row {isMobile ? 'p-4' : 'p-8'} mt-2 mb-2 bg-slate-100 dark:bg-slate-700 shadow-lg rounded-2xl space-x-8 opacity-90">
                 <div>
                     <div class="flex flex-row space-x-2 text-2xl font-bold mb-0">
                         <div class="text-blue dark:text-blue-100">
@@ -165,3 +160,9 @@
         </TabItem>
     </Tabs>
 </div>
+<style>
+    .blur-xsm {
+        --tw-blur: blur(2px);
+       filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+    }
+</style>

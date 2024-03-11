@@ -40,10 +40,10 @@ interface getCollectionsParams {
 }
 
 export function reformatTokenName(name: string) {
-    const match = name.match(/^(.*?)(\d+)$/);
+    const match = name.match(/^(.*?)(\s*#\s*|\s*)(\d+)$/);
     if (match) {
         const baseName = match[1].trim();
-        const number = match[2];
+        const number = match[3];
         return `${baseName} #${number}`;
     } else {
         return name;

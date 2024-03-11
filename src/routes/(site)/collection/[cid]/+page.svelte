@@ -23,6 +23,7 @@
     let tokens = data.tokens as Token[];
     let categories = {} as { [key: string]: {} };
     let collectionName = data.collectionName;
+    let collection = data.collection;
     let filteredTokens = [] as Token[];
     let displayCount = 10;
     let filters = {} as { [key: string]: string };
@@ -93,21 +94,51 @@
         title: `${collectionName} | NFT Navigator`,
         images: [{ url: tokens[0]?.metadata?.image??'' }],
     }} />
-<!--<BreadcrumbCustom aria-label="Navigation breadcrumb" solidClass="flex px-5 py-3 text-gray-700 border border-gray-200 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 justify-between" solid>
-    <BreadcrumbItem href="/" class="hover:text-blue-800" >
-        <svelte:fragment slot="icon">
-            <HomeOutline class="w-4 h-4 me-2 inline" />
-          </svelte:fragment>Home
-    </BreadcrumbItem>
-    <BreadcrumbItem href="/collection/{contractId}" class="hover:text-blue-800">
-        <svelte:fragment slot="icon">
-            <ChevronDoubleRightOutline class="w-4 h-4 me-2 inline" />
-          </svelte:fragment>Collection ({collectionName})
-    </BreadcrumbItem>
-    <svelte:fragment slot="right">
-        <div></div>
-    </svelte:fragment>
-</BreadcrumbCustom>-->
+
+<div class="justify-between h-60 overflow-hidden overflow-ellipsis relative flex flex-row">
+    <img src="{data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata.image}" class="w-1/3 object-cover" />
+    <img src="{data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata.image}" class="w-1/3 object-cover" />
+    <div class="mask_dark flex justify-center h-full position absolute w-full content-center bg-slate-100 dark:bg-slate-800">
+        <div class="flex h-full {isMobile ? 'w-full' : 'w-1/2'} pl-4 pr-4 place-items-center space-between flex-col space-y-1">
+            {#if data.collection?.highforgeData}
+                <div class="p-4 overflow-hidden mb-auto">
+                    <div class="text-4xl font-bold">{data.collection?.highforgeData?.title??collectionName}</div>
+                    <div class="text-md">{data.collection?.highforgeData?.description}</div>
+                </div>
+            {/if}
+            <div class="flex flex-row pl-4 justify-between mt-auto w-full">
+                <div class="flex flex-row space-x-10">
+                    <div>
+                        <div class="text-sm">Floor</div>
+                        <div class="text-lg text-blue-300">{data.floor}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm">Tokens</div>
+                        <div class="text-lg text-blue-300">{collection?.totalSupply}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm">Holders</div>
+                        <div class="text-lg text-blue-300">{collection?.uniqueOwners}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm">Creator</div>
+                        <div class="text-lg text-blue-300"><a href='https://voi.observer/explorer/account/{collection?.creator}' target="_blank">{collection?.creator.substring(0,8)}...</a></div>
+                    </div>
+                </div>
+                <div class="flex flex-row space-x-2 mb-2">
+                    <button on:click={() => window.open('https://highforge.io/project/'+contractId)} class="p-2 bg-purple-900  text-gray-100 rounded-md transition-colors duration-200 ease-in-out hover:bg-blue-900 outline-1">
+                        High Forge <i class="fas fa-external-link-alt"></i>
+                    </button>
+                    {#if data.collection?.gameData}
+                        <button on:click={() => window.open('https://nft-games.boeieruurd.com/collections/'+contractId)} class="p-2 bg-purple-900 text-gray-100 rounded-md transition-colors duration-200 ease-in-out hover:bg-blue-900">
+                            <img src={voiGamesImage} class="h-10 inline-block" alt="Voi Games" /><i class="fas fa-external-link-alt inline-block"></i>
+                        </button>
+                    {/if}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 <div class="flex pb-16">
     {#if !isMobile && displayTab == 'tokens'}
         <div class="p-4">
@@ -139,17 +170,19 @@
         </div>
     {/if}
     <div class="w-full">
-        <div class="flex justify-between">
-            <div class="flex">
+        {#if isMobile}
+            <div class="flex justify-center">
                 <button on:click={() => window.open('https://highforge.io/project/'+contractId)} class="bg-opacity-20 m-4 px-4 py-1 bg-blue-600 text-gray-500 dark:text-gray-100 rounded-md transition-colors duration-200 ease-in-out hover:bg-blue-900 outline-1">
-                    {isMobile ? 'High Forge' : 'View on High Forge'} <i class="fas fa-external-link-alt"></i>
+                    High Forge <i class="fas fa-external-link-alt"></i>
                 </button>
-                {#if data.isVoiGames}
+                {#if data.collection?.gameData}
                     <button on:click={() => window.open('https://nft-games.boeieruurd.com/collections/'+contractId)} class="bg-opacity-20 m-4 px-4 py-1 bg-blue-600 text-white rounded-md transition-colors duration-200 ease-in-out hover:bg-blue-900">
                         <img src={voiGamesImage} class="h-12 inline-block" alt="Voi Games" /><i class="fas fa-external-link-alt inline-block"></i>
                     </button>
                 {/if}
             </div>
+        {/if}
+        <div class="flex {isMobile ? 'justify-center' : 'justify-end'}">
             <div class="p-4 flex flex-row">
                 {#if displayTab == 'tokens'}
                     <Switch label="For Sale" bind:checked={forSaleCollection} ></Switch>
@@ -197,5 +230,8 @@
     .sentinel {
         height: 1px;
         width: 100%;
+    }
+    .mask_dark {
+        background: radial-gradient(circle at center, rgba(0,0,0,1) 20%, rgba(0,0,0,1), rgba(0,0,0,0), rgba(0,0,0,1) 100%);
     }
 </style>
