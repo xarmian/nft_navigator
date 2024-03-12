@@ -129,6 +129,12 @@
                 <NftGamesButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14"/>
             </div>
         </div>
+        <div class="pt-2 md:pt-4 md:p-4 md:flex flex-col lg:flex-row space-x-1 space-y-1 absolute bottom-0 right-0 hidden place-items-end">
+            {#if displayTab == 'tokens'}
+                <Switch label="For Sale" bind:checked={forSaleCollection} ></Switch>
+            {/if}
+            <Select bind:value={displayTab} options={[{id: 'tokens',name:'Tokens'},{id:'sales',name:'Sales'}]}></Select>
+        </div>
     </div>
 </div>
 <div class="flex pb-16">
@@ -161,7 +167,7 @@
     </div>
     <div class="w-full">
         <div class="flex justify-center md:justify-end">
-            <div class="pt-2 md:pt-4 md:p-4 flex flex-row space-x-1">
+            <div class="pt-2 md:pt-4 md:p-4 flex flex-row md:hidden space-x-1">
                 {#if displayTab == 'tokens'}
                     <div class="flex pl-4 justify-center h-10 md:hidden">
                         <input type="text" placeholder="Search" bind:value={searchText} class="border border-gray-300 rounded-lg dark:bg-gray-600" />

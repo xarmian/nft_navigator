@@ -19,24 +19,22 @@ export const load = (async ({ fetch }) => {
     tokenData.tokens.forEach((data: any) => {
         const metadata = JSON.parse(data.metadata);
         const listing = listings?.find((l: Listing) => l.collectionId === data.contractId && l.tokenId === data.tokenId);
-        if (data.owner !== listing?.seller || data.approved !== algosdk.getApplicationAddress(Number(listing?.mpContractId))) {
-            // remove token from tokenData
-            return;
+        if (data.owner == listing?.seller && data.approved == algosdk.getApplicationAddress(Number(listing?.mpContractId))) {
+            tokens.push({
+                contractId: data.contractId,
+                tokenId: data.tokenId,
+                owner: data.owner,
+                ownerNFD: null,
+                metadataURI: data.metadataURI,
+                metadata: metadata,
+                mintRound: data['mint-round'],
+                approved: data.approved,
+                marketData: listing,
+                salesData: null,
+                rank: null,
+                traits: Object.entries(metadata.properties).map(([key, value]) => key + ': ' + value),
+            });
         }
-        tokens.push({
-            contractId: data.contractId,
-            tokenId: data.tokenId,
-            owner: data.owner,
-            ownerNFD: null,
-            metadataURI: data.metadataURI,
-            metadata: metadata,
-            mintRound: data['mint-round'],
-            approved: data.approved,
-            marketData: listing,
-            salesData: null,
-            rank: null,
-            traits: Object.entries(metadata.properties).map(([key, value]) => key + ': ' + value),
-        });
     });
 
 	return {
