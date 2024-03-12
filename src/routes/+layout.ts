@@ -15,7 +15,7 @@ export const load = ({ url }) => {
       siteName: 'NFTNavigator',
       images: [
         {
-            url: './android-chrome-192x192.png',
+            url: 'https://nftnavigator.xyz/android-chrome-192x192.png',
             alt: 'NFT Navigator Image',
             width: 192,
             height: 192,
@@ -23,7 +23,7 @@ export const load = ({ url }) => {
             type: 'image/png'
           },
           {
-            url: './android-chrome-512x512.png',
+            url: 'https://nftnavigator.xyz/android-chrome-512x512.png',
             alt: 'NFT Navigator Image',
             width: 512,
             height: 512,
