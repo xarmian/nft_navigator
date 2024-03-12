@@ -15,6 +15,9 @@
     import Select from '$lib/component/ui/Select.svelte';
     import SalesTable from '$lib/component/ui/SalesTable.svelte';
     import { page } from '$app/stores';
+	import NautilusButton from '$lib/component/ui/NautilusButton.svelte';
+    import HighforgeButton from '$lib/component/ui/HighforgeButton.svelte';
+	import NftGamesButton from '$lib/component/ui/NFTGamesButton.svelte';
 
     const forsale = $page.url.searchParams.get('forsale');
 
@@ -98,43 +101,40 @@
 <div class="banner_container h-60 justify-between overflow-hidden overflow-ellipsis relative flex flex-row text-white">
     <img src="{data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata.image}" class="banner_img object-cover" />
     <img src="{data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata.image}" class="banner_img2 w-1/2 object-cover" />
-    <div class="mask_dark flex justify-center h-full position absolute w-full content-center bg-slate-100 dark:bg-slate-800">
-        <div class="collection_detail flex h-full pl-4 pr-4 place-items-center space-between flex-col space-y-1">
-            {#if data.collection?.highforgeData}
-                <div class="p-4 overflow-hidden mb-auto">
-                    <div class="text-4xl font-bold">{data.collection?.highforgeData?.title??collectionName}</div>
-                    <div class="text-md">{data.collection?.highforgeData?.description}</div>
+    <div class="mask_dark flex justify-center h-full absolute w-full content-center bg-slate-100 dark:bg-slate-800">
+        <div class="collection_detail flex justify-center content-center space-x-10">
+            <div class="flex h-fullplace-items-center space-between flex-col space-y-1">
+                {#if data.collection?.highforgeData}
+                    <div class="p-4 overflow-auto mb-auto">
+                        <div class="text-4xl font-bold">{data.collection?.highforgeData?.title??collectionName}</div>
+                        <div class="text-md">{data.collection?.highforgeData?.description}</div>
+                    </div>
+                {/if}
+                <div class="flex flex-row pl-4 justify-between mt-auto w-full pt-4">
+                    <div class="flex flex-row space-x-10">
+                        <div>
+                            <div class="text-sm">Floor</div>
+                            <div class="text-lg text-blue-300">{data.floor}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm">Tokens</div>
+                            <div class="text-lg text-blue-300">{collection?.totalSupply}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm">Holders</div>
+                            <div class="text-lg text-blue-300">{collection?.uniqueOwners}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm">Creator</div>
+                            <div class="text-lg text-blue-300"><a href='https://voi.observer/explorer/account/{collection?.creator}' target="_blank">{collection?.creator.substring(0,8)}...</a></div>
+                        </div>
+                    </div>
                 </div>
-            {/if}
-            <div class="flex flex-row pl-4 justify-between mt-auto w-full">
-                <div class="flex flex-row space-x-10">
-                    <div>
-                        <div class="text-sm">Floor</div>
-                        <div class="text-lg text-blue-300">{data.floor}</div>
-                    </div>
-                    <div>
-                        <div class="text-sm">Tokens</div>
-                        <div class="text-lg text-blue-300">{collection?.totalSupply}</div>
-                    </div>
-                    <div>
-                        <div class="text-sm">Holders</div>
-                        <div class="text-lg text-blue-300">{collection?.uniqueOwners}</div>
-                    </div>
-                    <div>
-                        <div class="text-sm">Creator</div>
-                        <div class="text-lg text-blue-300"><a href='https://voi.observer/explorer/account/{collection?.creator}' target="_blank">{collection?.creator.substring(0,8)}...</a></div>
-                    </div>
-                </div>
-                <div class="flex flex-row space-x-2 mb-2">
-                    <button on:click={() => window.open('https://highforge.io/project/'+contractId)} class="p-2 bg-purple-900  text-gray-100 rounded-md transition-colors duration-200 ease-in-out hover:bg-blue-900 outline-1">
-                        High Forge <i class="fas fa-external-link-alt"></i>
-                    </button>
-                    {#if data.collection?.gameData}
-                        <button on:click={() => window.open('https://nft-games.boeieruurd.com/collections/'+contractId)} class="p-2 bg-purple-900 text-gray-100 rounded-md transition-colors duration-200 ease-in-out hover:bg-blue-900">
-                            <img src={voiGamesImage} class="h-10 inline-block" alt="Voi Games" /><i class="fas fa-external-link-alt inline-block"></i>
-                        </button>
-                    {/if}
-                </div>
+            </div>
+            <div class="flex flex-col space-y-2 items-stretch justify-center mb-2 z-10" style="width:64rem;">
+                <NautilusButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14"/>
+                <HighforgeButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14"/>
+                <NftGamesButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14"/>
             </div>
         </div>
     </div>
@@ -232,9 +232,12 @@
         width: 100%;
     }
     .mask_dark {
-        background: radial-gradient(circle at center, rgba(0,0,0,1) 20%, rgba(0,0,0,1), rgba(0,0,0,0), rgba(0,0,0,1) 100%);
+        background: radial-gradient(circle at center, rgba(0,0,0,0.85) 20%, rgba(0,0,0,0.9), rgba(0,0,0,0), rgba(0,0,0,1) 100%);
     }
-    .banner_img, .collection_detail {
+    .banner_img {
+        width: calc(50%);
+    }
+    .collection_detail {
         width: 50%;
     }
     @media (max-width: 768px) {
