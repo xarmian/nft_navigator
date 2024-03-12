@@ -1,21 +1,13 @@
 <script lang="ts">
     import type { Token, Collection } from '$lib/data/types';
-	import { onMount } from 'svelte';
     import TokenName from '$lib/component/ui/TokenName.svelte';
-    //@ts-ignore
-    import Device from 'svelte-device-info';
 	import { populateTokenRanking } from '$lib/utils/indexer';
     import { zeroAddress } from '$lib/data/constants';
 
     export let token: Token;
-    let isMobile = false;
     let formattedOwner = '';
     let collection: Collection;
     let royaltyPercentage = 0;
-
-    onMount(async () => {
-        isMobile = Device.isMobile;
-    });
 
     $: {
         if (!collection) {
@@ -101,7 +93,7 @@
         
     const collectionName = token?.metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
 </script>
-<div class="flex items-start" class:flex-col={isMobile}>
+<div class="flex flex-col md:flex-row items-start">
     <img src={token.metadata.image} class="max-w-72 object-contain mr-3 rounded-xl"/>
     <div class="text-left flex-grow">
         <div class="mb-2">

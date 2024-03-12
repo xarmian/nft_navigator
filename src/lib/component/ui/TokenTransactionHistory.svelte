@@ -1,6 +1,4 @@
 <script lang="ts">
-    //@ts-ignore
-    import Device from 'svelte-device-info';
     import { onMount } from 'svelte';
     import { A } from 'flowbite-svelte';
     import type { Token, Transfer, Sale } from '$lib/data/types';
@@ -23,7 +21,6 @@
     let searchTo = '';
 
     let zeroAddress = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
-    $: isMobile = false;
 
     let currentPage = 1;
     const transactionsPerPage = 10;
@@ -87,8 +84,6 @@
     }
 
     onMount(async () => {
-        isMobile = Device.isMobile;
-
         transfers = await getTransfers(String(contractId), String(tokenId));
 
         // fetch market data
@@ -129,17 +124,15 @@
     });
 
 </script>
-<div class="flex" class:flex-col={isMobile}>
+<div class="flex flex-col md:flex-row">
     <div class="w-full overflow-hidden rounded-lg shadow-xs">
         <div class="w-full overflow-x-auto">
             <table class="w-full whitespace-no-wrap">
                 <thead>
                     <tr class="text-xs font-semibold tracking-wide text-left text-gray-500 dark:text-gray-100 uppercase border-b bg-gray-50 dark:bg-gray-700">
                         <th class="px-4 py-3 align-top">Date</th>
-                        {#if !isMobile}
-                            <th class="px-4 py-3 align-top">Transaction ID</th>
-                            <th class="px-4 py-3 align-top">Round</th>
-                        {/if}
+                        <th class="px-4 py-3 align-top hidden md:block">Transaction ID</th>
+                        <th class="px-4 py-3 align-top hidden md:block">Round</th>
                         <th class="px-4 py-3 align-top">
                             <div>From</div>
                             <input type="text" placeholder="Search" class="w-full border border-gray-200 rounded-lg p-1" bind:value={searchFrom} />
@@ -164,10 +157,8 @@
                         {/if}
                         <tr class="text-gray-700 dark:text-gray-100">
                             <td class="px-4 py-3">{new Date(transfer.timestamp * 1000).toLocaleString()}</td>
-                            {#if !isMobile}
-                                <td class="px-4 py-3"><A href="https://voi.observer/explorer/transaction/{transfer.transactionId}" target="_blank">{transfer.transactionId.substring(0,15)}...</A></td>
-                                <td class="px-4 py-3"><A href="https://voi.observer/explorer/block/{transfer.round.toString()}" target="_blank">{transfer.round}</A></td>
-                            {/if}
+                            <td class="px-4 py-3 hidden md:block"><A href="https://voi.observer/explorer/transaction/{transfer.transactionId}" target="_blank">{transfer.transactionId.substring(0,15)}...</A></td>
+                            <td class="px-4 py-3 hidden md:block"><A href="https://voi.observer/explorer/block/{transfer.round.toString()}" target="_blank">{transfer.round}</A></td>
                             <td class="px-4 py-3">
                                 {#if transfer.from == zeroAddress}
                                     <span class="text-center w-full text-sm bg-yellow-200 rounded-lg text-yellow-400 font-bold p-1 pl-2 pr-2">Minted</span>

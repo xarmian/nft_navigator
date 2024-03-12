@@ -7,7 +7,6 @@
     import { onMount, onDestroy } from 'svelte';
     import { selectedWallet } from 'avm-wallet-svelte';
 	import { goto } from '$app/navigation';
-    import type { Currency } from '$lib/data/types';
     import { toast } from '@zerodevx/svelte-toast';
     import { copy } from 'svelte-copy';
     // @ts-ignore

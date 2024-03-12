@@ -8,8 +8,6 @@
     import { inview } from 'svelte-inview';
     import Select from '$lib/component/ui/Select.svelte';
 	import { onMount } from 'svelte';
-    // @ts-ignore
-    import Device from 'svelte-device-info';
     
     export let data: PageData;
     let collections: Collection[] = data.collections;
@@ -17,12 +15,10 @@
     let displayCount = 0;
     let cardsPerLoad = 0;
     let textFilter = '';
-    let isMobile = false;
     let isMounted = false;
 
     onMount(async () => {
         isMounted = true;
-        isMobile = Device.isMobile;
 
         // get viewport height
         const viewHeight = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
@@ -78,7 +74,7 @@
     let inputElement: HTMLInputElement;
 </script>
 
-<div class="flex justify-between {isMobile ? 'flex-col' : 'flex-row'}">
+<div class="flex justify-between flex-col md:flex-row">
     <div class="m-2 flex justify-start">
         <Select options={[{id:'Popularity', name: 'Popularity'},{id: 'Mint', name: 'Mint Date'},{id: 'Name', name: 'Name'},{id: 'Randomize', name: 'Randomize'}]} bind:value={$sort.by} containerClass="m-1"></Select>
         <Select options={[{id: 'Descending', name: 'Descending'},{id: 'Ascending', name: 'Ascending'}]} bind:value={$sort.direction} containerClass="m-1"></Select>

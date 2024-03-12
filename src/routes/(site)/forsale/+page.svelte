@@ -7,8 +7,6 @@
     import Select from '$lib/component/ui/Select.svelte';
     import { onMount } from 'svelte';
     import { inview } from 'svelte-inview';
-    // @ts-ignore
-    import Device from 'svelte-device-info';
     
     export let data: PageData;
     let displayCount = 12;
@@ -17,11 +15,6 @@
     let filterTokens: Token[] = [];
     let textFilter = '';
     let currencyList = [ { id: '0', name: 'VOI' }, { id: '6779767', name: 'VIA' } ];
-    let isMobile = false;
-
-    onMount(() => {
-        isMobile = Device.isMobile;
-    });
 
     $: {
         filterTokens = tokens.filter((t: Token) => {
@@ -94,15 +87,15 @@
     let inputElement: HTMLInputElement;
 </script>
 
-<div class="flex justify-between {isMobile ? 'flex-col' : 'flex-row'}">
-    <div class="flex justify-start flex-wrap {isMobile ? 'text-xs' : 'text-md'}">
+<div class="flex justify-between flex-col md:flex-row">
+    <div class="flex justify-start flex-wrap text-xs md:text-md">
         <Select options={[{id: 'Name', name: 'Name'}, {id: 'Price', name: 'Price'}, {id: 'Rank', name: 'Rank'},{id: 'List', name: 'List Date'},{id:'Randomize', name:'Randomize'}]} bind:value={$sort.by} containerClass="m-1"></Select>
         <Select options={[{id: 'Ascending', name: 'Ascending'}, {id: 'Descending', name: 'Descending'}]} bind:value={$sort.direction} containerClass="m-1"></Select>
         <Select options={[{id:"*",name:"Any Token"},...currencyList]} bind:value={$filters.currency} containerClass="m-1"></Select>
     </div>
-    <div class="flex {isMobile ? 'm-1 justify-center' : 'm-4 justify-end'}">
+    <div class="flex m-1 justify-center md:m-4 md:justify-end">
         <div class="relative self-start mr-6">
-            <input type="text" placeholder="Search" bind:value={textFilter} bind:this={inputElement} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600 w-full {isMobile ? 'pr-1' : 'pr-8'}"/>
+            <input type="text" placeholder="Search" bind:value={textFilter} bind:this={inputElement} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600 w-full pr-1 md:pr-8"/>
             {#if textFilter}
                 <button class="absolute inset-y-0 right-0 pr-3 flex items-center" on:click={() => { textFilter = ''; inputElement.focus(); }}>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-5 w-5 text-gray-500">

@@ -1,19 +1,10 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-    import type { Token } from '$lib/data/types';
-	import { onMount } from 'svelte';
-    import { Breadcrumb, BreadcrumbItem } from 'flowbite-svelte';
-    import { HomeOutline, ChevronDoubleRightOutline } from 'flowbite-svelte-icons';
 	import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
     import TokenTransactionHistory from '$lib/component/ui/TokenTransactionHistory.svelte';
-    import { goto } from '$app/navigation';
     import { MetaTags } from 'svelte-meta-tags';
     import { reformatTokenName } from '$lib/utils/indexer';
-    //@ts-ignore
-    import Device from 'svelte-device-info';
-	import { abiTypeIsTransaction } from 'algosdk';
 
-    $: isMobile = false;
     export let data: PageData;
     let contractId = data.contractId;
     let tokenId = data.tokenId;
@@ -32,10 +23,6 @@
             isMenuOpen = false;
         }
     }
-
-    onMount(() => {
-        isMobile = Device.isMobile;
-    });
 
     const goToMarketplace = () => {
         if (token) window.open(`https://nautilus.sh/#/collection/${token.contractId}/token/${token.tokenId}`,'_blank');
@@ -60,8 +47,7 @@
 <svelte:window on:click={closeMenu} />
 <div class="m-5">
     <div class="button-bar">
-        {#if isMobile}
-            <div class="hamburger-container">
+            <div class="hamburger-container block md:hidden">
                 <button class="hamburger-button" on:click={toggleMenu}>
                     <span class="hamburger-icon"></span>
                     <span class="hamburger-icon"></span>
@@ -72,17 +58,17 @@
                         <a class="mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToMarketplace}>Marketplace <i class="fas fa-external-link-alt"></i></a>
                         <a class="mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToContract}>Contract <i class="fas fa-external-link-alt"></i></a>
                         <a class="mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={() => window.open('https://highforge.io/project/'+contractId)}>High Forge <i class="fas fa-external-link-alt"></i></a>
-                        <a class="bg-gray-200 dark:bg-gray-600 opacity-50 !cursor-not-allowed" on:click={goToProjectPage}>Project Page</a>
+                        <!--<a class="bg-gray-200 dark:bg-gray-600 opacity-50 !cursor-not-allowed" on:click={goToProjectPage}>Project Page</a>-->
                     </div>
                 {/if}
             </div>
-        {:else}
-            <a class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" href={`/collection/${token?.contractId}`}><i class='fas fa-arrow-left'></i> Collection</a>
-            <a class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToMarketplace}>Marketplace <i class="fas fa-external-link-alt"></i></a>
-            <a class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToContract}>Contract <i class="fas fa-external-link-alt"></i></a>
-            <a class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={() => window.open('https://highforge.io/project/'+contractId)}>High Forge <i class="fas fa-external-link-alt"></i></a>
-            <!--<button class="mr-2 bg-gray-200 dark:bg-gray-600 opacity-50 !cursor-not-allowed" on:click={goToProjectPage}>Project Page <i class="fas fa-external-link-alt"></i></button>-->
-        {/if}
+            <div class="hidden md:block">
+                <a class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" href={`/collection/${token?.contractId}`}><i class='fas fa-arrow-left'></i> Collection</a>
+                <a class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToMarketplace}>Marketplace <i class="fas fa-external-link-alt"></i></a>
+                <a class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToContract}>Contract <i class="fas fa-external-link-alt"></i></a>
+                <a class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={() => window.open('https://highforge.io/project/'+contractId)}>High Forge <i class="fas fa-external-link-alt"></i></a>
+                <!--<button class="mr-2 bg-gray-200 dark:bg-gray-600 opacity-50 !cursor-not-allowed" on:click={goToProjectPage}>Project Page <i class="fas fa-external-link-alt"></i></button>-->
+            </div>
     </div>
     {#if token}
         <div class='mb-4'>

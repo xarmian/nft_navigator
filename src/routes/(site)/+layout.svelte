@@ -6,17 +6,11 @@
 	import Icon from '$lib/assets/android-chrome-192x192.png';
 	import { Web3Wallet, selectedWallet } from 'avm-wallet-svelte';
 	import { onMount } from 'svelte';
-	//@ts-ignore
-	import Device from 'svelte-device-info';
-	import type { MouseEventHandler } from 'svelte/elements';
 
 	let showWalletSearch = false;
-	let isMobile = false;
 	let showMenu = false;
 
 	onMount(() => {
-		isMobile = Device.isMobile;
-
 		// click outside menu to close
 		document.addEventListener('click', (e: MouseEvent) => {
 			// @ts-expect-error - closest does exist
@@ -44,8 +38,7 @@
 					<div class="cursor-pointer text-2xl font-bold content-center">NFT Navigator</div>
 				</a>
 			</div>
-			{#if !isMobile}
-				<div class="flex items-center space-x-2 flex-grow justify-center p-2">
+			<div class="md:flex items-center space-x-2 flex-grow justify-center p-2 hidden">
 					<a href="/" class="hover:text-blue-500">Home</a>
 					<span class="text-gray-400">|</span>
 					<a href="/forsale" class="hover:text-blue-500">For Sale</a>
@@ -54,20 +47,16 @@
 						<a href="/portfolio/{$selectedWallet?.address}" class="hover:text-blue-500">My Portfolio</a>
 					{/if}
 				</div>
-			{:else}
-				<div class="flex-grow p-2">&nbsp;</div>
-			{/if}
+			<div class="flex-grow p-2 md:hidden">&nbsp;</div>
 			<div class="absolute top-0 right-0 flex p-4 flex-row space-x-2">
-				{#if !isMobile}
-					<div class="flex place-items-end">
-						<div class="w-48">
-							<Web3Wallet />
-						</div>
+				<div class="hidden md:flex place-items-end">
+					<div class="w-48">
+						<Web3Wallet />
 					</div>
-				{/if}
+				</div>
 				<div class="ml-auto relative content-end flex flex-row">
 					<DarkMode />
-					{#if isMobile}
+					<div class="flex flex-row md:hidden">
 						<button on:click|stopPropagation={() => showMenu = !showMenu} class="h-10 w-10 rounded-2xl bg-slate-500 flex items-center justify-center mr-2">
 							<i class="fas fa-bars cursor-pointer"></i>
 						</button>
@@ -80,12 +69,10 @@
 										<a href='/portfolio/{$selectedWallet?.address}' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">My Portfolio</a>
 									{/if}
 								</ul>
-								{#if isMobile}
-									<Web3Wallet/>
-								{/if}
+								<Web3Wallet/>
 							</div>
 						{/if}
-					{/if}
+					</div>
 				</div>
 			</div>
 		</div>		

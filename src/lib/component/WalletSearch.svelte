@@ -17,8 +17,6 @@
 	import { toast } from '@zerodevx/svelte-toast';
 	import { onMount, onDestroy } from 'svelte';
     import { SearchOutline } from 'flowbite-svelte-icons';
-    //@ts-ignore
-    import Device from 'svelte-device-info';
 
 	let searchText = '';
 	/**
@@ -30,7 +28,6 @@
     let componentElement: any;
     export let onSubmit: (addr: string) => void;
     export let loadPreviousValue: boolean = true;
-    $: isMobile = false;
     let inputElement: HTMLInputElement;
 
 	onMount(() => {
@@ -47,8 +44,6 @@
                 }
             }
         }
-        isMobile = Device.isMobile;
-
 	});
 
 	onDestroy(() => {
@@ -157,11 +152,10 @@
             placeholder="Select wallet by Address or NFD"
         />
         <button on:click={() => handleSubmit(undefined)} class="dark:bg-blue-500 bg-blue-300 p-2">
-        {#if !isMobile}
-            Submit
-        {:else}
+        <div class="hidden md:block">Submit</div>
+        <div class="block md:hidden">
             <SearchOutline />
-        {/if}
+        </div>
         </button>
     </div>
 
