@@ -3,6 +3,7 @@ import type { Token, Collection, Listing, IHighforgeProject } from '$lib/data/ty
 import { getCollections, getTokens, populateTokenRanking } from '$lib/utils/indexer';
 import voiGames from '$lib/data/voiGames.json';
 import { getCurrency } from '$lib/utils/currency';
+import algosdk from 'algosdk';
 
 export const load = (async ({ params, fetch }) => {
 	const contractId = params.cid;
@@ -31,12 +32,16 @@ export const load = (async ({ params, fetch }) => {
 		try {
 			const marketData = await fetch(marketUrl).then((response) => response.json());
 			if (marketData.listings.length > 0) {
-				tokens.forEach((token: Token) => {
+
+				for (const token of tokens) {
 					const marketToken = marketData.listings.find((listing: Listing) => listing.tokenId === token.tokenId);
 					if (marketToken && !marketToken.sale) {
-						token.marketData = marketToken;
+						// check if token owner == marketToken.seller and mpContract id still approved to sell token
+						if (token.owner === marketToken.seller && token.approved === algosdk.getApplicationAddress(Number(marketToken.mpContractId))) {
+							token.marketData = marketToken;
+						}
 					}
-				});
+				}
 
 				// find lowest price in market data
 				const f = marketData.listings.reduce((acc: { price: number, currency: number }, listing: Listing) => {
