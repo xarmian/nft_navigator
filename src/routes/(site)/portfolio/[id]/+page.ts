@@ -2,6 +2,7 @@
 import type { PageLoad } from './$types';
 import { getNFD } from '$lib/utils/nfd';
 import type { Token } from '$lib/data/types';
+import type { MetaTagsProps } from 'svelte-meta-tags';
 
 export const load = (async ({ params, fetch }) => {
 	const walletId: string = params.id;
@@ -61,12 +62,23 @@ export const load = (async ({ params, fetch }) => {
 		console.error(err);
 	}
 
+    const pageMetaTags = Object.freeze({
+        title: 'Portfolio: ' + walletId.substring(0,6) + '...',
+        description: 'NFT Navigator Portfolio',
+        openGraph: {
+          title: 'Portfolio: ' + walletId.substring(0,6) + '...',
+          description: 'NFT Navigator Portfolio',
+		  images: [{ url: tokens[0]?.metadata?.image ?? 'https://nftnavigator.xyz/android-chrome-192x192.png' }],
+        }
+      }) satisfies MetaTagsProps;
+
 	return {
 		props: {
 			walletId,
 			walletNFD,
 			tokens,
 			approvals,
+			pageMetaTags,
 		},
 	};
 }) satisfies PageLoad;
