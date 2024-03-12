@@ -75,12 +75,12 @@
 </script>
 
 <div class="flex justify-between flex-col md:flex-row">
-    <div class="m-2 flex justify-start">
+    <div class="m-2 flex justify-center md:justify-start">
         <Select options={[{id:'Popularity', name: 'Popularity'},{id: 'Mint', name: 'Mint Date'},{id: 'Name', name: 'Name'},{id: 'Randomize', name: 'Randomize'}]} bind:value={$sort.by} containerClass="m-1"></Select>
         <Select options={[{id: 'Descending', name: 'Descending'},{id: 'Ascending', name: 'Ascending'}]} bind:value={$sort.direction} containerClass="m-1"></Select>
     </div>
-    <div class="justify-end">
-        <div class="relative self-start m-2 mr-6">
+    <div class="justify-center md:justify-end flex flex-row place-items-center space-x-3 mb-2">
+        <div class="relative">
             <input type="text" placeholder="Search" bind:value={textFilter} bind:this={inputElement} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600 w-full pr-8"/>
             {#if textFilter}
                 <button class="absolute inset-y-0 right-0 pr-3 flex items-center" on:click={() => { textFilter = ''; inputElement.focus(); }}>
@@ -90,11 +90,11 @@
                 </button>
             {/if}
         </div>
-        <div class='flex flex-row m-2'>
+        <div class='flex flex-row'>
             <Switch bind:checked={$filters.voiGames} label="Voi Games"></Switch>
-            <Switch bind:checked={$userPreferences.cleanGridView}>
+            <!--<Switch bind:checked={$userPreferences.cleanGridView}>
                 <i class="fas fa-th"></i>
-            </Switch>
+            </Switch>-->
         </div>
     </div>
 </div>
@@ -106,7 +106,7 @@
                     {#if $userPreferences.cleanGridView}
                         <CollectionSingle collection={collection}></CollectionSingle>
                     {:else}
-                        <CollectionComponent styleClass='ml-14 mr-14 mt-8 mb-24' collection={collection}></CollectionComponent>
+                        <!--<CollectionComponent styleClass='ml-14 mr-14 mt-8 mb-24' collection={collection}></CollectionComponent>-->
                     {/if}
                 </div>
             {/each}
