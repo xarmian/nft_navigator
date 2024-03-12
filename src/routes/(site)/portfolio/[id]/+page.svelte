@@ -61,8 +61,6 @@
         headerTokens = headerTokens.sort(() => Math.random() - 0.5).slice(0,(isMobile ? 3 : 6));
     }
 </script>
-
-<MetaTags title="Portfolio | NFT Navigator" />
 <div class="text-center">
     <div class="relative w-full h-full overflow-hidden">
         <div class="flex h-full w-full absolute blur-xsm -z-10 opacity-60">

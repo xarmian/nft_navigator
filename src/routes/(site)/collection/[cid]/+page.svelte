@@ -78,14 +78,6 @@
     let inputElement: HTMLInputElement;
 </script>
 
-<MetaTags title={collectionName} 
-    titleTemplate="%s | NFT Navigator"
-    openGraph={{
-        url: `https://nftnavigator.xyz/collection/${contractId}`,
-        title: `${collectionName} | NFT Navigator`,
-        images: [{ url: data.collection?.highforgeData?.coverImageURL ?? tokens[0]?.metadata?.image ?? '' }],
-    }} />
-
 <div class="banner_container h-60 justify-between overflow-hidden overflow-ellipsis relative flex flex-row text-white">
     <img src="{data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata.image}" class="banner_img object-cover" />
     <img src="{data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata.image}" class="banner_img2 w-1/2 object-cover" />

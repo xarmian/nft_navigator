@@ -87,7 +87,6 @@
     let inputElement: HTMLInputElement;
 </script>
 
-<MetaTags title="For Sale | NFT Navigator"/>
 <div class="flex justify-between flex-col md:flex-row">
     <div class="flex justify-start flex-wrap text-xs md:text-md">
         <Select options={[{id: 'Name', name: 'Name'}, {id: 'Price', name: 'Price'}, {id: 'Rank', name: 'Rank'},{id: 'List', name: 'List Date'},{id:'Randomize', name:'Randomize'}]} bind:value={$sort.by} containerClass="m-1"></Select>

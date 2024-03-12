@@ -3,7 +3,6 @@ import type { PageLoad } from './$types';
 import type { Collection } from '$lib/data/types';
 import voiGames from '$lib/data/voiGames.json';
 import { getCollections, getSales } from '$lib/utils/indexer';
-import type { MetaTagsProps } from 'svelte-meta-tags';
 
 export const load = (async ({ fetch }) => {
     let collections: Collection[] = await getCollections({ fetch, includes: 'unique-owners', contractId: undefined });
@@ -47,14 +46,14 @@ export const load = (async ({ fetch }) => {
         });
     });
 
-    const pageMetaTags = Object.freeze({
+    const pageMetaTags = {
         title: 'Home',
         description: 'NFT Navigator Homepage',
         openGraph: {
           title: 'Home',
           description: 'NFT Navigator Homepage',
         }
-      }) satisfies MetaTagsProps;
+      };
 
 	return {
 		collections,

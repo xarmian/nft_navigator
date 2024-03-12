@@ -81,13 +81,20 @@ export const load = (async ({ params, fetch }) => {
 		collection.highforgeData = (projects.find((v: IHighforgeProject) => v.applicationID === Number(contractId)))??null;
 	}
 
+	const pageMetaTags = {
+        title: collectionName,
+        description: tokens[0]?.metadata?.description ?? '',
+        imageUrl: collection?.highforgeData?.coverImageURL ?? tokens[0]?.metadata?.image ?? undefined,
+      };
+
 	return {
 		contractId: params.cid,
 		tokens,
 		collection,
 		collectionName,
 		floor,
-		ceiling
+		ceiling,
+		pageMetaTags,
 		//isVoiGames: isVoiGames ? true : false,
 	};
 }) satisfies PageLoad;
