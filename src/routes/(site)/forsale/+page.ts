@@ -5,7 +5,7 @@ import voiGames from '$lib/data/voiGames.json';
 import algosdk from 'algosdk';
 
 export const load = (async ({ fetch }) => {
-    const data = await (await fetch('https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/listings?active=true')).json();
+    const data = await (await fetch('https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/listings?active=true&limit=500')).json();
     const listings = data.listings as Listing[];
     const tokens: Token[] = [];
 
@@ -15,6 +15,7 @@ export const load = (async ({ fetch }) => {
     const tokenIds = listings.map((l: Listing) => l.collectionId + '_' + l.tokenId).join(',');
 
     const tokenData = await (await fetch(`https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/tokens/?tokenIds=${tokenIds}`)).json();
+    //const tokenData = { tokens: [] };
 
     tokenData.tokens.forEach((data: any) => {
         const metadata = JSON.parse(data.metadata);
