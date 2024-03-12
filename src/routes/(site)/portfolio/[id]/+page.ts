@@ -61,11 +61,11 @@ export const load = (async ({ params, fetch }) => {
 		console.error(err);
 	}
 
-    const pageMetaTags = {
-        title: 'Portfolio: ' + walletId.substring(0,6) + '...',
-        description: 'NFT Navigator Portfolio',
-        imageUrl: tokens[0]?.metadata?.image ?? undefined,
-      };
+	const pageMetaTags = {
+		title: 'Portfolio: ' + walletId.substring(0, 8) + '...' + walletId.substring(walletId.length - 8),
+		description: 'NFT Navigator Portfolio',
+		imageUrl: tokens[0]?.metadata?.image ?? undefined,
+	};
 
 	return {
 		props: {
