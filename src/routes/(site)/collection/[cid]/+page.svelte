@@ -131,7 +131,7 @@
                     </div>
                 </div>
             </div>
-            <div class="flex flex-col space-y-2 items-stretch justify-center mb-2 z-10" style="width:64rem;">
+            <div class="flex flex-col space-y-2 items-stretch justify-center mb-2 z-10 w-24">
                 <NautilusButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14"/>
                 <HighforgeButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14"/>
                 <NftGamesButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14"/>
