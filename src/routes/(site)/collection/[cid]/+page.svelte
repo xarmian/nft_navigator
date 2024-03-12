@@ -99,10 +99,14 @@
                     </div>
                 {/if}
                 <div class="flex flex-row pl-4 justify-between mt-auto w-full pt-4">
-                    <div class="flex flex-row space-x-10">
+                    <div class="flex flex-row space-x-4">
                         <div>
                             <div class="text-sm">Floor</div>
                             <div class="text-lg text-blue-300">{data.floor}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm">Ceiling</div>
+                            <div class="text-lg text-blue-300">{data.ceiling}</div>
                         </div>
                         <div>
                             <div class="text-sm">Tokens</div>

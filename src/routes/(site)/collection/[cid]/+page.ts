@@ -13,6 +13,7 @@ export const load = (async ({ params, fetch }) => {
 	//const isVoiGames: boolean = false;
 	
 	let floor = '';
+	let ceiling = '';
 
 	if (contractId) {
 
@@ -51,8 +52,18 @@ export const load = (async ({ params, fetch }) => {
 					return acc;
 				});
 
-				const c = await getCurrency(f.currency);
-				floor = (f.price / (10 ** (c?.decimals??0))).toLocaleString() + ' ' + c?.unitName;
+				// find highest price in market data
+				const h = marketData.listings.reduce((acc: { price: number, currency: number }, listing: Listing) => {
+					if (listing.price > acc.price) {
+						return { price: listing.price, currency: listing.currency };
+					}
+					return acc;
+				});
+
+				const cf = await getCurrency(f.currency);
+				const ch = await getCurrency(h.currency);
+				floor = (f.price / (10 ** (cf?.decimals??0))).toLocaleString() + ' ' + cf?.unitName;
+				ceiling = (h.price / (10 ** (ch?.decimals??0))).toLocaleString() + ' ' + ch?.unitName;
 			}
 		}
 		catch(err) {
@@ -76,6 +87,7 @@ export const load = (async ({ params, fetch }) => {
 		collection,
 		collectionName,
 		floor,
+		ceiling
 		//isVoiGames: isVoiGames ? true : false,
 	};
 }) satisfies PageLoad;
