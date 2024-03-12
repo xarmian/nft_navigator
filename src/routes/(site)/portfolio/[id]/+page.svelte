@@ -12,6 +12,7 @@
     // @ts-ignore
     import Device from 'svelte-device-info';
     import { getWalletBalance, getCurrency } from '$lib/utils/currency';
+	import { MetaTags } from 'svelte-meta-tags';
 
     export let data: PageData;
     $: walletId = data.props.walletId;
@@ -61,6 +62,7 @@
     }
 </script>
 
+<MetaTags title="Portfolio | NFT Navigator" />
 <div class="text-center">
     <div class="relative w-full h-full overflow-hidden">
         <div class="flex h-full w-full absolute blur-xsm -z-10 opacity-60">

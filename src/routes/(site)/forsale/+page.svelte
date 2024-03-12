@@ -5,8 +5,8 @@
     import TokenCard from '$lib/component/ui/TokenCard.svelte';
     import Switch from '$lib/component/ui/Switch.svelte';
     import Select from '$lib/component/ui/Select.svelte';
-    import { onMount } from 'svelte';
     import { inview } from 'svelte-inview';
+	import { MetaTags } from 'svelte-meta-tags';
     
     export let data: PageData;
     let displayCount = 12;
@@ -87,6 +87,7 @@
     let inputElement: HTMLInputElement;
 </script>
 
+<MetaTags title="For Sale | NFT Navigator"/>
 <div class="flex justify-between flex-col md:flex-row">
     <div class="flex justify-start flex-wrap text-xs md:text-md">
         <Select options={[{id: 'Name', name: 'Name'}, {id: 'Price', name: 'Price'}, {id: 'Rank', name: 'Rank'},{id: 'List', name: 'List Date'},{id:'Randomize', name:'Randomize'}]} bind:value={$sort.by} containerClass="m-1"></Select>

@@ -8,6 +8,7 @@
     import { inview } from 'svelte-inview';
     import Select from '$lib/component/ui/Select.svelte';
 	import { onMount } from 'svelte';
+	import { MetaTags } from 'svelte-meta-tags';
     
     export let data: PageData;
     let collections: Collection[] = data.collections;
@@ -74,6 +75,7 @@
     let inputElement: HTMLInputElement;
 </script>
 
+<MetaTags title="Home | NFT Navigator" />
 <div class="flex justify-between flex-col md:flex-row">
     <div class="m-2 flex justify-center md:justify-start">
         <Select options={[{id:'Popularity', name: 'Popularity'},{id: 'Mint', name: 'Mint Date'},{id: 'Name', name: 'Name'},{id: 'Randomize', name: 'Randomize'}]} bind:value={$sort.by} containerClass="m-1"></Select>

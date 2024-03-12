@@ -49,6 +49,7 @@
 		"d3-scale": "github:d3/d3-scale",
 		"flowbite-svelte": "^0.44.24",
 		"flowbite-svelte-icons": "^0.4.5",
+		"just-extend": "^6.2.0",
 		"layerchart": "^0.25.1",
 		"postcss-cli": "^11.0.0",
 		"svelte-device-info": "^1.0.4",

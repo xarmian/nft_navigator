@@ -3,6 +3,7 @@ import type { PageLoad } from './$types';
 import type { Token, Listing  } from '$lib/data/types';
 import voiGames from '$lib/data/voiGames.json';
 import algosdk from 'algosdk';
+import type { MetaTagsProps } from 'svelte-meta-tags';
 
 export const load = (async ({ fetch }) => {
     const data = await (await fetch('https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/listings?active=true')).json();
@@ -47,8 +48,18 @@ export const load = (async ({ fetch }) => {
         }
     });
 
+    const pageMetaTags = Object.freeze({
+        title: 'For Sale | NFT Navigator',
+        description: 'NFT Tokens for Sale',
+        openGraph: {
+          title: 'For Sale | NFT Navigator',
+          description: 'NFT tokens for Sale',
+        }
+      }) satisfies MetaTagsProps;
+
 	return {
 		tokens,
         voiGames,
+        pageMetaTags,
 	};
 }) satisfies PageLoad;
