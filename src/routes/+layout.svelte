@@ -12,7 +12,7 @@
 
 	// $: metaTags = extend(true, {}, data.baseMetaTags, $page.data.pageMetaTags);
 
-	$: metadata = $page.data.pageMetaTags;
+	$: metadata = $page.data.pageMetaTags ?? {};
 	$: pageName = metadata.title ?? 'Home | NFT Navigator';
 	$: description = metadata.description ?? 'Explore, search, and discover ARC-72 NFT Collections on the VOI Network';
 	$: imageUrl = metadata.imageUrl ?? 'https://nftnavigator.xyz/android-chrome-192x192.png';
