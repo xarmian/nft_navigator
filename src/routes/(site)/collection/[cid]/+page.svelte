@@ -1,17 +1,10 @@
 <script lang="ts">
 	import type { PageData } from './$types';
     import type { Token } from '$lib/data/types';
-	import { onMount } from 'svelte';
-    import { Breadcrumb, BreadcrumbItem } from 'flowbite-svelte';
-    import { HomeOutline, ChevronDoubleRightOutline } from 'flowbite-svelte-icons';
 	import TokenCard from '$lib/component/ui/TokenCard.svelte';
-    import BreadcrumbCustom from '$lib/component/ui/BreadcrumbCustom.svelte';
-    //@ts-ignore
-    import Device from 'svelte-device-info';
 	import Switch from '$lib/component/ui/Switch.svelte';
     import { MetaTags } from 'svelte-meta-tags';
     import { inview } from 'svelte-inview';
-    import voiGamesImage from '$lib/assets/voi-games-small.png';
     import Select from '$lib/component/ui/Select.svelte';
     import SalesTable from '$lib/component/ui/SalesTable.svelte';
     import { page } from '$app/stores';
@@ -30,14 +23,9 @@
     let filteredTokens = [] as Token[];
     let displayCount = 10;
     let filters = {} as { [key: string]: string };
-    let isMobile = false;
     let searchText = '';
     let forSaleCollection = (typeof forsale === 'string') ? true : false;
     let displayTab = 'tokens';
-
-    onMount(() => {
-        isMobile = Device.isMobile;
-    });
 
     // reactive stuff
     $: {
@@ -103,7 +91,7 @@
     <img src="{data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata.image}" class="banner_img2 w-1/2 object-cover" />
     <div class="mask_dark flex justify-center h-full absolute w-full content-center bg-slate-100 dark:bg-slate-800">
         <div class="collection_detail w-1/2 flex justify-center content-center md:space-x-10 pr-2">
-            <div class="flex h-fullplace-items-center space-between flex-col space-y-1 w-3/4 md:w-auto">
+            <div class="flex h-full place-items-center space-between flex-col space-y-1 w-3/4 md:flex-grow">
                 {#if data.collection?.highforgeData}
                     <div class="p-4 overflow-auto mb-auto">
                         <div class="text-4xl font-bold">{data.collection?.highforgeData?.title??collectionName}</div>
