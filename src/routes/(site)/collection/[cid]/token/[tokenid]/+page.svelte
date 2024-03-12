@@ -2,14 +2,11 @@
 	import type { PageData } from './$types';
 	import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
     import TokenTransactionHistory from '$lib/component/ui/TokenTransactionHistory.svelte';
-    import { reformatTokenName } from '$lib/utils/indexer';
 
     export let data: PageData;
     let contractId = data.contractId;
     let tokenId = data.tokenId;
     let token = data.token;
-    let tokenName = reformatTokenName(token?.metadata.name??'');
-	let collectionName = token?.metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
 
     let isMenuOpen = false;
 

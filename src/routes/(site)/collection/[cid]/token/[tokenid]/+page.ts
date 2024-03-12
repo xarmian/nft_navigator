@@ -1,6 +1,7 @@
 import type { PageLoad } from './$types';
 import type { Token } from '$lib/data/types';
 import { getNFD } from '$lib/utils/nfd';
+import { reformatTokenName } from '$lib/utils/indexer';
 
 export const load = (async ({ params, fetch }) => {
 	const contractId = params.cid;
@@ -43,8 +44,11 @@ export const load = (async ({ params, fetch }) => {
 		}
 	}
 
+	const tokenName = reformatTokenName(token?.metadata.name??'');
+	//const collectionName = token?.metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
+
 	const pageMetaTags = {
-		title: token?.metadata?.name,
+		title: tokenName,
 		description: token?.metadata?.description,
 		imageUrl: token?.metadata?.image,
 	  };
