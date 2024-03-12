@@ -78,7 +78,7 @@ export const load = (async ({ params, fetch }) => {
 			walletNFD,
 			tokens,
 			approvals,
-			pageMetaTags,
 		},
+		pageMetaTags,
 	};
 }) satisfies PageLoad;
