@@ -3,7 +3,8 @@
     import type { Sale } from '$lib/data/types';
     import algosdk from 'algosdk';
     import { algodIndexer, algodClient } from '$lib/utils/algod';
-
+	import { copy } from 'svelte-copy';
+	import { toast } from '@zerodevx/svelte-toast';
 
     let sales: Sale[] = [];
     let sellers: any[] = [];
@@ -128,7 +129,10 @@
     {#if winner}
         <div class="flex flex-col items-center mt-4">
             <h2 class="text-2xl font-bold dark:text-white">Winner</h2>
-            <p class="dark:text-white">{winner}</p>
+            <p class="dark:text-white">
+                {winner}
+                <i use:copy={winner} class="fas fa-copy pointer" on:svelte-copy={() => toast.push(`Wallet Copied to Clipboard:<br/> ${winner?.substring(0,20)}...`)}></i>
+            </p>
         </div>
     {/if}
 
