@@ -3,6 +3,8 @@
     export let checked: boolean = false;
     export let onChange: Function | null = null;
     export let title = '';
+    export let labelStyle = '';
+    export let sliderStyle = '';
 
     $: if (onChange) {
         onChange(checked);
@@ -13,9 +15,9 @@
 <div title={title}>
   <label class="switch">
       <input type="checkbox" bind:checked={checked}>
-      <span class="slider round"></span>
+      <span class="slider round" style={sliderStyle}></span>
   </label>
-  <span class="label-text">{label}<slot/></span>
+  <span class="label-text" style={labelStyle}>{label}<slot/></span>
 </div>
 
   <style>

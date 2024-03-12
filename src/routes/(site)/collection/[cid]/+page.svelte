@@ -131,7 +131,7 @@
         </div>
         <div class="pt-2 md:pt-4 md:p-4 md:flex flex-col lg:flex-row space-x-1 space-y-1 absolute bottom-0 right-0 hidden place-items-end">
             {#if displayTab == 'tokens'}
-                <Switch label="For Sale" bind:checked={forSaleCollection} ></Switch>
+                <Switch label="For Sale" bind:checked={forSaleCollection} sliderStyle="border:1px solid #3c3c3c;" labelStyle="text-shadow: -1px 0 #3c3c3c, 0 1px #3c3c3c, 1px 0 #3c3c3c, 0 -1px #3c3c3c;" ></Switch>
             {/if}
             <Select bind:value={displayTab} options={[{id: 'tokens',name:'Tokens'},{id:'sales',name:'Sales'}]}></Select>
         </div>
