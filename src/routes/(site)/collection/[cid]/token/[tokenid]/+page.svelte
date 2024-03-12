@@ -2,7 +2,6 @@
 	import type { PageData } from './$types';
 	import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
     import TokenTransactionHistory from '$lib/component/ui/TokenTransactionHistory.svelte';
-    import { MetaTags } from 'svelte-meta-tags';
     import { reformatTokenName } from '$lib/utils/indexer';
 
     export let data: PageData;
@@ -37,13 +36,6 @@
     }
 
 </script>
-<MetaTags title={tokenName} 
-    titleTemplate="%s | NFT Navigator"
-    openGraph={{
-        url: `https://nftnavigator.xyz/collection/${contractId}/token/${tokenId}`,
-        title: `${token?.metadata?.name} - NFT Navigator`,
-        images: [{ url: token?.metadata?.image??'' }],
-    }} />
 <svelte:window on:click={closeMenu} />
 <div class="m-5">
     <div class="button-bar">

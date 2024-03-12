@@ -43,9 +43,16 @@ export const load = (async ({ params, fetch }) => {
 		}
 	}
 
+	const pageMetaTags = {
+		title: token?.metadata?.name,
+		description: token?.metadata?.description,
+		imageUrl: token?.metadata?.image,
+	  };
+
 	return {
 		contractId: params.cid,
 		tokenId: params.tokenid,
 		token: token,
+		pageMetaTags,
 	};
 }) satisfies PageLoad;
