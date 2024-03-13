@@ -22,7 +22,7 @@ interface IToken {
     owner: string;
     metadataURI: string;
     metadata: object;
-    mintRound: number;
+    "mint-round": number;
     approved: string;
 }
 
@@ -96,7 +96,7 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
                 ownerNFD: null,
                 metadataURI: token.metadataURI,
                 metadata: metadata,
-                mintRound: token.mintRound,
+                mintRound: token['mint-round'],
                 approved: token.approved,
                 marketData: null,
                 salesData: null,
