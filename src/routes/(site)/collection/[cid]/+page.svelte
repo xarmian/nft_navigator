@@ -118,7 +118,7 @@
             <div class="flex flex-col space-y-2 items-stretch justify-center mb-2 z-10 w-24">
                 <NautilusButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14"/>
                 <HighforgeButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14"/>
-                {#if collection.gameData}
+                {#if collection?.gameData}
                     <NftGamesButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14"/>
                 {/if}
             </div>
@@ -159,9 +159,9 @@
             </div>
         {/each}
     </div>
-    <div class="w-full">
+    <div class="w-full md:mt-3">
         <div class="flex justify-center md:justify-end">
-            <div class="pt-2 md:pt-4 md:p-4 flex flex-row md:hidden space-x-1">
+            <div class="pt-2 md:pt-4 md:p-4 flex flex-row md:hidden space-x-1 mt-3 sm:mt-0">
                 {#if displayTab == 'tokens'}
                     <div class="flex pl-4 justify-center h-10 md:hidden">
                         <input type="text" placeholder="Search" bind:value={searchText} class="border border-gray-300 rounded-lg dark:bg-gray-600" />
@@ -172,7 +172,7 @@
             </div>
         </div>
         {#if displayTab == 'tokens'}
-            <div class="flex flex-wrap flex-grow justify-center md:justify-start'}">
+            <div class="flex flex-wrap flex-grow justify-center md:justify-start mt-3 md:mt-0">
                 {#each filteredTokens.slice(0, displayCount) as token (token.tokenId)}
                     <div class="p-1">
                         <TokenCard {token} />

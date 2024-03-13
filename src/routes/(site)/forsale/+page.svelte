@@ -88,10 +88,10 @@
 </script>
 
 <div class="flex justify-between flex-col md:flex-row">
-    <div class="flex justify-start flex-wrap text-xs md:text-md">
-        <Select options={[{id: 'Name', name: 'Name'}, {id: 'Price', name: 'Price'}, {id: 'Rank', name: 'Rank'},{id: 'List', name: 'List Date'},{id:'Randomize', name:'Randomize'}]} bind:value={$sort.by} containerClass="m-1"></Select>
-        <Select options={[{id: 'Ascending', name: 'Ascending'}, {id: 'Descending', name: 'Descending'}]} bind:value={$sort.direction} containerClass="m-1"></Select>
-        <Select options={[{id:"*",name:"Any Token"},...currencyList]} bind:value={$filters.currency} containerClass="m-1"></Select>
+    <div class="flex justify-start flex-wrap text-xs md:text-md md:m-4 space-x-2">
+        <Select options={[{id: 'Name', name: 'Name'}, {id: 'Price', name: 'Price'}, {id: 'Rank', name: 'Rank'},{id: 'List', name: 'List Date'},{id:'Randomize', name:'Randomize'}]} bind:value={$sort.by}></Select>
+        <Select options={[{id: 'Ascending', name: 'Ascending'}, {id: 'Descending', name: 'Descending'}]} bind:value={$sort.direction}></Select>
+        <Select options={[{id:"*",name:"Any Token"},...currencyList]} bind:value={$filters.currency}></Select>
     </div>
     <div class="flex m-1 justify-center md:m-4 md:justify-end">
         <div class="relative self-start mr-6">
