@@ -118,7 +118,9 @@
             <div class="flex flex-col space-y-2 items-stretch justify-center mb-2 z-10 w-24">
                 <NautilusButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14"/>
                 <HighforgeButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14"/>
-                <NftGamesButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14"/>
+                {#if collection.gameData}
+                    <NftGamesButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14"/>
+                {/if}
             </div>
         </div>
         <div class="pt-2 md:pt-4 md:p-4 md:flex flex-col lg:flex-row space-x-1 space-y-1 absolute bottom-0 right-0 hidden place-items-end">

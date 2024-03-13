@@ -5,7 +5,7 @@
 	import '@fortawesome/fontawesome-free/css/all.min.css'
 	import { dev } from '$app/environment';
 
-	export let data: any;
+	//export let data: any;
 
   	// import { inject } from '@vercel/analytics';
 	// inject({ mode: dev ? 'development' : 'production' });
