@@ -1,7 +1,6 @@
 import type { PageLoad } from './$types';
-import type { Token, Collection, Listing, IHighforgeProject } from '$lib/data/types';
-import { getCollections, getTokens, populateTokenRanking } from '$lib/utils/indexer';
-import voiGames from '$lib/data/voiGames.json';
+import type { Token, Collection, Listing } from '$lib/data/types';
+import { getCollection, getTokens, populateTokenRanking } from '$lib/utils/indexer';
 import { getCurrency } from '$lib/utils/currency';
 import algosdk from 'algosdk';
 
@@ -20,13 +19,7 @@ export const load = (async ({ params, fetch }) => {
 		tokens = (await getTokens({ contractId, fetch })).sort((a: Token, b: Token) => a.tokenId - b.tokenId);
 		collectionName = tokens[0].metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
 
-		collection = (await getCollections({ contractId: Number(contractId), includes: 'unique-owners', fetch }))[0];
-
-		// get highforge project data from https://test-voi.api.highforge.io/projects
-		const url = 'https://test-voi.api.highforge.io/projects';
-		const response = await fetch(url);
-		const data = await response.json();
-		const projects = data.results;
+		collection = (await getCollection({ contractId: Number(contractId), fetch }));
 
 		// get marketplace data for collection
 		const marketUrl = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/listings/?collectionId=${contractId}&active=true`;
@@ -74,11 +67,6 @@ export const load = (async ({ params, fetch }) => {
 		populateTokenRanking(Number(contractId),tokens,fetch).then((t) => {
 			tokens = t;
 		});
-
-		// check if included in voiGames
-		//isVoiGames = (voiGames.find((v: IHighforgeProject) => v.applicationID === Number(contractId))) ? true : false;
-		collection.gameData = (voiGames.find((v: IHighforgeProject) => v.applicationID === Number(contractId)))??null;
-		collection.highforgeData = (projects.find((v: IHighforgeProject) => v.applicationID === Number(contractId)))??null;
 	}
 
 	const pageMetaTags = {

@@ -1,4 +1,8 @@
-import type { Token, Collection, Metadata, Sale } from '$lib/data/types';
+import type { Token, Collection, Metadata, Sale, IHighforgeProject } from '$lib/data/types';
+import { collectionStore, tokenStore } from '../../stores/collection';
+import { get } from 'svelte/store';
+import voiGames from '$lib/data/voiGames.json';
+
 
 const indexerBaseURL = "https://arc72-idx.nftnavigator.xyz/nft-indexer/v1";
 
@@ -31,6 +35,7 @@ interface getTokensParams {
     fetch?: FetchFunction | undefined;
     limit?: number | undefined;
     owner?: string | undefined;
+    tokenId?: number | undefined;
 }
 
 interface getCollectionsParams {
@@ -51,6 +56,16 @@ export function reformatTokenName(name: string) {
 }
 
 export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
+    if (params.contractId) {
+        const tokens: Token[] | undefined = get(tokenStore).get(Number(params.contractId));
+        if (tokens && tokens.length > 0) {
+            if (params.tokenId) {
+                return tokens.filter((token: Token) => token.tokenId === params.tokenId);
+            }
+            return tokens;
+        }
+    }
+
     if (!params.fetch) params.fetch = fetch;
     
     let url = `${indexerBaseURL}/tokens`;
@@ -72,7 +87,7 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
     try {
         const response = await fetch(url);
         const data: ITokenResponse = await response.json();
-        return data.tokens.map((token: IToken) => {
+        let tokens: Token[] = data.tokens.map((token: IToken) => {
             const metadata: Metadata = JSON.parse(token.metadata?.toString() ?? "{}");
             return {
                 contractId: token.contractId,
@@ -89,23 +104,45 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
                 traits: Object.entries(metadata.properties).map(([key, value]) => key + ': ' + value),
             };
         });
+        if (params.contractId) {
+            // token ranks
+            tokens = await populateTokenRanking(Number(params.contractId), tokens, params.fetch);
+            const tokenMap = get(tokenStore);
+            tokenMap.set(Number(params.contractId), tokens);
+            tokenStore.set(tokenMap);
+        }
+        return tokens;
     } catch (err) {
         console.error(err);
         return [];
     }
 }
 
+export const getCollection = async (params: { contractId: number, fetch?: FetchFunction } ): Promise<Collection | null> => {
+    const collections = get(collectionStore);
+    const collection = collections.find((c: Collection) => c.contractId === params.contractId);
+    if (collection) {
+        return collection;
+    } else {
+        const newCollections = await getCollections(params);
+        return newCollections[0] ?? null;
+    }
+}
+
 export const getCollections = async (params: getCollectionsParams): Promise<Collection[]> => {
+    if (!params.contractId) {
+        const collections = get(collectionStore);
+        if (collections.length > 0) return collections;
+    }
+
     if (!params.fetch) params.fetch = fetch;
 
     let url = `${indexerBaseURL}/collections`;
 
     const paramsArray = [];
+    paramsArray.push(['includes', 'unique-owners']);
     if (params.contractId) {
         paramsArray.push(['contractId', params.contractId.toString()]);
-    }
-    if (params.includes) {
-        paramsArray.push(['includes', params.includes.toString()]);
     }
 
     const urlParams = new URLSearchParams(paramsArray);
@@ -114,7 +151,33 @@ export const getCollections = async (params: getCollectionsParams): Promise<Coll
     try {
         const response = await fetch(url);
         const data: ICollectionResponse = await response.json();
-        return data.collections;
+        const c = data.collections.filter((c: Collection) => c.firstToken !== null);
+
+        const hfurl = 'https://test-voi.api.highforge.io/projects';
+        const hfresponse = await fetch(hfurl);
+        const hfdata = await hfresponse.json();
+        const hfprojects = hfdata.results;
+    
+        // for each project, replace collection's firstToken url with projects.coverImageURL
+        c.forEach((c: Collection) => {
+            hfprojects.forEach((p: IHighforgeProject) => {
+                if (c.contractId === p.applicationID) {
+                    const metadata = JSON.parse(c.firstToken.metadata);
+                    c.firstToken.metadata = JSON.stringify({ ...metadata, image: p.coverImageURL });
+                }
+            });
+        });
+
+        voiGames.forEach((game: IHighforgeProject) => {
+            c.forEach((co: Collection) => {
+                if (co.contractId === game.applicationID) {
+                    co.gameData = game;
+                }
+            });
+        });
+ 
+        if (!params.contractId) collectionStore.set(c);
+        return c;
     } catch (err) {
         console.error(err);
         return [];

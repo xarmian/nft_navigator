@@ -4,7 +4,7 @@
     import { A, Card } from 'flowbite-svelte';
 	import { onMount } from 'svelte';
 	import { getCurrency } from '$lib/utils/currency';
-	import { populateTokenRanking } from '$lib/utils/indexer';
+	import { getTokens, populateTokenRanking } from '$lib/utils/indexer';
 
     export let token: Token | null = null;
     export let listing: Listing | null = null;
@@ -16,26 +16,9 @@
         if (listing == null) listing = token?.marketData??null;
         if (listing) {
             if (!token) {
-                fetch(`https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/tokens/?contractId=${listing.collectionId}&tokenId=${listing.tokenId}`)
-                    .then((response) => response.json())
-                    .then((d) => {
-                        const data = d.tokens[0];
-
-                        token = {
-                            contractId: data.contractId,
-                            tokenId: data.tokenId,
-                            owner: data.owner,
-                            ownerNFD: null,
-                            metadataURI: data.metadataURI,
-                            metadata: JSON.parse(data.metadata),
-                            mintRound: data['mint-round'],
-                            approved: data.approved,
-                            marketData: null,
-                            salesData: null,
-                            rank: null,
-                            traits: [],
-                        };
-                    });
+                token = await getTokens({ contractId: listing.collectionId, fetch }).then((tokens) => {
+                    return tokens[0];
+                });
             }
             
             currency = await getCurrency(listing.currency);

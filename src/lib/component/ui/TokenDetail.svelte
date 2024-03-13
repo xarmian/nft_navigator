@@ -3,55 +3,41 @@
     import TokenName from '$lib/component/ui/TokenName.svelte';
 	import { populateTokenRanking } from '$lib/utils/indexer';
     import { zeroAddress } from '$lib/data/constants';
+    import { getCollection, getTokens } from '$lib/utils/indexer';
+	import { onMount } from 'svelte';
 
     export let token: Token;
     let formattedOwner = '';
-    let collection: Collection;
+    let collection: Collection | null;
     let royaltyPercentage = 0;
 
-    $: {
-        if (!collection) {
-            getCollection(token.contractId);
+    if (token.metadata.royalties) {
+        const decodedRoyalties = atob(token.metadata.royalties);
 
-            if (token.metadata.royalties) {
-                const decodedRoyalties = atob(token.metadata.royalties);
-
-                // Convert the binary string to an array of bytes
-                const bytes = new Uint8Array(decodedRoyalties.length);
-                for (let i = 0; i < decodedRoyalties.length; i++) {
-                    bytes[i] = decodedRoyalties.charCodeAt(i);
-                }
-
-                // Extract the first two bytes and convert them to a number
-                royaltyPercentage = (bytes[0] << 8) | bytes[1];
-            }
+        // Convert the binary string to an array of bytes
+        const bytes = new Uint8Array(decodedRoyalties.length);
+        for (let i = 0; i < decodedRoyalties.length; i++) {
+            bytes[i] = decodedRoyalties.charCodeAt(i);
         }
 
-        formattedOwner = token.ownerNFD ? token.ownerNFD as string : token.owner.length > 16
-                ? `${token.owner.slice(0, 8)}...${token.owner.slice(-8)}`
-                : token.owner;
-
+        // Extract the first two bytes and convert them to a number
+        royaltyPercentage = (bytes[0] << 8) | bytes[1];
     }
 
-    const getCollection = async (contractId: number) => {
-        if (contractId) {
-            const url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/collections/?contractId=${contractId}`;
-            try {
-                const data = await fetch(url).then((response) => response.json());
-                if (data.collections && data.collections.length > 0) {
-                    collection = data.collections[0];
-                }
-            }
-            catch(err) {
-                console.error(err);
-            }
+    onMount(async () => {
+        collection = await getCollection({ contractId: token.contractId, fetch });
+        let tokens = await getTokens({ contractId: token.contractId, fetch });
+        token = tokens.find(t => t.tokenId === token.tokenId) as Token;
 
-            // get ranking data for the token
-            populateTokenRanking(token.contractId,[token],fetch).then((tokens) => {
-                token = tokens[0];
-            });
-        }
-    }
+        // get ranking data for the token
+        /*populateTokenRanking(token.contractId,[token],fetch).then((tokens) => {
+            token = tokens[0];
+        });*/
+    });
+
+    formattedOwner = token.ownerNFD ? token.ownerNFD as string : token.owner.length > 16
+            ? `${token.owner.slice(0, 8)}...${token.owner.slice(-8)}`
+            : token.owner;
 
     let tokenProps: any[] = [];
     // map token.metadata.properties object of the form {"BACKGROUND":"Aquamarine","BODY":"Red","ON BODY":"Scar"}
