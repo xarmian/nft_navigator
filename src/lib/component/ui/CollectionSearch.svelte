@@ -99,6 +99,7 @@
 
     $: {
         if (showRecent && search == '') {
+            filteredWallets = [];
             filteredCollections = recentSearchValue;
         } else {
             filteredCollections = (search.length >= 2) ? collections.filter(collection => collection.highforgeData?.title.toUpperCase().includes(search.toUpperCase())) : [];
@@ -111,6 +112,9 @@
             }
             else if (search.length == 58) {
                 filteredWallets = [ search ];
+            }
+            else {
+                filteredWallets = [];
             }
         }
     }
