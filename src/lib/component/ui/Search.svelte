@@ -26,16 +26,17 @@
         }
     });
 
+    const unsub = recentSearch.subscribe(value => {
+        recentSearchValue = value;
+    });
+
 	onDestroy(() => {
 		if (windowDefined) {
             window.removeEventListener('keydown', handleKeydown);
             window.removeEventListener('click', handleClickOutside);
         }
+        unsub();
 	});
-
-    recentSearch.subscribe(value => {
-        recentSearchValue = value;
-    });
 
     function handleClickOutside(event: MouseEvent) {
         // @ts-expect-error - event

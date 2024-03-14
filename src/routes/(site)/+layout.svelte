@@ -4,11 +4,16 @@
 	import { DarkMode } from 'flowbite-svelte';
 	import Icon from '$lib/assets/android-chrome-192x192.png';
 	import { Web3Wallet, selectedWallet } from 'avm-wallet-svelte';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import CollectionSearch from '$lib/component/ui/Search.svelte';
+	import { page } from '$app/stores';
 
-	let showWalletSearch = false;
 	let showMenu = false;
+	let currentPath = '';
+
+	const unsub = page.subscribe(value => {
+		currentPath = value.url.pathname.split('/')[1];
+	});
 
 	onMount(() => {
 		// click outside menu to close
@@ -18,6 +23,10 @@
 				showMenu = false;
 			}
 		});
+	});
+
+	onDestroy(() => {
+		unsub();
 	});
 
     const onSearch = (addr: string) => {
@@ -39,14 +48,16 @@
 				</a>
 			</div>
 			<div class="md:flex items-center space-x-2 flex-grow justify-center p-2 hidden">
-					<a href="/" class="hover:text-blue-500">Home</a>
+				<a href="/" class="hover:text-blue-500 {currentPath == '' ? 'text-blue-600' : ''}">Home</a>
+				<span class="text-gray-400">|</span>
+				<a href="/forsale" class="hover:text-blue-500 {currentPath == 'forsale' ? 'text-blue-600' : ''}">For Sale</a>
+				{#if $selectedWallet}
 					<span class="text-gray-400">|</span>
-					<a href="/forsale" class="hover:text-blue-500">For Sale</a>
-					{#if $selectedWallet}
-						<span class="text-gray-400">|</span>
-						<a href="/portfolio/{$selectedWallet?.address}" class="hover:text-blue-500">My Portfolio</a>
-					{/if}
-				</div>
+					<a href="/portfolio/{$selectedWallet?.address}" class="hover:text-blue-500 {currentPath == 'portfolio' ? 'text-blue-600' : ''}">
+						My Portfolio
+					</a>
+				{/if}
+			</div>
 			<div class="flex-grow p-2 md:hidden">&nbsp;</div>
 			<div class="absolute top-0 right-0 flex p-4 flex-row space-x-2">
 				<div class="hidden md:flex">
