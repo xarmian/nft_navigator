@@ -2,13 +2,12 @@
 	import type { PageData } from './$types';
     import { filters, collectionSort as sort, userPreferences } from '../../stores/collection';
     import type { Collection, Listing, Token } from '$lib/data/types';
-    import CollectionComponent from '$lib/component/ui/Collection.svelte';
-    import CollectionSingle from '$lib/component/ui/CollectionSingle.svelte';
     import Switch from '$lib/component/ui/Switch.svelte';
     import { inview } from 'svelte-inview';
     import Select from '$lib/component/ui/Select.svelte';
 	import { onMount } from 'svelte';
 	import { MetaTags } from 'svelte-meta-tags';
+	import MultiCollectionView from '$lib/component/ui/MultiCollectionView.svelte';
     
     export let data: PageData;
     let collections: Collection[] = data.collections;
@@ -24,7 +23,7 @@
         // get viewport height
         const viewHeight = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
         const viewWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-        displayCount = Math.ceil(viewHeight / 352) * Math.floor(viewWidth / 240);
+        displayCount = Math.ceil(viewHeight / 352) * Math.floor(viewWidth / 240) + 2;
         cardsPerLoad = displayCount;
     });
 
@@ -93,28 +92,21 @@
         </div>
         <div class='flex flex-row'>
             <Switch bind:checked={$filters.voiGames} label="Voi Games"></Switch>
-            <!--<Switch bind:checked={$userPreferences.cleanGridView}>
+            <Switch bind:checked={$userPreferences.cleanGridView}>
                 <i class="fas fa-th"></i>
-            </Switch>-->
+            </Switch>
         </div>
     </div>
 </div>
 <div class="pb-16">
-    <div class="flex flex-wrap justify-center">
+    <div class="flex flex-col justify-center">
         {#if isMounted}
-            {#each filterCollections.slice(0, displayCount) as collection (collection.contractId)}
-                <div class="inline-block">
-                    {#if $userPreferences.cleanGridView}
-                        <CollectionSingle collection={collection}></CollectionSingle>
-                    {:else}
-                        <!--<CollectionComponent styleClass='ml-14 mr-14 mt-8 mb-24' collection={collection}></CollectionComponent>-->
-                    {/if}
-                </div>
-            {/each}
+            <MultiCollectionView viewType={$userPreferences.cleanGridView ? 'grid' : 'row'} collections={filterCollections.slice(0, displayCount)}></MultiCollectionView>
         {/if}
     </div>
     {#if filterCollections.length > displayCount}
         <div class="sentinel" use:inview={{ threshold: 1 }} on:inview_enter={showMore}></div>
+        <div class="h-64">&nbsp;</div>
     {/if}
 </div>
 <style>

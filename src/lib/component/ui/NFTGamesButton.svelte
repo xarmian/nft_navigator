@@ -2,7 +2,7 @@
     import image from '$lib/assets/voi-games-small.png';
 
     //export let tokenid: string | undefined = undefined;
-    export let contractid: string | undefined = undefined;
+    export let contractid: string | number | undefined = undefined;
     //export let address: string | undefined = undefined;
     export let buttonClass = 'flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer';
 
@@ -14,6 +14,6 @@
         }
     }
 </script>
-<button class={buttonClass} on:click={() => buttonClick()}>
+<button class={buttonClass} on:click|stopPropagation|preventDefault={() => buttonClick()}>
     <img src={image} alt="Button to View on NFT Games Tracker" />
 </button>

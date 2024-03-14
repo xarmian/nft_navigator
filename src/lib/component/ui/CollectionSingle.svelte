@@ -1,8 +1,10 @@
 <script lang="ts">
     import type { Collection } from '$lib/data/types';
     import voiGamesImage from '$lib/assets/voi-games-small.png';
+	import NftGamesButton from './NFTGamesButton.svelte';
 
     export let collection: Collection;
+    export let viewType: string = 'row';
     const token = collection.firstToken;
 
     const metadata = JSON.parse(token.metadata);
@@ -43,9 +45,41 @@
 
 </script>
 
-<div class="card-container cursor-pointer rounded-xl overflow-hidden m-1" >
-    <div class="card">
-        {#if token}
+{#if viewType == 'row'}
+    <div class="flex flex-wrap border-b border-gray-200 py-2 mr-0 ml-0 md:mr-4 md:ml-4 place-items-center">
+        <div class="w-2/5 md:w-1/5">
+            <a href="/collection/{collection.contractId}" class="w-full flex flex-col items-center">
+                <img src={metadata.image} alt={metadata.name} title={metadata.name.replace(/[1#]/g, '')} class="h-20 w-20 object-contain rounded-md"/>
+                <div class="md:hidden">{collection.highforgeData?.title ?? metadata.name.replace(/[1#]/g, '')}</div>
+            </a>
+        </div>
+        <div class="w-1/5 hidden md:block">
+            <a href="/collection/{collection.contractId}">
+                {collection.highforgeData?.title ?? metadata.name.replace(/[1#]/g, '')}
+            </a>
+        </div>
+        <div class="w-1/5 hidden md:block">
+            <a href="/portfolio/{collection.creator}" on:click|stopPropagation>
+                {collection.creator.slice(0,6)+'...'+collection.creator.slice(-8)}
+            </a>
+        </div>
+        <div class="w-2/5 md:w-1/5">
+            {#each data as item}
+                <div class="flex justify-start space-x-2 text-gray-700 dark:text-gray-200">
+                    <i class={item.icon + ' text-gray-600 dark:text-gray-400'}></i>
+                    <p class="text-sm">{item.name}: {item.value}</p>
+                </div>
+            {/each}
+        </div>
+        <div class="w-1/5">
+            {#if collection.gameData}
+                <NftGamesButton contractid={collection.contractId} buttonClass='w-16 md:w-20 object-contain' />
+            {/if}
+        </div>
+    </div>
+{:else}
+    <div class="card-container cursor-pointer rounded-xl overflow-hidden m-1" >
+        <div class="card">
             <a href="/collection/{collection.contractId}">
                 <div class="side back bg-gray-200 dark:bg-gray-900 relative rounded-lg flex flex-col">
                     <div class="image-container relative overflow-hidden flex justify-center bg-gray-10 dark:bg-black">
@@ -65,16 +99,14 @@
                             {/each}
                         </div>
                         {#if collection.gameData}
-                            <div class="flex justify-center absolute bottom-0 right-0">
-                                <img src={voiGamesImage} class="h-8" alt="Voi Games" />
-                            </div>
+                            <NftGamesButton contractid={collection.contractId} buttonClass='w-16 md:w-20 object-contain flex justify-center absolute bottom-0 right-0' />
                         {/if}
                     </div>
                 </div>
             </a>
-        {/if}
+        </div>
     </div>
-</div>
+{/if}
 
 <style>
 .image-container {
