@@ -75,9 +75,9 @@
 </script>
 
 <div class="relative collectionSearchComponent">
-    <input type="text" on:focus={() => doShowRecent(true)} bind:value={search} placeholder="Search collections..." class="p-2 border rounded-md bg-gray-100 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-400 text-black dark:text-white" />
+    <input type="text" on:focus={() => doShowRecent(true)} bind:value={search} placeholder="Search collections..." class="p-2 w-full border rounded-md bg-gray-100 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-400 text-black dark:text-white" />
     {#if filteredCollections.length > 0 || showRecent}
-        <ul class="absolute bg-white dark:bg-gray-800 border rounded-md mt-0.5 w-80 max-h-80 overflow-auto shadow-md z-50">
+        <ul class="absolute right-0 md:left-0 bg-white dark:bg-gray-800 border rounded-md mt-0.5 w-80 max-h-80 overflow-auto shadow-md z-50">
             {#each filteredCollections as collection, index (collection.contractId)}
                 <li class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer text-black dark:text-white {selected === index ? 'bg-blue-200 dark:bg-blue-700' : ''}">
                     <button on:click={() => gotoCollection(collection.contractId)} class="flex flex-row space-x-2 w-full">
