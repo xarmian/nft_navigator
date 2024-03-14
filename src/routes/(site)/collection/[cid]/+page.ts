@@ -10,6 +10,8 @@ export const load = (async ({ params, fetch }) => {
 	let collection: Collection | null = null;
 	let collectionName: string = '';
 	//const isVoiGames: boolean = false;
+	let categories: { [key: string]: { [key: string]: number } } = {};
+	let filters: { [key: string]: string } = {};
 	
 	let floor = '';
 	let ceiling = '';
@@ -63,10 +65,41 @@ export const load = (async ({ params, fetch }) => {
 			console.error(err);
 		}
 
-
 		populateTokenRanking(Number(contractId),tokens,fetch).then((t) => {
 			tokens = t;
 		});
+
+		// populate/clear filters
+		const combinedProperties = {} as { [key: string]: { [key: string]: number } };
+		tokens.forEach(token => {
+			Object.entries(token.metadata.properties).forEach(([key, value]) => {
+				if (combinedProperties[key]) {
+					if (combinedProperties[key][value]) {
+						combinedProperties[key][value]++;
+					} else {
+						combinedProperties[key][value] = 1;
+					}
+				} else {
+					combinedProperties[key] = { [value]: 1 };
+				}
+			});
+		});
+
+		Object.keys(combinedProperties).forEach(key => {
+			const sortedObject = Object.entries(combinedProperties[key])
+				.sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+				.reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
+			combinedProperties[key] = sortedObject;
+		});
+
+		categories = combinedProperties;
+
+		filters = {};
+		Object.keys(categories).forEach(key => {
+			filters[key] = '';
+			console.log(key);
+		});
+
 	}
 
 	const pageMetaTags = {
@@ -83,6 +116,8 @@ export const load = (async ({ params, fetch }) => {
 		floor,
 		ceiling,
 		pageMetaTags,
+		categories,
+		filters,
 		//isVoiGames: isVoiGames ? true : false,
 	};
 }) satisfies PageLoad;

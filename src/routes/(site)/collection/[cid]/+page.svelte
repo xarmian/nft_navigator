@@ -11,59 +11,24 @@
 	import NautilusButton from '$lib/component/ui/NautilusButton.svelte';
     import HighforgeButton from '$lib/component/ui/HighforgeButton.svelte';
 	import NftGamesButton from '$lib/component/ui/NFTGamesButton.svelte';
+	import { onMount } from 'svelte';
 
     const forsale = $page.url.searchParams.get('forsale');
 
     export let data: PageData;
     $: contractId = data.contractId;
     $: tokens = data.tokens as Token[];
-    $: categories = {} as { [key: string]: {} };
-    $: collectionName = data.collectionName;
+    let collectionName = data.collectionName;
     $: collection = data.collection;
     let filteredTokens = [] as Token[];
     let displayCount = 10;
-    let filters = {} as { [key: string]: string };
+    $: filters = data.filters;
     let searchText = '';
     let forSaleCollection = (typeof forsale === 'string') ? true : false;
     let displayTab = 'tokens';
+    $: categories = data.categories;
 
-    $: {
-        if (tokens.length > 0) {
-            Object.keys(tokens[0].metadata.properties).forEach(key => {
-                filters[key] = '';
-            });
-        }
-    }
-
-    // reactive stuff
-    $: {
-        let combinedProperties = {} as { [key: string]: { [key: string]: number } };
-        tokens.forEach(token => {
-            Object.entries(token.metadata.properties).forEach(([key, value]) => {
-                if (combinedProperties[key]) {
-                    if (combinedProperties[key][value]) {
-                        combinedProperties[key][value]++;
-                    } else {
-                        combinedProperties[key][value] = 1;
-                    }
-                } else {
-                    combinedProperties[key] = { [value]: 1 };
-                }
-
-                // token.traits = Object.entries(token.metadata.properties).map(([key, value]) => key + ': ' + value);
-            });
-        });
-
-        Object.keys(combinedProperties).forEach(key => {
-            let sortedObject = Object.entries(combinedProperties[key])
-                .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-                .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
-            combinedProperties[key] = sortedObject;
-        });
-
-        categories = combinedProperties;
-
-        // filter tokens using filters
+    $: { 
         filteredTokens = tokens.filter(token => {
             if (forSaleCollection && (!token.marketData || token.marketData?.sale || token.marketData?.delete)) return false;
             if (searchText !== ''
