@@ -140,7 +140,7 @@
             {#each filteredWallets as wallet, index (wallet)}
                 <li class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer text-black dark:text-white {selected === index ? 'bg-blue-200 dark:bg-blue-700' : ''}">
                     <button on:click={() => gotoPortfolio(wallet)} class="flex flex-row space-x-2 w-full">
-                        <i class="fas fa-wallet"></i>
+                        <i class="fas fa-wallet place-self-center"></i>
                         <div class="flex-grow inline-flex text-left">
                             {wallet}
                         </div>

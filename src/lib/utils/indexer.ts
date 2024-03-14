@@ -185,13 +185,16 @@ export const getCollections = async (params: getCollectionsParams): Promise<Coll
     }
 }
 
-export const getSales = async (contractId: number | null = null, limit: number | null = null, fetch: FetchFunction): Promise<Sale[]> => {
+export const getSales = async (contractId: number | null = null, sortBy: string, limit: number | null = null, fetch: FetchFunction): Promise<Sale[]> => {
     let url = `${indexerBaseURL}/mp/sales?`;
     if (contractId) {
         url += `contractId=${contractId}`;
     }
     if (limit) {
         url += `&limit=${limit}`;
+    }
+    if (sortBy) {
+        url += '&sort=' + sortBy;
     }
     try {
         const response = await fetch(url);

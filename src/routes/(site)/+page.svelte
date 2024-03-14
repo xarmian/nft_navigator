@@ -26,7 +26,6 @@
         const viewWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
         displayCount = Math.ceil(viewHeight / 352) * Math.floor(viewWidth / 240);
         cardsPerLoad = displayCount;
-        console.log('displayCount', displayCount);
     });
 
     $: {
