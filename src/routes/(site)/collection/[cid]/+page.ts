@@ -97,7 +97,6 @@ export const load = (async ({ params, fetch }) => {
 		filters = {};
 		Object.keys(categories).forEach(key => {
 			filters[key] = '';
-			console.log(key);
 		});
 
 	}
