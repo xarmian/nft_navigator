@@ -72,6 +72,9 @@
 										<a href='/portfolio/{$selectedWallet?.address}' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">My Portfolio</a>
 									{/if}
 								</ul>
+								<div on:click|stopPropagation>
+									<CollectionSearch />
+								</div>
 								<Web3Wallet/>
 							</div>
 						{/if}
