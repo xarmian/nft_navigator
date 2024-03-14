@@ -5,7 +5,7 @@
 	import Icon from '$lib/assets/android-chrome-192x192.png';
 	import { Web3Wallet, selectedWallet } from 'avm-wallet-svelte';
 	import { onMount } from 'svelte';
-	import CollectionSearch from '$lib/component/ui/CollectionSearch.svelte';
+	import CollectionSearch from '$lib/component/ui/Search.svelte';
 
 	let showWalletSearch = false;
 	let showMenu = false;

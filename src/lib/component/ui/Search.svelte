@@ -14,6 +14,7 @@
     let recentSearchValue: Collection[] = [];
 	let windowDefined = false;
     let filteredWallets: string[] = [];
+    $: hideDropdown = true;
 
     onMount(async () => {
         collections = await getCollections({ fetch });
@@ -39,7 +40,10 @@
     function handleClickOutside(event: MouseEvent) {
         // @ts-expect-error - event
         if (!event.target.closest('.collectionSearchComponent')) {
-            showRecent = false;
+            hideDropdown = true;
+        }
+        else {
+            hideDropdown = false;
         }
     }
     function handleKeydown(event: KeyboardEvent) {
@@ -122,7 +126,7 @@
 
 <div class="relative collectionSearchComponent">
     <input type="text" on:focus={() => doShowRecent(true)} bind:value={search} placeholder="Search collection, NFD..." class="p-2 w-full border rounded-md bg-gray-100 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-400 text-black dark:text-white" />
-    {#if filteredCollections.length > 0 || showRecent || filteredWallets.length > 0}
+    {#if hideDropdown != true && (filteredCollections.length > 0 || showRecent || filteredWallets.length > 0)}
         <ul class="absolute right-0 md:left-0 bg-white dark:bg-gray-800 border rounded-md mt-0.5 w-80 max-h-80 overflow-auto shadow-md z-50">
             {#each filteredCollections as collection, index (collection.contractId)}
                 <li class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer text-black dark:text-white {selected === index ? 'bg-blue-200 dark:bg-blue-700' : ''}">
