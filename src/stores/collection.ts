@@ -4,6 +4,7 @@ import type { Collection, Token, Listing, Currency } from '$lib/data/types';
 export const collectionStore = writable(<Collection[]>[]);
 export const tokenStore = writable<Map<number, Token[]>>(new Map());
 export const listingStore = writable(<Listing[]>[]);
+export const recentSearch = writable(<Collection[]>[]);
 
 export const tokenGroup = writable(<Token[]><unknown>[]);
 export const viewCollection = writable(false);

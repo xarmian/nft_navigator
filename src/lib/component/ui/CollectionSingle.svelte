@@ -51,10 +51,10 @@
                     <div class="image-container relative overflow-hidden flex justify-center bg-gray-10 dark:bg-black">
                         <img src={metadata.image} alt={metadata.name} title={metadata.name.replace(/[1#]/g, '')} class="max-h-60 h-60 max-w-60 object-contain object-center"/>
                     </div>
-                    <div class='p-2 flex flex-col flex-grow'>
-                        <div class="flex justify-between space-x-1">
-                            <div class="text-sm font-bold">{metadata.name.replace(/[1#]/g, '')}</div>
-                            <a href="/portfolio/{collection.creator}" on:click|stopPropagation class="text-xs text-gray-600 dark:text-gray-300">{collection.creator.slice(0,6)+'...'+collection.creator.slice(-8)}</a>
+                    <div class='p-1 flex flex-col flex-grow'>
+                        <div class="flex flex-col mb-1">
+                            <div class="text-sm font-bold">{collection.highforgeData?.title ?? metadata.name.replace(/[1#]/g, '')}</div>
+                            <a href="/portfolio/{collection.creator}" on:click|stopPropagation class="place-self-end text-xs text-gray-600 dark:text-gray-300">{collection.creator.slice(0,6)+'...'+collection.creator.slice(-8)}</a>
                         </div>
                         <div class="content-end flex-grow">
                             {#each data as item}

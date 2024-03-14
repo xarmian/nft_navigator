@@ -15,17 +15,25 @@
     const forsale = $page.url.searchParams.get('forsale');
 
     export let data: PageData;
-    let contractId = data.contractId;
-    let tokens = data.tokens as Token[];
-    let categories = {} as { [key: string]: {} };
-    let collectionName = data.collectionName;
-    let collection = data.collection;
+    $: contractId = data.contractId;
+    $: tokens = data.tokens as Token[];
+    $: categories = {} as { [key: string]: {} };
+    $: collectionName = data.collectionName;
+    $: collection = data.collection;
     let filteredTokens = [] as Token[];
     let displayCount = 10;
     let filters = {} as { [key: string]: string };
     let searchText = '';
     let forSaleCollection = (typeof forsale === 'string') ? true : false;
     let displayTab = 'tokens';
+
+    $: {
+        if (tokens.length > 0) {
+            Object.keys(tokens[0].metadata.properties).forEach(key => {
+                filters[key] = '';
+            });
+        }
+    }
 
     // reactive stuff
     $: {

@@ -164,6 +164,7 @@ export const getCollections = async (params: getCollectionsParams): Promise<Coll
                 if (c.contractId === p.applicationID) {
                     const metadata = JSON.parse(c.firstToken.metadata);
                     c.firstToken.metadata = JSON.stringify({ ...metadata, image: p.coverImageURL });
+                    c.highforgeData = p;
                 }
             });
         });

@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { SvelteToast } from '@zerodevx/svelte-toast';
-	import WalletSearch from '$lib/component/WalletSearch.svelte';
 	import { goto } from '$app/navigation';
 	import { DarkMode } from 'flowbite-svelte';
 	import Icon from '$lib/assets/android-chrome-192x192.png';
 	import { Web3Wallet, selectedWallet } from 'avm-wallet-svelte';
 	import { onMount } from 'svelte';
+	import CollectionSearch from '$lib/component/ui/CollectionSearch.svelte';
 
 	let showWalletSearch = false;
 	let showMenu = false;
@@ -49,8 +49,11 @@
 				</div>
 			<div class="flex-grow p-2 md:hidden">&nbsp;</div>
 			<div class="absolute top-0 right-0 flex p-4 flex-row space-x-2">
-				<div class="hidden md:flex place-items-end">
-					<div class="w-48">
+				<div class="hidden md:flex">
+					<CollectionSearch />
+				</div>
+				<div class="hidden md:flex">
+					<div class="w-42 flex">
 						<Web3Wallet />
 					</div>
 				</div>
@@ -61,7 +64,7 @@
 							<i class="fas fa-bars cursor-pointer"></i>
 						</button>
 						{#if showMenu}
-							<div class="absolute top-full right-0 bg-white dark:bg-gray-600 rounded-lg shadow-lg z-50 text-nowrap" on:click|stopPropagation={() => showMenu = false}>
+							<div class="absolute w-48 top-full right-0 bg-white dark:bg-gray-600 rounded-lg shadow-lg z-50 text-nowrap" on:click|stopPropagation={() => showMenu = false}>
 								<ul class="flex flex-col divide-y divide-gray-300 dark:divide-gray-500">
 									<a href='/' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer overflow-hidden">Home</a>
 									<a href='/forsale' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">For Sale</a>
