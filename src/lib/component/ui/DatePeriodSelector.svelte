@@ -1,5 +1,7 @@
 <script lang="ts">
     export let period: string = 'D'; // D, W, or M
+    export let startTime = new Date();
+    export let endTime = new Date();
 
     let periodOptions = [
         { id: 'D', name: 'Day' },
@@ -11,6 +13,27 @@
 
     $: {
         period = selectedPeriod.id;
+        
+        const startEndTime = getPeriod(period);
+        startTime = startEndTime.startTime;
+        endTime = startEndTime.endTime;
+    }
+
+    function getPeriod(period: string) {
+        let startTime = new Date();
+        let endTime = new Date();
+        switch(period) {
+            case 'D':
+                startTime.setDate(startTime.getDate() - 1);
+            break;
+            case 'W':
+                startTime.setDate(startTime.getDate() - 7);
+            break;
+            case 'M':
+                startTime.setMonth(startTime.getMonth() - 1);
+            break;
+        }
+        return { startTime, endTime };        
     }
 </script>
 

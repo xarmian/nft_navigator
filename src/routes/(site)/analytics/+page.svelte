@@ -35,11 +35,7 @@
     const unsub = userPreferences.subscribe((value: any) => {
         if (value.analyticsPeriod) selectedPeriod = value.analyticsPeriod;
         if (value.analyticsCollectionId) selectedCollectionId = value.analyticsCollectionId;
-
-        getSalesData(selectedCollectionId, selectedPeriod);
-        getListingData(selectedCollectionId, selectedPeriod);
-        startTime = getPeriod(selectedPeriod).startTime;
-        endTime = getPeriod(selectedPeriod).endTime;
+        console.log(selectedPeriod, selectedCollectionId);
     });
 
     onDestroy(() => {
@@ -165,6 +161,13 @@
 
     function gotoTokenPage(contractId: string, tokenId: string) {
         goto(`/collection/${contractId}/token/${tokenId}`);
+    }
+
+    $: {
+        getSalesData(selectedCollection?.contractId, selectedPeriod);
+        getListingData(selectedCollection?.contractId, selectedPeriod);
+        startTime = getPeriod(selectedPeriod).startTime;
+        endTime = getPeriod(selectedPeriod).endTime;
     }
 </script>
 <div class="flex flex-col m-6 space-y-4">
