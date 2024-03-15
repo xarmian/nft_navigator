@@ -8,7 +8,7 @@ export const load = (async ({ fetch }) => {
     const collections: Collection[] = (await getCollections({ fetch }));
 
     const pageMetaTags = {
-        title: 'Stats | NFT Navigator',
+        title: 'Analytics | NFT Navigator',
         description: 'NFT Token Market Statistics',
       };
 
