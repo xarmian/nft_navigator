@@ -29,6 +29,8 @@
     $: totalSales = 0;
     $: newListings = 0;
     let sales: Sale[] = [];
+    $: startTime = new Date();
+    $: endTime = new Date();
 
     const unsub = userPreferences.subscribe((value: any) => {
         if (value.analyticsPeriod) selectedPeriod = value.analyticsPeriod;
@@ -157,6 +159,8 @@
     $: {
         getSalesData(selectedCollection?.contractId, selectedPeriod);
         getListingData(selectedCollection?.contractId, selectedPeriod);
+        startTime = getPeriod(selectedPeriod).startTime;
+        endTime = getPeriod(selectedPeriod).endTime;
     }
 </script>
 <div class="flex flex-col m-6 space-y-4">
@@ -171,7 +175,12 @@
             </button>
             {/if}
         </div>
-        <DatePeriodSelector bind:period={selectedPeriod}></DatePeriodSelector>
+        <div class="flex flex-row space-x-4 place-items-center items-stretch">
+            {#if startTime && endTime}
+                <div class="text-sm text-gray-500 dark:text-gray-400 place-self-center">{format(startTime, 'M/d h:mmaaa')} - {format(endTime, 'M/d h:mmaaa')}</div>
+            {/if}
+            <DatePeriodSelector bind:period={selectedPeriod}></DatePeriodSelector>
+        </div>
     </div>
     <div class="flex flex-row justify-evenly">
         <div class="flex flex-col justify-between p-4 bg-blue-500 text-white shadow-lg rounded-xl space-y-1">
