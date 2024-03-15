@@ -17,7 +17,7 @@
     import { format } from 'date-fns';
 
     export let data: PageData;
-    let selectedCollection: Collection | null;
+    $: selectedCollection = null as Collection | null;
     $: selectedCollectionId = 0;
     let selectedPeriod = 'D';
     $: collections = data.collections.sort((a, b) => (a.highforgeData?.title ?? String(a.contractId)).localeCompare(b.highforgeData?.title ?? String(b.contractId)) as number)?? [] as Collection[];
@@ -35,6 +35,11 @@
     const unsub = userPreferences.subscribe((value: any) => {
         if (value.analyticsPeriod) selectedPeriod = value.analyticsPeriod;
         if (value.analyticsCollectionId) selectedCollectionId = value.analyticsCollectionId;
+
+        getSalesData(selectedCollectionId, selectedPeriod);
+        getListingData(selectedCollectionId, selectedPeriod);
+        startTime = getPeriod(selectedPeriod).startTime;
+        endTime = getPeriod(selectedPeriod).endTime;
     });
 
     onDestroy(() => {
@@ -122,8 +127,6 @@
             chartDataMap.forEach((value, key) => {
                 chartData.push({ date: key, value: (value / Math.pow(10,6)) } as never);
             });
-            console.log(chartData);
-
             
             // calculate total sales
             totalSales = data.sales.length;
@@ -162,13 +165,6 @@
 
     function gotoTokenPage(contractId: string, tokenId: string) {
         goto(`/collection/${contractId}/token/${tokenId}`);
-    }
-
-    $: {
-        getSalesData(selectedCollection?.contractId, selectedPeriod);
-        getListingData(selectedCollection?.contractId, selectedPeriod);
-        startTime = getPeriod(selectedPeriod).startTime;
-        endTime = getPeriod(selectedPeriod).endTime;
     }
 </script>
 <div class="flex flex-col m-6 space-y-4">

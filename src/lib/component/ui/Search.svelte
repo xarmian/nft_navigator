@@ -30,7 +30,6 @@
 
     const unsubP = page.subscribe(value => {
         viewingAnalytics = (value.url.pathname.includes('/analytics'));
-        console.log(value.url.pathname, viewingAnalytics);
     });
 
     const unsub = recentSearch.subscribe(value => {
