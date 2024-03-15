@@ -1,7 +1,7 @@
 <script context="module" lang="ts">
 	export type SelectOption =
 		| {
-				id: string;
+				id: string | number;
 				name: string;
 		  }
 		| undefined;
@@ -10,7 +10,7 @@
 <script lang="ts">
 	export let options: SelectOption[] = [];
 
-	export let value: string;
+	export let value: string | number;
 	export let selectClass = "border border-gray-300 rounded-full text-gray-600 h-10 pl-5 pr-10 bg-white hover:border-gray-400 focus:outline-none appearance-none dark:bg-gray-800 dark:text-white";
 	export let containerClass = "";
 </script>

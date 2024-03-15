@@ -4,8 +4,8 @@
     import { copy } from 'svelte-copy';
     import { toast } from '@zerodevx/svelte-toast';
     
-    export let collectionId: number;
-    let sales: Sale[] = [];
+    export let collectionId: number = 0;
+    export let sales: Sale[] = [];
 
     let currentPage = 1;
     let itemsPerPage = 10;
@@ -55,6 +55,7 @@
         const estimatedRowHeight = 50; // Replace with your estimated row height
         itemsPerPage = Math.max(10,Math.floor(window.innerHeight / estimatedRowHeight));
 
+        if (collectionId === 0) return;
         const url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/sales/?collectionId=${collectionId}`;
         try {
             const data = await fetch(url).then((response) => response.json());

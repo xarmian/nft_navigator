@@ -12,7 +12,6 @@
     // @ts-ignore
     import Device from 'svelte-device-info';
     import { getWalletBalance, getCurrency } from '$lib/utils/currency';
-	import { MetaTags } from 'svelte-meta-tags';
 
     export let data: PageData;
     $: walletId = data.props.walletId;
@@ -23,6 +22,7 @@
     let pageLoaded = false;
     let isMobile: boolean | null = null;
     let headerTokens: Token[] = [];
+    $: showTransactions = false;
     
     let voiBalance: number;
     let viaBalance: number;
@@ -60,6 +60,16 @@
         headerTokens = tokens.slice();
         headerTokens = headerTokens.sort(() => Math.random() - 0.5).slice(0,(isMobile ? 3 : 6));
     }
+
+    async function loadTransactions() {
+        if (showTransactions) return;
+        showTransactions = true;
+        const url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/sales/?buyer=${walletIds[0]}`;
+        const data = await fetch(url).then((response) => response.json());
+        console.log(data);
+    }
+
+    
 </script>
 <div class="text-center">
     <div class="relative w-full h-full overflow-hidden">
@@ -148,13 +158,11 @@
                 {/if}
             </div>
         </TabItem>
-        <TabItem>
+        <TabItem on:click={loadTransactions}>
             <div slot="title">
-                <div class="inline">Manage</div>
-                <Indicator class="invisible" size="xl">&nbsp;</Indicator>
+                <div class="inline">Transactions</div>
             </div>
             <div class="m-4">
-                <div class="text-2xl font-bold">Coming soon!</div>
             </div>
         </TabItem>
     </Tabs>

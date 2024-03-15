@@ -2,6 +2,8 @@ import type { PageLoad } from './$types';
 import type { Token, Collection, Listing } from '$lib/data/types';
 import { getCollection, getTokens, populateTokenRanking } from '$lib/utils/indexer';
 import { getCurrency } from '$lib/utils/currency';
+import { userPreferences, recentSearch } from '../../../../stores/collection';
+import { get } from 'svelte/store';
 import algosdk from 'algosdk';
 
 export const load = (async ({ params, fetch }) => {
@@ -17,12 +19,22 @@ export const load = (async ({ params, fetch }) => {
 	let ceiling = '';
 
 	if (contractId) {
+		userPreferences.update((up) => {
+			return { ...up, analyticsCollectionId: Number(contractId) };
+		});
 
 		tokens = (await getTokens({ contractId, fetch })).sort((a: Token, b: Token) => a.tokenId - b.tokenId);
 		collectionName = tokens[0].metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
 
 		collection = (await getCollection({ contractId: Number(contractId), fetch }));
 
+
+		if (collection) {
+			let recentSearchValue = get(recentSearch) as Collection[];
+			recentSearchValue = [collection, ...recentSearchValue.filter((r) => r.contractId !== collection?.contractId)].slice(0,5);
+			recentSearch.set(recentSearchValue);
+		}
+		
 		// get marketplace data for collection
 		const marketUrl = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/listings/?collectionId=${contractId}&active=true`;
 		try {

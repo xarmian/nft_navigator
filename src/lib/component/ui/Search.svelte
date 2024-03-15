@@ -3,8 +3,9 @@
     import type { Collection } from '$lib/data/types';
     import { getCollections } from '$lib/utils/indexer';
     import { onDestroy, onMount } from 'svelte';
-    import { recentSearch } from '../../../stores/collection';
+    import { recentSearch, userPreferences } from '../../../stores/collection';
     import { getAddressesForNFD } from '$lib/utils/nfd';
+    import { page } from '$app/stores';
 
     let collections: Collection[] = [];
     let search = '';
@@ -15,6 +16,7 @@
 	let windowDefined = false;
     let filteredWallets: string[] = [];
     $: hideDropdown = true;
+    $: viewingAnalytics = false;
 
     onMount(async () => {
         collections = await getCollections({ fetch });
@@ -24,6 +26,11 @@
             window.addEventListener('keydown', handleKeydown);
             window.addEventListener('click', handleClickOutside);
         }
+    });
+
+    const unsubP = page.subscribe(value => {
+        viewingAnalytics = (value.url.pathname.includes('/analytics'));
+        console.log(value.url.pathname, viewingAnalytics);
     });
 
     const unsub = recentSearch.subscribe(value => {
@@ -69,7 +76,7 @@
         const c = collections.find(collection => collection.contractId === contractId);
     
         if (c) {
-            goto(`/collection/${contractId}`);
+            if (!viewingAnalytics) goto(`/collection/${contractId}`);
             search = '';
             showRecent = false;
             selected = 0;
@@ -77,6 +84,10 @@
             recentSearchValue = [c, ...recentSearchValue.filter(r => r.contractId !== c.contractId)];
             recentSearchValue = recentSearchValue.slice(0, 5);
             recentSearch.set(recentSearchValue);
+            userPreferences.update(prefs => {
+                prefs.analyticsCollectionId = contractId;
+                return prefs;
+            });
         }
     }
 
