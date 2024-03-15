@@ -144,6 +144,14 @@
         });
     }
 
+    function resetSelectedCollection() {
+        userPreferences.update((value) => {
+            value.analyticsCollectionId = 0;
+            return value;
+        });
+        selectedCollectionId = 0;
+    }
+
     function gotoCollection(contractId: number) {
         selectedCollectionId = contractId;
     }
@@ -169,6 +177,10 @@
             <Select bind:value={$userPreferences.analyticsCollectionId} options={collectionOptions} containerClass='w-64'>
             </Select>
             {#if $userPreferences.analyticsCollectionId != 0}
+            <button class="bg-blue-500 text-white rounded-lg p-0 px-2" on:click={resetSelectedCollection}>
+                Reset
+                <i class="fas fa-undo ml-2"></i>
+            </button>
             <button class="bg-blue-500 text-white rounded-lg p-0 px-2" on:click={() => gotoCollectionPage($userPreferences.analyticsCollectionId)}>
                 Go to Collection
                 <i class="fas fa-arrow-right ml-2"></i>
