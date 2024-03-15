@@ -1,23 +1,41 @@
 <script lang="ts">
-    export let period: string = 'D'; // D, W, or M
-    export let startTime = new Date();
-    export let endTime = new Date();
+	import { onMount } from "svelte";
+
+    export let period: string | undefined = undefined; // D, W, or M, or C
+    export let startTime: Date | undefined = undefined;
+    export let endTime: Date | undefined = undefined;
 
     let periodOptions = [
         { id: 'D', name: 'Day' },
         { id: 'W', name: 'Week' },
-        { id: 'M', name: 'Month' }
+        { id: 'M', name: 'Month' },
+        { id: 'C', name: 'Custom' }
     ];
 
-    let selectedPeriod = periodOptions.find((option) => option.id === period) ?? periodOptions[0];
+    // $: selectedPeriod = periodOptions.find((option) => option.id === period) ?? periodOptions[0];
 
-    $: {
-        period = selectedPeriod.id;
-        
-        const startEndTime = getPeriod(period);
-        startTime = startEndTime.startTime;
-        endTime = startEndTime.endTime;
-    }
+    onMount(() => {
+        if (!period) {
+            if (startTime && endTime) {
+                const today = new Date();
+                let d = new Date();
+                let w = new Date();
+                let m = new Date();
+                d.setDate(d.getDate() - 1);
+                w.setDate(w.getDate() - 7);
+                m.setMonth(m.getMonth() - 1);
+
+                // calculate different between startTime and endTime -- if 24 hours = D, if 7 days = W, if 30 days = M. Otherwise = C
+                if (endTime.getTime() - startTime.getTime() === today.getTime()-d.getTime()) period = 'D';
+                else if (endTime.getTime() - startTime.getTime() === today.getTime()-w.getTime()) period = 'W';
+                else if (endTime.getTime() - startTime.getTime() === today.getTime()-m.getTime()) period = 'M';
+                else period = 'C';
+            }
+            else {
+                setPeriod('D');
+            }
+        }
+    });
 
     function getPeriod(period: string) {
         let startTime = new Date();
@@ -35,14 +53,26 @@
         }
         return { startTime, endTime };        
     }
+
+    function setPeriod(periodId: string) {
+        if (periodId === 'C') {
+            // open date picker
+        } else {
+            const startEndTime = getPeriod(periodId);
+            startTime = startEndTime.startTime;
+            endTime = startEndTime.endTime;
+            period = periodId;
+        }
+    }
 </script>
 
-<div class="flex flex-row space-x-8 p-2 border-gray-300 border rounded-xl">
+<div class="flex flex-row space-x-1 md:space-x-3 p-2 border-gray-300 border rounded-xl">
     {#each periodOptions as option}
         <button
             class="flex items-center justify-center py-1 px-3 rounded-md focus:outline-none 
-            {option.id === selectedPeriod.id ? 'bg-blue-500 text-white dark:bg-blue-700 dark:text-gray-200' : 'bg-white text-gray-700 dark:bg-gray-800 dark:text-gray-300'}"
-            on:click={() => selectedPeriod = option}
+            {option.id === 'C' ? 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 cursor-default' : ''}
+            {option.id === period ? 'bg-blue-500 text-white dark:bg-blue-700 dark:text-gray-200' : 'bg-white text-gray-700 dark:bg-gray-800 dark:text-gray-300'}"
+            on:click={() => setPeriod(option.id)}
         >
             {option.id}
         </button>

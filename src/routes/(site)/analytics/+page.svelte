@@ -6,7 +6,7 @@
 	import DatePeriodSelector from '$lib/component/ui/DatePeriodSelector.svelte';
     import SalesTable from '$lib/component/ui/SalesTable.svelte';
     import { userPreferences, recentSearch } from '../../../stores/collection';
-    import { onDestroy } from 'svelte';
+    import { onDestroy, onMount } from 'svelte';
     import { get } from 'svelte/store';
 
     import { TabItem, Tabs } from 'flowbite-svelte';
@@ -18,8 +18,8 @@
 
     export let data: PageData;
     $: selectedCollection = null as Collection | null;
-    $: selectedCollectionId = 0;
-    let selectedPeriod = 'D';
+    $: selectedCollectionId = ($userPreferences.analyticsCollectionId) as number | null;
+    //$: selectedPeriod = ($userPreferences.analyticsPeriod??'D') as string;
     $: collections = data.collections.sort((a, b) => (a.highforgeData?.title ?? String(a.contractId)).localeCompare(b.highforgeData?.title ?? String(b.contractId)) as number)?? [] as Collection[];
 
     $: chartData = [];
@@ -29,29 +29,35 @@
     $: totalSales = 0;
     $: newListings = 0;
     let sales: Sale[] = [];
-    $: startTime = new Date();
-    $: endTime = new Date();
+    $: startTime = undefined as undefined | Date;
+    $: endTime = undefined as undefined | Date;
+    $: collectionOptions = [ { id: 0, name: 'All Collections' } ];
 
     const unsub = userPreferences.subscribe((value: any) => {
-        if (value.analyticsPeriod) selectedPeriod = value.analyticsPeriod;
-        if (value.analyticsCollectionId) selectedCollectionId = value.analyticsCollectionId;
-        console.log(selectedPeriod, selectedCollectionId);
+        // if (value.analyticsPeriod) selectedPeriod = value.analyticsPeriod;
+        if (value.analyticsCollectionId !== null) selectedCollectionId = value.analyticsCollectionId;
+        if (value.analyticsStart) startTime = value.analyticsStart;
+        if (value.analyticsEnd) endTime = value.analyticsEnd;
     });
 
-    onDestroy(() => {
-        unsub();
-    });
-
-
-    let collectionOptions = [ { id: 0, name: 'All Collections' } ];
-    $: {
+    onDestroy(unsub);    
+    
+    onMount(async () => {
         if (collections) {
             collections.forEach((collection) => {
                 collectionOptions.push({ id: collection.contractId, name: collection.highforgeData?.title ?? String(collection.contractId) });
             });
+            collectionOptions = collectionOptions;
         }
 
-        selectedCollection = collections.find((collection) => collection.contractId === selectedCollectionId) ?? null;
+        startTime = $userPreferences.analyticsStart;
+        endTime = $userPreferences.analyticsEnd;
+    });
+
+    $: {
+        if (selectedCollectionId !== null) {
+            selectedCollection = collections.find((collection) => collection.contractId === selectedCollectionId) ?? null;
+        }
 
         if (selectedCollection) {
 			let recentSearchValue = get(recentSearch) as Collection[];
@@ -60,87 +66,76 @@
         }
     }
 
-    function getPeriod(period: string) {
-        let startTime = new Date();
-        let endTime = new Date();
-        switch(period) {
-            case 'D':
-                startTime.setDate(startTime.getDate() - 1);
-            break;
-            case 'W':
-                startTime.setDate(startTime.getDate() - 7);
-            break;
-            case 'M':
-                startTime.setMonth(startTime.getMonth() - 1);
-            break;
-        }
-        return { startTime, endTime };        
-    }
-
-    function getSalesData(contractId: number | undefined, period: string) {
-        let { startTime, endTime } = getPeriod(period);
-        let url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/sales?min-time=${Math.floor(startTime.getTime() / 1000)}`;
-        if (contractId) {
-            url += `&collectionId=${contractId}`;
-        }
-        fetch(url)
-        .then((response) => response.json())
-        .then((data) => {
-            sales = data.sales;
-
-            // calculate voi volume
-            voiVolume = sales.reduce((acc, sale) => {
-                if (sale.currency === 0) {
-                    return acc + sale.price;
-                }
-                return acc;
-            }, 0);
-
-            // calculate via volume
-            viaVolume = sales.reduce((acc, sale) => {
-                if (sale.currency === 6779767) {
-                    return acc + sale.price;
-                }
-                return acc;
-            }, 0);
-
-            // based on period, calculate chart data broken into 60 segments between startTime and endTime
-            let segment = (endTime.getTime() - startTime.getTime()) / 60;
-            let date: Date = new Date(startTime.getTime());
-            let chartDataMap = new Map<string, number>();
-            for (let i = 0; i < 60; i++) {
-                let nextDate = new Date(date.getTime() + segment);
-                let value = sales.reduce((acc, sale) => {
-                    if (sale.timestamp * 1000 >= date.getTime() && sale.timestamp * 1000 < nextDate.getTime()) {
-                        return acc + sale.price;
-                    }
-                    return acc;
-                }, 0);
-                chartDataMap.set(date.toISOString(), value);
-                date = nextDate;
-            }
+    $: {
+        if (selectedCollectionId !== null && startTime != null && endTime != null) {
             chartData = [];
-            chartDataMap.forEach((value, key) => {
-                chartData.push({ date: key, value: (value / Math.pow(10,6)) } as never);
-            });
+            voiVolume = 0;
+            viaVolume = 0;
+            totalSales = 0;
+            newListings = 0;
             
-            // calculate total sales
-            totalSales = data.sales.length;
-        });
+            getData(selectedCollectionId, startTime, endTime);
+        }
     }
 
-    function getListingData(contractId: number | undefined, period: string) {
-        let { startTime, endTime } = getPeriod(period);
-        let url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/listings?min-time=${Math.floor(startTime.getTime() / 1000)}`;
+    async function getData(contractId: number | undefined, startTime: Date, endTime: Date) {
+        if (!startTime || !endTime) return;
+        let salesURL = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/sales?min-time=${Math.floor(startTime.getTime() / 1000)}`;
         if (contractId) {
-            url += `&collectionId=${contractId}`;
+            salesURL += `&collectionId=${contractId}`;
         }
-        fetch(url)
-        .then((response) => response.json())
-        .then((data) => {
-            const listings: any[] = data.listings;
-            newListings = listings.length;
+        const salesResp = await fetch(salesURL);
+        const salesData = await salesResp.json();
+        const s: Sale[] = salesData.sales;
+        sales = s.reverse();
+
+        // calculate voi volume
+        voiVolume = sales.reduce((acc, sale) => {
+            if (sale.currency === 0) {
+                return acc + sale.price;
+            }
+            return acc;
+        }, 0);
+
+        // calculate via volume
+        viaVolume = s.reduce((acc, sale) => {
+            if (sale.currency === 6779767) {
+                return acc + sale.price;
+            }
+            return acc;
+        }, 0);
+
+        // based on period, calculate chart data broken into 60 segments between startTime and endTime
+        let segment = (endTime.getTime() - startTime.getTime()) / 60;
+        let date: Date = new Date(startTime.getTime());
+        let chartDataMap = new Map<string, number>();
+        for (let i = 0; i < 60; i++) {
+            let nextDate = new Date(date.getTime() + segment);
+            let value = s.reduce((acc, sale) => {
+                if (sale.timestamp * 1000 >= date.getTime() && sale.timestamp * 1000 < nextDate.getTime()) {
+                    return acc + sale.price;
+                }
+                return acc;
+            }, 0);
+            chartDataMap.set(date.toISOString(), value);
+            date = nextDate;
+        }
+        chartData = [];
+        chartDataMap.forEach((value, key) => {
+            chartData.push({ date: key, value: (value / Math.pow(10,6)) } as never);
         });
+        
+        // calculate total sales
+        totalSales = s.length;
+
+        let listURL = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/listings?min-time=${Math.floor(startTime.getTime() / 1000)}`;
+        if (contractId) {
+            listURL += `&collectionId=${contractId}`;
+        }
+        const listResp = await fetch(listURL);
+        const listData = await listResp.json();
+        const listings: any[] = listData.listings;
+        newListings = listings.length;
     }
 
     function resetSelectedCollection() {
@@ -151,23 +146,8 @@
         selectedCollectionId = 0;
     }
 
-    function gotoCollection(contractId: number) {
-        selectedCollectionId = contractId;
-    }
-
     function gotoCollectionPage(contractId: number) {
         goto(`/collection/${contractId}`);
-    }
-
-    function gotoTokenPage(contractId: string, tokenId: string) {
-        goto(`/collection/${contractId}/token/${tokenId}`);
-    }
-
-    $: {
-        getSalesData(selectedCollection?.contractId, selectedPeriod);
-        getListingData(selectedCollection?.contractId, selectedPeriod);
-        startTime = getPeriod(selectedPeriod).startTime;
-        endTime = getPeriod(selectedPeriod).endTime;
     }
 </script>
 <div class="flex flex-col m-6 space-y-4">
@@ -190,14 +170,18 @@
             {#if startTime && endTime}
                 <div class="text-sm text-gray-500 dark:text-gray-400 place-self-center">{format(startTime, 'M/d h:mmaaa')} - {format(endTime, 'M/d h:mmaaa')}</div>
             {/if}
-            <DatePeriodSelector bind:period={selectedPeriod}></DatePeriodSelector>
+            <DatePeriodSelector bind:startTime={$userPreferences.analyticsStart} bind:endTime={$userPreferences.analyticsEnd}></DatePeriodSelector>
         </div>
     </div>
     <div class="flex flex-row justify-evenly">
         <div class="flex flex-col justify-between p-4 bg-blue-500 text-white shadow-lg rounded-xl space-y-1">
             <div class="text-2xl font-bold">
-                <div>{(voiVolume / Math.pow(10,6)).toLocaleString()} VOI</div>
-                <div>{(viaVolume / Math.pow(10,6)).toLocaleString()} VIA</div>
+                <div>
+                    {(voiVolume / Math.pow(10,6)).toLocaleString()} VOI
+                </div>
+                <div>
+                    {viaVolume == 0 ? '-' : (viaVolume / Math.pow(10,6)).toLocaleString()} VIA
+                </div>
             </div>
             <h2 class="text-sm uppercase tracking-wider">Total Volume</h2>
         </div>

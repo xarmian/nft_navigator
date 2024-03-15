@@ -30,7 +30,8 @@ export const currencies = writable(<Currency[]>[]);
 export const userPreferences = writable({
     cleanGridView: true,
     analyticsCollectionId: 0,
-    analyticsPeriod: 'D',
+    analyticsStart: undefined as Date | undefined,
+    analyticsEnd: undefined as Date | undefined,
 });
 
 // Path: src/stores/collection.ts
