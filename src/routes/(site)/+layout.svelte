@@ -52,7 +52,7 @@
 				<span class="text-gray-400">|</span>
 				<a href="/forsale" class="hover:text-blue-500 {currentPath == 'forsale' ? 'text-blue-600' : ''}">For Sale</a>
 				<span class="text-gray-400">|</span>
-				<a href="/analytics" class="hover:text-blue-500 {currentPath == 'analytics' ? 'text-blue-600' : ''}">Stats</a>
+				<a href="/analytics" class="hover:text-blue-500 {currentPath == 'analytics' ? 'text-blue-600' : ''}">Analytics</a>
 				{#if $selectedWallet}
 					<span class="text-gray-400">|</span>
 					<a href="/portfolio/{$selectedWallet?.address}" class="hover:text-blue-500 {currentPath == 'portfolio' ? 'text-blue-600' : ''}">
