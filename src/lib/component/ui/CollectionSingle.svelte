@@ -5,9 +5,9 @@
 
     export let collection: Collection;
     export let viewType: string = 'row';
-    const token = collection.firstToken;
+    $: token = collection.firstToken;
 
-    const metadata = JSON.parse(token.metadata);
+    $: metadata = JSON.parse(token.metadata??'{}');
 
     let flipped = false;
 

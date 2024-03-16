@@ -75,7 +75,13 @@
         const c = collections.find(collection => collection.contractId === contractId);
     
         if (c) {
-            if (!viewingAnalytics) goto(`/collection/${contractId}`);
+            if (viewingAnalytics) {
+                goto(`/analytics/collection/${contractId}`);
+            }
+            else {
+                goto(`/collection/${contractId}`);
+            }
+
             search = '';
             showRecent = false;
             selected = 0;
@@ -83,10 +89,10 @@
             recentSearchValue = [c, ...recentSearchValue.filter(r => r.contractId !== c.contractId)];
             recentSearchValue = recentSearchValue.slice(0, 5);
             recentSearch.set(recentSearchValue);
-            userPreferences.update(prefs => {
+            /*userPreferences.update(prefs => {
                 prefs.analyticsCollectionId = contractId;
                 return prefs;
-            });
+            });*/
         }
     }
 

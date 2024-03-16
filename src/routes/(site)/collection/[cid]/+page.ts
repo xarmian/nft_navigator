@@ -19,9 +19,11 @@ export const load = (async ({ params, fetch }) => {
 	let ceiling = '';
 
 	if (contractId) {
-		userPreferences.update((up) => {
-			return { ...up, analyticsCollectionId: Number(contractId) };
-		});
+		if (get(userPreferences).analyticsCollectionId !== Number(contractId)) {
+			userPreferences.update((up) => {
+				return { ...up, analyticsCollectionId: Number(contractId) };
+			});
+		}
 
 		tokens = (await getTokens({ contractId, fetch })).sort((a: Token, b: Token) => a.tokenId - b.tokenId);
 		collectionName = tokens[0].metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';

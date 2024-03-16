@@ -5,7 +5,7 @@
     import { goto } from '$app/navigation';
 	import DatePeriodSelector from '$lib/component/ui/DatePeriodSelector.svelte';
     import SalesTable from '$lib/component/ui/SalesTable.svelte';
-    import { userPreferences, recentSearch } from '../../../stores/collection';
+    import { userPreferences, recentSearch } from '../../../../stores/collection';
     import { onDestroy, onMount } from 'svelte';
     import { get } from 'svelte/store';
 
@@ -15,66 +15,52 @@
     // @ts-ignore
     import { scaleBand } from 'd3-scale';
     import { format } from 'date-fns';
+	import CollectionSingle from '$lib/component/ui/CollectionSingle.svelte';
 
     export let data: PageData;
-    $: selectedCollection = null as Collection | null;
-    $: selectedCollectionId = ($userPreferences.analyticsCollectionId) as number | null;
-    //$: selectedPeriod = ($userPreferences.analyticsPeriod??'D') as string;
-    $: collections = data.collections.sort((a, b) => (a.highforgeData?.title ?? String(a.contractId)).localeCompare(b.highforgeData?.title ?? String(b.contractId)) as number)?? [] as Collection[];
+
+    let collectionOptions = data.collectionOptions;
+    $: collection = data.collection
 
     $: chartData = [];
 
-    $: voiVolume = 0;
-    $: viaVolume = 0;
-    $: totalSales = 0;
-    $: newListings = 0;
+    $: voiVolume = null as number | null;
+    $: viaVolume = null as number | null;
+    $: totalSales = null as number | null;
+    $: newListings = null as number | null;
     let sales: Sale[] = [];
     $: startTime = undefined as undefined | Date;
     $: endTime = undefined as undefined | Date;
-    $: collectionOptions = [ { id: 0, name: 'All Collections' } ];
 
     const unsub = userPreferences.subscribe((value: any) => {
-        // if (value.analyticsPeriod) selectedPeriod = value.analyticsPeriod;
-        if (value.analyticsCollectionId !== null) selectedCollectionId = value.analyticsCollectionId;
         if (value.analyticsStart) startTime = value.analyticsStart;
         if (value.analyticsEnd) endTime = value.analyticsEnd;
     });
 
-    onDestroy(unsub);    
+    onDestroy(unsub);
     
     onMount(async () => {
-        if (collections) {
-            collections.forEach((collection) => {
-                collectionOptions.push({ id: collection.contractId, name: collection.highforgeData?.title ?? String(collection.contractId) });
-            });
-            collectionOptions = collectionOptions;
-        }
+        startTime = $userPreferences.analyticsStart??new Date(new Date().setDate(new Date().getDate() - 1));
+        endTime = $userPreferences.analyticsEnd??new Date();
 
-        startTime = $userPreferences.analyticsStart;
-        endTime = $userPreferences.analyticsEnd;
+        //getData(collection?.contractId, startTime, endTime);
     });
 
     $: {
-        if (selectedCollectionId !== null) {
-            selectedCollection = collections.find((collection) => collection.contractId === selectedCollectionId) ?? null;
-        }
-
-        if (selectedCollection) {
+        /*if (selectedCollection) {
 			let recentSearchValue = get(recentSearch) as Collection[];
 			recentSearchValue = [selectedCollection, ...recentSearchValue.filter((r) => r.contractId !== selectedCollection?.contractId)].slice(0,5);
 			recentSearch.set(recentSearchValue);
-        }
-    }
+        }*/
 
-    $: {
-        if (selectedCollectionId !== null && startTime != null && endTime != null) {
+        if (collection?.contractId !== null && startTime != null && endTime != null) {
             chartData = [];
-            voiVolume = 0;
-            viaVolume = 0;
-            totalSales = 0;
-            newListings = 0;
+            voiVolume = null;
+            viaVolume = null;
+            totalSales = null;
+            newListings = null;
             
-            getData(selectedCollectionId, startTime, endTime);
+            getData(collection?.contractId, startTime, endTime);
         }
     }
 
@@ -108,23 +94,27 @@
         // based on period, calculate chart data broken into 60 segments between startTime and endTime
         let segment = (endTime.getTime() - startTime.getTime()) / 60;
         let date: Date = new Date(startTime.getTime());
-        let chartDataMap = new Map<string, number>();
+        let chartDataMap = new Map<string, { value: number, voi: number, via: number, salesCount: number }>();
         for (let i = 0; i < 60; i++) {
             let nextDate = new Date(date.getTime() + segment);
-            let value = s.reduce((acc, sale) => {
+            let result = s.reduce((acc, sale) => {
                 if (sale.timestamp * 1000 >= date.getTime() && sale.timestamp * 1000 < nextDate.getTime()) {
-                    return acc + sale.price;
+                    return { value: acc.value + sale.price, 
+                             voi: acc.voi + (sale.currency == 0 ? sale.price : 0),
+                             via: acc.via + (sale.currency == 6779767 ? sale.price : 0),
+                             salesCount: acc.salesCount + 1 
+                            };
                 }
                 return acc;
-            }, 0);
-            chartDataMap.set(date.toISOString(), value);
+            }, { value: 0, salesCount: 0, voi: 0, via: 0 });
+            chartDataMap.set(date.toISOString(), result);
             date = nextDate;
         }
         chartData = [];
-        chartDataMap.forEach((value, key) => {
-            chartData.push({ date: key, value: (value / Math.pow(10,6)) } as never);
+        chartDataMap.forEach((result, key) => {
+            chartData.push({ date: key, value: (result.value / Math.pow(10,6)), salesCount: result.salesCount, voi: (result.voi / Math.pow(10,6)), via: (result.via / Math.pow(10,6)) } as never);
         });
-        
+
         // calculate total sales
         totalSales = s.length;
 
@@ -139,31 +129,35 @@
     }
 
     function resetSelectedCollection() {
-        userPreferences.update((value) => {
+        /*userPreferences.update((value) => {
             value.analyticsCollectionId = 0;
             return value;
-        });
-        selectedCollectionId = 0;
+        });*/
+        //selectedCollectionId = 0;
+        goto(`/analytics`);
     }
 
     function gotoCollectionPage(contractId: number) {
         goto(`/collection/${contractId}`);
     }
+
+    function gotoAnalyticsPage(contractId: number) {
+        goto(`/analytics/collections/${contractId}`);
+    }
 </script>
 <div class="flex flex-col m-6 space-y-4">
     <div class="flex flex-row justify-between place-items-center">
         <div class="flex flex-row space-x-4 place-items-center items-stretch">
-            <Select bind:value={$userPreferences.analyticsCollectionId} options={collectionOptions} containerClass='w-64'>
-            </Select>
-            {#if $userPreferences.analyticsCollectionId != 0}
-            <button class="bg-blue-500 text-white rounded-lg p-0 px-2" on:click={resetSelectedCollection}>
-                Reset
-                <i class="fas fa-undo ml-2"></i>
-            </button>
-            <button class="bg-blue-500 text-white rounded-lg p-0 px-2" on:click={() => gotoCollectionPage($userPreferences.analyticsCollectionId)}>
-                Go to Collection
-                <i class="fas fa-arrow-right ml-2"></i>
-            </button>
+            <Select value={collection?.contractId??0} options={collectionOptions} containerClass='w-64' onchange={(v) => gotoAnalyticsPage(Number(v))} />
+            {#if collection}
+                <button class="bg-blue-500 text-white rounded-lg p-0 px-2" on:click={resetSelectedCollection}>
+                    Reset
+                    <i class="fas fa-undo ml-2"></i>
+                </button>
+                <button class="bg-blue-500 text-white rounded-lg p-0 px-2" on:click={() => gotoCollectionPage(collection?.contractId??0)}>
+                    Go to Collection
+                    <i class="fas fa-arrow-right ml-2"></i>
+                </button>
             {/if}
         </div>
         <div class="flex flex-row space-x-4 place-items-center items-stretch">
@@ -173,25 +167,32 @@
             <DatePeriodSelector bind:startTime={$userPreferences.analyticsStart} bind:endTime={$userPreferences.analyticsEnd}></DatePeriodSelector>
         </div>
     </div>
-    <div class="flex flex-row justify-evenly">
-        <div class="flex flex-col justify-between p-4 bg-blue-500 text-white shadow-lg rounded-xl space-y-1">
-            <div class="text-2xl font-bold">
-                <div>
-                    {(voiVolume / Math.pow(10,6)).toLocaleString()} VOI
-                </div>
-                <div>
-                    {viaVolume == 0 ? '-' : (viaVolume / Math.pow(10,6)).toLocaleString()} VIA
-                </div>
+    <div class="flex flex-row place-items-center">
+        {#if collection}
+            <div class="flex">
+                <CollectionSingle collection={collection} viewType='grid' />
             </div>
-            <h2 class="text-sm uppercase tracking-wider">Total Volume</h2>
-        </div>
-        <div class="flex flex-col justify-between p-4 bg-green-500 text-white shadow-lg rounded-xl space-y-1">
-            <div class="text-2xl font-bold">{totalSales}</div>
-            <h2 class="text-sm uppercase tracking-wider">Total Sales</h2>
-        </div>
-        <div class="flex flex-col justify-between p-4 bg-red-500 text-white shadow-lg rounded-xl space-y-1">
-            <div class="text-2xl font-bold">{newListings}</div>
-            <h2 class="text-sm uppercase tracking-wider">New Listings</h2>
+        {/if}
+        <div class="flex flex-row justify-evenly w-full">
+            <div class="flex flex-col justify-between p-4 bg-blue-500 text-white shadow-lg rounded-xl space-y-1">
+                <div class="text-2xl font-bold">
+                    <div>
+                        {voiVolume!==null ? (voiVolume / Math.pow(10,6)).toLocaleString() : '-'} VOI
+                    </div>
+                    <div>
+                        {viaVolume!==null ? (viaVolume / Math.pow(10,6)).toLocaleString() : '-'} VIA
+                    </div>
+                </div>
+                <h2 class="text-sm uppercase tracking-wider">Total Volume</h2>
+            </div>
+            <div class="flex flex-col justify-between p-4 bg-green-500 text-white shadow-lg rounded-xl space-y-1">
+                <div class="text-2xl font-bold">{totalSales!==null ? totalSales : '-'}</div>
+                <h2 class="text-sm uppercase tracking-wider">Total Sales</h2>
+            </div>
+            <div class="flex flex-col justify-between p-4 bg-red-500 text-white shadow-lg rounded-xl space-y-1">
+                <div class="text-2xl font-bold">{newListings!==null ? newListings : '-'}</div>
+                <h2 class="text-sm uppercase tracking-wider">New Listings</h2>
+            </div>
         </div>
     </div>
         <Tabs style="underline" defaultClass="flex place-items-end rounded-lg divide-x rtl:divide-x-reverse divide-gray-200 shadow dark:divide-gray-700 justify-center">
@@ -249,7 +250,10 @@
                             </Highlight>
                             </Svg>
                             <Tooltip header={(data) => format(new Date(data.date),'MM/dd/yyyy hh:ss a')} let:data>
-                            <TooltipItem label="value" value={data.value.toLocaleString()+' VOI/VIA'} />
+                                <TooltipItem label="Volume" value={data.value.toLocaleString()} />
+                                <TooltipItem label="VOI" value={data.voi.toLocaleString()} />
+                                <TooltipItem label="VIA" value={data.via.toLocaleString()} />
+                                <TooltipItem label="# Sales" value={data.salesCount} />
                             </Tooltip>
                         </Chart>
                     </div>
@@ -263,3 +267,4 @@
             </TabItem>
         </Tabs>
 </div>
+<slot />
