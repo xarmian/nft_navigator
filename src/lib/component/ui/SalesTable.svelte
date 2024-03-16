@@ -22,11 +22,12 @@
     }
 
     function downloadCSV() {
-        const headers = ['Date/Time', 'Block', 'Transaction ID', 'Token', 'Seller', 'Buyer', 'Amount', 'Currency'];
+        const headers = ['Date/Time', 'Block', 'Transaction ID', 'Collection', 'Token', 'Seller', 'Buyer', 'Amount', 'Currency'];
         const rows = sales.map(sale => [
             new Date(sale.timestamp*1000).toLocaleString().replace(',',''),
             sale.round,
             sale.transactionId,
+            sale.collectionId,
             sale.tokenId,
             sale.seller,
             sale.buyer,
@@ -55,7 +56,7 @@
         const estimatedRowHeight = 50; // Replace with your estimated row height
         itemsPerPage = Math.max(10,Math.floor(window.innerHeight / estimatedRowHeight));
 
-        if (collectionId === 0) return;
+        if (sales.length > 0) return;
         const url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/sales/?collectionId=${collectionId}`;
         try {
             const data = await fetch(url).then((response) => response.json());
@@ -85,29 +86,36 @@
             <thead>
                 <tr class="bg-gray-200 dark:bg-gray-700 rounded-lg">
                     <th class="text-left">Date/Time</th>
-                    <th class="text-left">Block</th>
-                    <th class="text-left hidden md:block">Transaction ID</th>
+                    <th class="text-left hidden md:table-cell">Transaction ID</th>
+                    {#if collectionId === 0}
+                        <th class="text-left">Collection</th>
+                    {/if}
                     <th class="text-left">Token</th>
-                    <th class="text-left hidden md:block">Seller</th>
-                    <th class="text-left hidden md:block">Buyer</th>
-                    <th class="text-left block md:hidden">Seller/Buyer</th>
+                    <th class="text-left hidden md:table-cell">Seller</th>
+                    <th class="text-left hidden md:table-cell">Buyer</th>
+                    <th class="text-left table-cell md:hidden">Seller<br/>Buyer</th>
                     <th class="text-left">Amount</th>
                 </tr>
             </thead>
             <tbody>
                 {#each paginatedSales as sale, i}
                     <tr class:dark:bg-gray-700={i % 2 === 1}>
-                        <td class="dark:border-gray-500">{new Date(sale.timestamp*1000).toLocaleString()}</td>
-                        <td class="dark:border-gray-500"><a href={'https://voi.observer/explorer/block/'+sale.round+'/transactions'} target="_blank">{sale.round}</a></td>
-                        <td class="dark:border-gray-500 hidden md:block"><a href={'https://voi.observer/explorer/transaction/'+sale.transactionId} target="_blank">{sale.transactionId.slice(0,12)}...</a></td>
-                        <td class="dark:border-gray-500 text-center"><a href={`/collection/${sale.collectionId}/token/${sale.tokenId}`}>{sale.tokenId}</a></td>
-                        <td class="dark:border-gray-500 inline-flex">
-                            <div class="w-20 text-ellipsis overflow-hidden">{sale.seller.slice(0,8)}...{sale.seller.slice(-8)}</div>
-                            <i use:copy={sale.seller} class="fas fa-copy pointer" on:svelte-copy={() => toast.push(`Wallet Copied to Clipboard:<br/> ${sale.seller.substring(0,20)}...`)}></i>
+                        <td class="dark:border-gray-500">
+                            <div>{new Date(sale.timestamp*1000).toLocaleString()}</div>
+                            <div>Block: <a href={'https://voi.observer/explorer/block/'+sale.round+'/transactions'} target="_blank">{sale.round}</a></div>
                         </td>
-                        <td class="dark:border-gray-500 inline-flex">
-                            <div class="w-20 text-ellipsis overflow-hidden">{sale.buyer.slice(0,8)}...{sale.buyer.slice(-8)}</div>
-                            <i use:copy={sale.buyer} class="fas fa-copy pointer" on:svelte-copy={() => toast.push(`Wallet Copied to Clipboard:<br/> ${sale.buyer.substring(0,20)}...`)}></i>
+                        <td class="dark:border-gray-500 hidden md:table-cell"><a href={'https://voi.observer/explorer/transaction/'+sale.transactionId} target="_blank">{sale.transactionId.slice(0,12)}...</a></td>
+                        {#if collectionId === 0}
+                            <td class="dark:border-gray-500"><a href={`/collection/${sale.collectionId}`}>{sale.collectionId}</a></td>
+                        {/if}
+                        <td class="dark:border-gray-500 text-center"><a href={`/collection/${sale.collectionId}/token/${sale.tokenId}`}>{sale.tokenId}</a></td>
+                        <td class="dark:border-gray-500 inline-block md:table-cell">
+                            <div class="w-20 text-ellipsis overflow-hidden inline-block">{sale.seller.slice(0,8)}...{sale.seller.slice(-8)}</div>
+                            <i use:copy={sale.seller} class="fas fa-copy pointer align-super" on:svelte-copy={() => toast.push(`Wallet Copied to Clipboard:<br/> ${sale.seller.substring(0,20)}...`)}></i>
+                        </td>
+                        <td class="dark:border-gray-500 inline-block md:table-cell">
+                            <div class="w-20 text-ellipsis overflow-hidden inline-block">{sale.buyer.slice(0,8)}...{sale.buyer.slice(-8)}</div>
+                            <i use:copy={sale.buyer} class="fas fa-copy pointer align-super" on:svelte-copy={() => toast.push(`Wallet Copied to Clipboard:<br/> ${sale.buyer.substring(0,20)}...`)}></i>
                         </td>
                         <td class="dark:border-gray-500">{(sale.price/1000000).toLocaleString()} {sale.currency == 0 ? 'VOI' : 'VIA'}</td>
                     </tr>
