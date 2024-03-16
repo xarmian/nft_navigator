@@ -9,6 +9,7 @@ export const load = (async ({ params, fetch }) => {
     const collections: Collection[] = (await getCollections({ fetch })).sort((a, b) => (a.highforgeData?.title ?? String(a.contractId)).localeCompare(b.highforgeData?.title ?? String(b.contractId)) as number)?? [];
 
     const collection = collections.find((c) => c.contractId === collectionId)??null;
+    const collectionName = (collection) ? collection?.highforgeData?.title ?? String(collection?.contractId) : 'All Collections';
 
     const collectionOptions = [ { id: 0, name: 'All Collections' } ];
     collections.forEach((collection) => {
@@ -17,7 +18,7 @@ export const load = (async ({ params, fetch }) => {
 
 
     const pageMetaTags = {
-        title: 'Analytics | NFT Navigator',
+        title: `Analytics | ${collectionName} | NFT Navigator`,
         description: collection?.highforgeData?.description + ' Market Analytics' ?? 'NFT Token Market Statistics',
         imageUrl: collection?.highforgeData?.coverImageURL ?? undefined,
       };

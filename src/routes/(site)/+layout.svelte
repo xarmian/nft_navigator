@@ -10,9 +10,16 @@
 
 	let showMenu = false;
 	let currentPath = '';
+	let extensionRoute = '';
 
 	const unsub = page.subscribe(value => {
-		currentPath = value.url.pathname.split('/')[1];
+		let pathPieces = value.url.pathname.split('/');
+		currentPath = pathPieces[1];
+
+		// this is a hack to allow routing from collection page directly to analytics page for the colleciton
+		if (currentPath == 'collection') {
+			extensionRoute = '/' + pathPieces[1] + '/' + pathPieces[2];
+		}
 	});
 
 	onMount(() => {
@@ -28,10 +35,6 @@
 	onDestroy(() => {
 		unsub();
 	});
-
-    const onSearch = (addr: string) => {
-        goto(`/portfolio/${addr}`);
-    }
 
 	const options = {
   	}
@@ -52,7 +55,7 @@
 				<span class="text-gray-400">|</span>
 				<a href="/forsale" class="hover:text-blue-500 {currentPath == 'forsale' ? 'text-blue-600' : ''}">For Sale</a>
 				<span class="text-gray-400">|</span>
-				<a href="/analytics" class="hover:text-blue-500 {currentPath == 'analytics' ? 'text-blue-600' : ''}">Analytics</a>
+				<a href="/analytics{extensionRoute}" class="hover:text-blue-500 {currentPath == 'analytics' ? 'text-blue-600' : ''}">Analytics</a>
 				{#if $selectedWallet}
 					<span class="text-gray-400">|</span>
 					<a href="/portfolio/{$selectedWallet?.address}" class="hover:text-blue-500 {currentPath == 'portfolio' ? 'text-blue-600' : ''}">
@@ -81,7 +84,7 @@
 								<ul class="flex flex-col divide-y divide-gray-300 dark:divide-gray-500">
 									<a href='/' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer overflow-hidden">Home</a>
 									<a href='/forsale' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">For Sale</a>
-									<a href='/analytics' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">Analytics</a>
+									<a href='/analytics{extensionRoute}' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">Analytics</a>
 									{#if $selectedWallet}
 										<a href='/portfolio/{$selectedWallet?.address}' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">My Portfolio</a>
 									{/if}

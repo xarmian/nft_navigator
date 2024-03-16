@@ -146,16 +146,16 @@
     }
 </script>
 <div class="flex flex-col m-6 space-y-4">
-    <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 justify-between place-items-center">
-        <div class="flex flex-col md:flex-row space-y-2 md:space-x-4 place-items-center items-stretch">
+    <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 justify-between items-center">
+        <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4 items-center">
             <Select value={collection?.contractId??0} options={collectionOptions} containerClass='w-64' onchange={(v) => gotoAnalyticsPage(Number(v))} />
             {#if collection}
-                <div class="flex flex-row space-x-2 md:space-x-0">
-                    <button class="bg-blue-500 text-white rounded-lg p-0 px-2" on:click={resetSelectedCollection}>
+                <div class="flex flex-row space-x-2 items-center">
+                    <button class="bg-blue-500 text-white rounded-lg p-2" on:click={resetSelectedCollection}>
                         Reset
                         <i class="fas fa-undo ml-2"></i>
                     </button>
-                    <button class="bg-blue-500 text-white rounded-lg p-0 px-2" on:click={() => gotoCollectionPage(collection?.contractId??0)}>
+                    <button class="bg-blue-500 text-white rounded-lg p-2" on:click={() => gotoCollectionPage(collection?.contractId??0)}>
                         Go to Collection
                         <i class="fas fa-arrow-right ml-2"></i>
                     </button>
