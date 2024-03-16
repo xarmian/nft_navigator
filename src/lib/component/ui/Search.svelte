@@ -15,7 +15,7 @@
     let recentSearchValue: Collection[] = [];
 	let windowDefined = false;
     let filteredWallets: string[] = [];
-    $: hideDropdown = true;
+    $: hideDropdown = false;
     $: viewingAnalytics = false;
 
     onMount(async () => {

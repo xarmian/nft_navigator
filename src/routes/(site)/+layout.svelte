@@ -81,6 +81,7 @@
 								<ul class="flex flex-col divide-y divide-gray-300 dark:divide-gray-500">
 									<a href='/' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer overflow-hidden">Home</a>
 									<a href='/forsale' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">For Sale</a>
+									<a href='/analytics' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">Analytics</a>
 									{#if $selectedWallet}
 										<a href='/portfolio/{$selectedWallet?.address}' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">My Portfolio</a>
 									{/if}
