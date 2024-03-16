@@ -5,15 +5,11 @@
     import { goto } from '$app/navigation';
 	import DatePeriodSelector from '$lib/component/ui/DatePeriodSelector.svelte';
     import SalesTable from '$lib/component/ui/SalesTable.svelte';
+    import SalesChart from '$lib/component/ui/SalesChart.svelte';
     import { userPreferences, recentSearch } from '../../../../stores/collection';
     import { onDestroy, onMount } from 'svelte';
-    import { get } from 'svelte/store';
 
     import { TabItem, Tabs } from 'flowbite-svelte';
-    import { Chart, Svg, Axis, Bars } from 'layerchart';
-    import { Highlight, RectClipPath, Tooltip, TooltipItem } from 'layerchart';
-    // @ts-ignore
-    import { scaleBand } from 'd3-scale';
     import { format } from 'date-fns';
 	import CollectionSingle from '$lib/component/ui/CollectionSingle.svelte';
 
@@ -200,67 +196,9 @@
         <Tabs style="underline" defaultClass="flex place-items-end rounded-lg divide-x rtl:divide-x-reverse divide-gray-200 shadow dark:divide-gray-700 justify-center">
             <TabItem open>
                 <div slot="title">Chart</div>
-                    <div>
-                        <div class="h-[300px] p-4 border rounded group w-full bg-gray-100 dark:bg-gray-700 shadow-lg">
-                            <Chart
-                            data={chartData}
-                            x="date"
-                            xScale={scaleBand().padding(0.4)}
-                            y="value"
-                            yDomain={[0, null]}
-                            yNice
-                            padding={{ left: 16, bottom: 24 }}
-                            tooltip={{ mode: "band" }}
-                        >
-                            <Svg>
-                            <Axis placement="left" grid={{ style: "stroke-dasharray: 2" }}
-                            format={(v) => v.toLocaleString()}
-                            labelProps={{
-                                class: "fill-black stroke-white dark:fill-gray-200 dark:stroke-gray-800",
-                            }}
-                            />
-                            <Axis
-                            placement="bottom"
-                            rule
-                            format={(d) => {
-                                        return format(new Date(d), 'M/d haaa')
-                                    }
-                                }
-                            labelProps={{
-                                rotate: 315,
-                                textAnchor: "end",
-                                class: "fill-black stroke-white dark:fill-gray-200 dark:stroke-gray-800",
-                            }}
-                            />
-                            <Bars
-                                radius={4}
-                                strokeWidth={1}
-                                class="fill-accent-500 group-hover:fill-gray-300 transition-colors"
-                            />
-                            <Highlight area>
-                                <svelte:fragment slot="area" let:area>
-                                <RectClipPath
-                                    x={area.x}
-                                    y={area.y}
-                                    width={area.width}
-                                    height={area.height}
-                                    spring
-                                >
-                                    <Bars radius={4} strokeWidth={1} class="fill-accent-500" />
-                                </RectClipPath>
-                                </svelte:fragment>
-                            </Highlight>
-                            </Svg>
-                            <Tooltip header={(data) => format(new Date(data.date),'MM/dd/yyyy hh:ss a')} let:data>
-                                <TooltipItem label="Volume" value={data.value.toLocaleString()} />
-                                <TooltipItem label="VOI" value={data.voi.toLocaleString()} />
-                                <TooltipItem label="VIA" value={data.via.toLocaleString()} />
-                                <TooltipItem label="# Sales" value={data.salesCount} />
-                            </Tooltip>
-                        </Chart>
-                    </div>
+                    <SalesChart data={chartData}></SalesChart>
                     <div class="text-sm p-1">
-                        NOTE: This chart combines VOI and VIA at a 1=1 value and does not adjust for current DEX exchange rates.</div>
+                        NOTE: This chart combines VOI and VIA at a 1=1 value and does not adjust for current DEX exchange rates.
                     </div>
             </TabItem>
             <TabItem>
