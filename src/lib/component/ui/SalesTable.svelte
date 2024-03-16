@@ -68,7 +68,7 @@
     
 </script>
 <div class="flex flex-wrap justify-center">
-    <div class="w-full m-4">
+    <div class="w-full m-0 md:m-4">
         <div class="flex justify-between items-center mb-4">
             <div class="dark:bg-gray-800 p-4">
                 <button on:click={() => (currentPage = 1)} disabled={currentPage === 1} class="px-4 py-2 mr-2 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 dark:bg-gray-700 dark:hover:bg-gray-600 disabled:opacity-40">«</button>
@@ -86,26 +86,27 @@
                 <tr class="bg-gray-200 dark:bg-gray-700 rounded-lg">
                     <th class="text-left">Date/Time</th>
                     <th class="text-left">Block</th>
-                    <th class="text-left">Transaction ID</th>
+                    <th class="text-left hidden md:block">Transaction ID</th>
                     <th class="text-left">Token</th>
-                    <th class="text-left">Seller</th>
-                    <th class="text-left">Buyer</th>
+                    <th class="text-left hidden md:block">Seller</th>
+                    <th class="text-left hidden md:block">Buyer</th>
+                    <th class="text-left block md:hidden">Seller/Buyer</th>
                     <th class="text-left">Amount</th>
                 </tr>
             </thead>
             <tbody>
-                {#each paginatedSales as sale}
-                    <tr class="dark:border-gray-500">
+                {#each paginatedSales as sale, i}
+                    <tr class:dark:bg-gray-700={i % 2 === 1}>
                         <td class="dark:border-gray-500">{new Date(sale.timestamp*1000).toLocaleString()}</td>
                         <td class="dark:border-gray-500"><a href={'https://voi.observer/explorer/block/'+sale.round+'/transactions'} target="_blank">{sale.round}</a></td>
-                        <td class="dark:border-gray-500"><a href={'https://voi.observer/explorer/transaction/'+sale.transactionId} target="_blank">{sale.transactionId.slice(0,12)}...</a></td>
-                        <td class="dark:border-gray-500"><a href={`/collection/${sale.collectionId}/token/${sale.tokenId}`}>{sale.tokenId}</a></td>
-                        <td class="dark:border-gray-500">
-                            {sale.seller.slice(0,8)}...{sale.seller.slice(-8)}
+                        <td class="dark:border-gray-500 hidden md:block"><a href={'https://voi.observer/explorer/transaction/'+sale.transactionId} target="_blank">{sale.transactionId.slice(0,12)}...</a></td>
+                        <td class="dark:border-gray-500 text-center"><a href={`/collection/${sale.collectionId}/token/${sale.tokenId}`}>{sale.tokenId}</a></td>
+                        <td class="dark:border-gray-500 inline-flex">
+                            <div class="w-20 text-ellipsis overflow-hidden">{sale.seller.slice(0,8)}...{sale.seller.slice(-8)}</div>
                             <i use:copy={sale.seller} class="fas fa-copy pointer" on:svelte-copy={() => toast.push(`Wallet Copied to Clipboard:<br/> ${sale.seller.substring(0,20)}...`)}></i>
                         </td>
-                        <td class="dark:border-gray-500">
-                            {sale.buyer.slice(0,8)}...{sale.buyer.slice(-8)}
+                        <td class="dark:border-gray-500 inline-flex">
+                            <div class="w-20 text-ellipsis overflow-hidden">{sale.buyer.slice(0,8)}...{sale.buyer.slice(-8)}</div>
                             <i use:copy={sale.buyer} class="fas fa-copy pointer" on:svelte-copy={() => toast.push(`Wallet Copied to Clipboard:<br/> ${sale.buyer.substring(0,20)}...`)}></i>
                         </td>
                         <td class="dark:border-gray-500">{(sale.price/1000000).toLocaleString()} {sale.currency == 0 ? 'VOI' : 'VIA'}</td>

@@ -146,18 +146,20 @@
     }
 </script>
 <div class="flex flex-col m-6 space-y-4">
-    <div class="flex flex-row justify-between place-items-center">
-        <div class="flex flex-row space-x-4 place-items-center items-stretch">
+    <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 justify-between place-items-center">
+        <div class="flex flex-col md:flex-row space-y-2 md:space-x-4 place-items-center items-stretch">
             <Select value={collection?.contractId??0} options={collectionOptions} containerClass='w-64' onchange={(v) => gotoAnalyticsPage(Number(v))} />
             {#if collection}
-                <button class="bg-blue-500 text-white rounded-lg p-0 px-2" on:click={resetSelectedCollection}>
-                    Reset
-                    <i class="fas fa-undo ml-2"></i>
-                </button>
-                <button class="bg-blue-500 text-white rounded-lg p-0 px-2" on:click={() => gotoCollectionPage(collection?.contractId??0)}>
-                    Go to Collection
-                    <i class="fas fa-arrow-right ml-2"></i>
-                </button>
+                <div class="flex flex-row space-x-2 md:space-x-0">
+                    <button class="bg-blue-500 text-white rounded-lg p-0 px-2" on:click={resetSelectedCollection}>
+                        Reset
+                        <i class="fas fa-undo ml-2"></i>
+                    </button>
+                    <button class="bg-blue-500 text-white rounded-lg p-0 px-2" on:click={() => gotoCollectionPage(collection?.contractId??0)}>
+                        Go to Collection
+                        <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
             {/if}
         </div>
         <div class="flex flex-row space-x-4 place-items-center items-stretch">
@@ -167,15 +169,15 @@
             <DatePeriodSelector bind:startTime={$userPreferences.analyticsStart} bind:endTime={$userPreferences.analyticsEnd}></DatePeriodSelector>
         </div>
     </div>
-    <div class="flex flex-row place-items-center">
+    <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 place-items-center">
         {#if collection}
             <div class="flex">
                 <CollectionSingle collection={collection} viewType='grid' />
             </div>
         {/if}
-        <div class="flex flex-row justify-evenly w-full">
+        <div class="flex flex-row justify-evenly w-full space-x-2 md:space-x-0 text-md md:text-2xl">
             <div class="flex flex-col justify-between p-4 bg-blue-500 text-white shadow-lg rounded-xl space-y-1">
-                <div class="text-2xl font-bold">
+                <div class="font-bold">
                     <div>
                         {voiVolume!==null ? (voiVolume / Math.pow(10,6)).toLocaleString() : '-'} VOI
                     </div>
@@ -186,11 +188,11 @@
                 <h2 class="text-sm uppercase tracking-wider">Total Volume</h2>
             </div>
             <div class="flex flex-col justify-between p-4 bg-green-500 text-white shadow-lg rounded-xl space-y-1">
-                <div class="text-2xl font-bold">{totalSales!==null ? totalSales : '-'}</div>
+                <div class="font-bold">{totalSales!==null ? totalSales : '-'}</div>
                 <h2 class="text-sm uppercase tracking-wider">Total Sales</h2>
             </div>
             <div class="flex flex-col justify-between p-4 bg-red-500 text-white shadow-lg rounded-xl space-y-1">
-                <div class="text-2xl font-bold">{newListings!==null ? newListings : '-'}</div>
+                <div class="font-bold">{newListings!==null ? newListings : '-'}</div>
                 <h2 class="text-sm uppercase tracking-wider">New Listings</h2>
             </div>
         </div>
