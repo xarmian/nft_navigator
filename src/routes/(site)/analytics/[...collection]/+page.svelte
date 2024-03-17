@@ -88,10 +88,10 @@
         }, 0);
 
         // based on period, calculate chart data broken into 60 segments between startTime and endTime
-        let segment = (endTime.getTime() - startTime.getTime()) / 60;
+        let segment = (endTime.getTime() - startTime.getTime()) / 30;
         let date: Date = new Date(startTime.getTime());
         let chartDataMap = new Map<string, { value: number, voi: number, via: number, salesCount: number }>();
-        for (let i = 0; i < 60; i++) {
+        for (let i = 0; i < 30; i++) {
             let nextDate = new Date(date.getTime() + segment);
             let result = s.reduce((acc, sale) => {
                 if (sale.timestamp * 1000 >= date.getTime() && sale.timestamp * 1000 < nextDate.getTime()) {
