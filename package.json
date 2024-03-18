@@ -46,6 +46,7 @@
 		"@vercel/analytics": "^1.2.2",
 		"algosdk": "^2.7.0",
 		"compare-versions": "^6.1.0",
+		"d3": "^7.9.0",
 		"d3-scale": "github:d3/d3-scale",
 		"flowbite-svelte": "^0.44.24",
 		"flowbite-svelte-icons": "^0.4.5",

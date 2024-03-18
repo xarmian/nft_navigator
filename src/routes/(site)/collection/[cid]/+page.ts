@@ -30,7 +30,6 @@ export const load = (async ({ params, fetch }) => {
 
 		collection = (await getCollection({ contractId: Number(contractId), fetch }));
 
-
 		if (collection) {
 			let recentSearchValue = get(recentSearch) as Collection[];
 			recentSearchValue = [collection, ...recentSearchValue.filter((r) => r.contractId !== collection?.contractId)].slice(0,5);

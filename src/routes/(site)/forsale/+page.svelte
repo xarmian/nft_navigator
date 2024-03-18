@@ -6,7 +6,6 @@
     import Switch from '$lib/component/ui/Switch.svelte';
     import Select from '$lib/component/ui/Select.svelte';
     import { inview } from 'svelte-inview';
-	import { MetaTags } from 'svelte-meta-tags';
     
     export let data: PageData;
     let displayCount = 12;

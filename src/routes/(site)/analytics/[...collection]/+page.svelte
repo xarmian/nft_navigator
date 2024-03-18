@@ -202,7 +202,7 @@
                     </div>
             </TabItem>
             <TabItem>
-                <div slot="title">Sales</div>
+                <div slot="title">Transactions</div>
                 <SalesTable collectionId={collection?.contractId??0} sales={sales} />
             </TabItem>
         </Tabs>
