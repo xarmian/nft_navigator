@@ -35,9 +35,11 @@
         });*/
     });
 
-    formattedOwner = token.ownerNFD ? token.ownerNFD as string : token.owner.length > 16
-            ? `${token.owner.slice(0, 8)}...${token.owner.slice(-8)}`
-            : token.owner;
+    $: {
+        formattedOwner = token.ownerNFD ? token.ownerNFD as string : token.owner.length > 16
+                ? `${token.owner.slice(0, 8)}...${token.owner.slice(-8)}`
+                : token.owner;
+    }
 
     let tokenProps: any[] = [];
     // map token.metadata.properties object of the form {"BACKGROUND":"Aquamarine","BODY":"Red","ON BODY":"Scar"}
