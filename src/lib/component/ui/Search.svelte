@@ -127,7 +127,7 @@
 
             // do an NFD search
             if (search.includes('.algo')) {
-                getAddressesForNFD(search).then((data) => {
+                getAddressesForNFD(search, fetch).then((data) => {
                     filteredWallets = data;
                 });
             }

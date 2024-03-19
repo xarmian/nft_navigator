@@ -57,7 +57,7 @@
 	function handleInput() {
 		// Implement logic to search NFDomain and update addressList
 		if (searchText.includes('.algo')) {
-			getAddressesForNFD(searchText).then((data) => {
+			getAddressesForNFD(searchText, fetch).then((data) => {
 				addressList = data;
 			});
 		}

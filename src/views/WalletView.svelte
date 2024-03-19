@@ -40,7 +40,7 @@
             console.error('Failed to fetch account balance:', error);
         }
 
-        const nfdData: any = await getNFD([walletId]);
+        const nfdData: any = await getNFD([walletId], fetch);
         nfDomain = nfdData.find((nfd: any) => nfd.key === walletId)?.replacementValue;
     });
 

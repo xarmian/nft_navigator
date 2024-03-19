@@ -14,7 +14,7 @@ export const load = (async ({ params, fetch }) => {
 		
 		// get NFD for owner
 		if (token) {
-			const nfd = await getNFD([token.owner]);
+			const nfd = await getNFD([token.owner], fetch);
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const nfdObj = nfd.find((n: any) => n.key === token?.owner);
 			if (nfdObj) {

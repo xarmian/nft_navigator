@@ -12,6 +12,7 @@
     // @ts-ignore
     import Device from 'svelte-device-info';
     import { getWalletBalance, getCurrency } from '$lib/utils/currency';
+	import { collectionSort } from '../../../../stores/collection';
 
     export let data: PageData;
     $: walletId = data.props.walletId;
@@ -20,6 +21,7 @@
     $: walletAvatar = data.props.walletAvatar;
     $: tokens = data.props.tokens;
     $: approvals = data.props.approvals;
+    let collections = data.props.collections;
     let pageLoaded = false;
     let isMobile: boolean | null = null;
     let headerTokens: Token[] = [];
@@ -67,7 +69,6 @@
         showTransactions = true;
         const url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/sales/?buyer=${walletIds[0]}`;
         const data = await fetch(url).then((response) => response.json());
-        console.log(data);
     }
 
     
@@ -80,7 +81,7 @@
             {/each}
         </div>
         <div class="flex justify-center items-center w-full mx-2">
-            <div class="flex flex-col {isMobile ? 'p-4' : 'p-8'} mt-2 mb-2 bg-slate-100 dark:bg-slate-700 shadow-lg rounded-2xl opacity-90 space-y-4">
+            <div class="flex flex-col p-4 md:p-8 mt-2 mb-2 bg-slate-100 dark:bg-slate-700 shadow-lg rounded-2xl opacity-90 space-y-4">
                 <div class="flex flex-row space-x-4">
                     {#if walletAvatar}
                         <img src={walletAvatar} class="h-24 w-24 rounded-full place-self-center mb-2" />
@@ -144,7 +145,7 @@
             <div class="m-4">
                 {#each tokens as token}
                     <div class="m-4">
-                        <TokenComponent token={token}></TokenComponent>
+                        <TokenComponent collection={collections.find(c => c.contractId === token.contractId)} token={token}></TokenComponent>
                     </div>
                 {/each}
                 {#if tokens.length == 0}
@@ -160,7 +161,7 @@
             <div class="m-4">
                 {#each approvals as token}
                     <div class="m-4">
-                        <TokenComponent token={token}></TokenComponent>
+                        <TokenComponent collection={collections.find(c => c.contractId === token.contractId)} token={token}></TokenComponent>
                     </div>
                 {/each}
                 {#if approvals.length == 0}
@@ -173,6 +174,7 @@
                 <div class="inline">Transactions</div>
             </div>
             <div class="m-4">
+                Coming soon...
             </div>
         </TabItem>
     </Tabs>

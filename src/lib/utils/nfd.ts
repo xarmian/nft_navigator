@@ -1,10 +1,30 @@
-export async function getAddressesForNFD(nfdName: string): Promise<string[]> {
+interface AdditionalData {
+    [key: string]: {
+        name: string;
+        properties?: {
+            verified?: {
+                avatar?: string;
+            };
+            userDefined?: {
+                avatar?: string;
+            };
+        };
+    };
+}
+
+interface AggregatedNFD {
+    key: string;
+    replacementValue: string;
+    avatar: string | null;
+}
+
+export async function getAddressesForNFD(nfdName: string, fetchF: typeof fetch = fetch): Promise<string[]> {
     // Define the API endpoint
     const url = `https://api.nf.domains/nfd/${nfdName.toLocaleLowerCase()}?view=brief&poll=false&nocache=false`;
 
     try {
         // Make a GET request to the API
-        const response = await fetch(url);
+        const response = await fetchF(url);
 
         if (!response.ok) {
             // If response is not OK, throw an error
@@ -33,8 +53,8 @@ export async function getAddressesForNFD(nfdName: string): Promise<string[]> {
     return [];
 }
 
-export async function getNFD(data: string[]) {
-    const aggregatedNFDs: string[] = [];
+export async function getNFD(data: string[], fetchF: typeof fetch = fetch): Promise<unknown[]> {
+    const aggregatedNFDs: AggregatedNFD[] = [];
     const addressChunks = [];
     const chunkSize = 20;
 
@@ -50,25 +70,26 @@ export async function getNFD(data: string[]) {
             params.append("address", address);
         });
 
-        params.append("view", "thumbnail");
+        params.append("view", "brief");
         params.append("allowUnverified", "true");
 
         url += params.toString();
 
-        return fetch(url)
-            .then(response => response.json())
-            .then(additionalData => {
-                Object.entries(additionalData).forEach((val) => {
-                    const key = val[0];
-                    const value: any = val[1];
-                    console.log(val)
-
-                    const replacementValue = value.name;
-                    const avatar = value.properties?.verified?.avatar ?? value.properties?.userDefined?.avatar ?? null;
-                    aggregatedNFDs.push({ key, replacementValue, avatar });
-                });
-            })
-            .catch(error => {}); //console.error("Error fetching additional data:", error));
+        return fetchF(url)
+        .then((response: Response) => response.json())
+        .then((additionalData: AdditionalData) => {
+            Object.entries(additionalData).forEach((val) => {
+                const key = val[0];
+                const value = val[1];
+    
+                const replacementValue: string = value.name;
+                const avatar: string | null = value.properties?.verified?.avatar ?? value.properties?.userDefined?.avatar ?? null;
+                aggregatedNFDs.push({ key, replacementValue, avatar });
+            });
+        })
+        .catch(() => {
+            // console.error("Error fetching additional data:", error);
+        });
     });
 
     await Promise.all(allFetches);

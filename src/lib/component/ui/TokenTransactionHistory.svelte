@@ -114,7 +114,7 @@
             addresses.add(t.to);
         });
 
-        const nfd = await getNFD(Array.from(addresses) as string[]);
+        const nfd = await getNFD(Array.from(addresses) as string[], fetch);
 
         // create a key/value pair array of n.key to n.replacementValue
         nfdMap = nfd.reduce((acc: any, n: any) => {

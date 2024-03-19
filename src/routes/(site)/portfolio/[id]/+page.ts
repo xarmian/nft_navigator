@@ -2,6 +2,7 @@
 import type { PageLoad } from './$types';
 import { getNFD } from '$lib/utils/nfd';
 import type { Token } from '$lib/data/types';
+import { getCollections } from '$lib/utils/indexer';
 
 export const load = (async ({ params, fetch }) => {
 	const walletId: string = params.id;
@@ -10,9 +11,10 @@ export const load = (async ({ params, fetch }) => {
 	let walletAvatar: null | string = null;
 	const tokens: Token[] = [];
 	const approvals: Token[] = [];
+	const collections = await getCollections({ fetch });
 
 	try {
-		const nfd = await getNFD([walletIds[0]]); // nfd is array of objects with key = owner, replacementValue = nfd
+		const nfd = await getNFD([walletIds[0]], fetch); // nfd is array of objects with key = owner, replacementValue = nfd
 		const nfdObj: any = nfd.find((n: any) => n.key === walletIds[0]);
 		walletNFD = nfdObj?.replacementValue ?? null;
 		walletAvatar = nfdObj?.avatar ?? null;
@@ -74,6 +76,7 @@ export const load = (async ({ params, fetch }) => {
 			walletAvatar,
 			tokens,
 			approvals,
+			collections,
 		},
 		pageMetaTags,
 	};

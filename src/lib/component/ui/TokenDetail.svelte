@@ -1,14 +1,13 @@
 <script lang="ts">
     import type { Token, Collection } from '$lib/data/types';
     import TokenName from '$lib/component/ui/TokenName.svelte';
-	import { populateTokenRanking } from '$lib/utils/indexer';
     import { zeroAddress } from '$lib/data/constants';
-    import { getCollection, getTokens } from '$lib/utils/indexer';
+    import { getCollection, getCollections, getTokens } from '$lib/utils/indexer';
 	import { onMount } from 'svelte';
 
     export let token: Token;
+    export let collection: Collection | undefined;
     let formattedOwner = '';
-    let collection: Collection | null;
     let royaltyPercentage = 0;
 
     if (token.metadata.royalties) {
@@ -23,17 +22,6 @@
         // Extract the first two bytes and convert them to a number
         royaltyPercentage = (bytes[0] << 8) | bytes[1];
     }
-
-    onMount(async () => {
-        collection = await getCollection({ contractId: token.contractId, fetch });
-        let tokens = await getTokens({ contractId: token.contractId, fetch });
-        token = tokens.find(t => t.tokenId === token.tokenId) as Token;
-
-        // get ranking data for the token
-        /*populateTokenRanking(token.contractId,[token],fetch).then((tokens) => {
-            token = tokens[0];
-        });*/
-    });
 
     $: {
         formattedOwner = token.ownerNFD ? token.ownerNFD as string : token.owner.length > 16
