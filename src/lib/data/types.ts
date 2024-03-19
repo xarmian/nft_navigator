@@ -1,7 +1,7 @@
 // types.ts
 export interface Token {
     owner: string;
-    ownerNFD?: string | unknown;
+    ownerNFD?: string | null;
     contractId: number;
     tokenId: number;
     mintRound: number;

@@ -50,7 +50,7 @@ export async function getNFD(data: string[]) {
             params.append("address", address);
         });
 
-        params.append("view", "tiny");
+        params.append("view", "thumbnail");
         params.append("allowUnverified", "true");
 
         url += params.toString();
@@ -61,9 +61,11 @@ export async function getNFD(data: string[]) {
                 Object.entries(additionalData).forEach((val) => {
                     const key = val[0];
                     const value: any = val[1];
+                    console.log(val)
 
                     const replacementValue = value.name;
-                    aggregatedNFDs.push({ key, replacementValue });
+                    const avatar = value.properties?.verified?.avatar ?? value.properties?.userDefined?.avatar ?? null;
+                    aggregatedNFDs.push({ key, replacementValue, avatar });
                 });
             })
             .catch(error => {}); //console.error("Error fetching additional data:", error));

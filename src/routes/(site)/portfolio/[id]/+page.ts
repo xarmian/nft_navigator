@@ -7,15 +7,15 @@ export const load = (async ({ params, fetch }) => {
 	const walletId: string = params.id;
 	const walletIds = walletId.split(',');
 	let walletNFD: null | string = null;
+	let walletAvatar: null | string = null;
 	const tokens: Token[] = [];
 	const approvals: Token[] = [];
 
 	try {
 		const nfd = await getNFD([walletIds[0]]); // nfd is array of objects with key = owner, replacementValue = nfd
 		const nfdObj: any = nfd.find((n: any) => n.key === walletIds[0]);
-		if (nfdObj) {
-			walletNFD = nfdObj.replacementValue;
-		}
+		walletNFD = nfdObj?.replacementValue ?? null;
+		walletAvatar = nfdObj?.avatar ?? null;
 
 		// owned tokens
 		for(const wid of walletIds) {
@@ -26,7 +26,7 @@ export const load = (async ({ params, fetch }) => {
 					contractId: token.contractId,
 					tokenId: token.tokenId,
 					owner: token.owner,
-					ownerNFD: walletNFD,
+					ownerNFD: nfdObj?.replacementValue ?? null,
 					metadataURI: token.metadataURI,
 					metadata: JSON.parse(token.metadata),
 					mintRound: token['mint-round'],
@@ -71,6 +71,7 @@ export const load = (async ({ params, fetch }) => {
 		props: {
 			walletId,
 			walletNFD,
+			walletAvatar,
 			tokens,
 			approvals,
 		},

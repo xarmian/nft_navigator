@@ -17,6 +17,7 @@
     $: walletId = data.props.walletId;
     $: walletIds = walletId.split(',');
     $: walletNFD = data.props.walletNFD;
+    $: walletAvatar = data.props.walletAvatar;
     $: tokens = data.props.tokens;
     $: approvals = data.props.approvals;
     let pageLoaded = false;
@@ -80,7 +81,10 @@
         </div>
         <div class="flex justify-center items-center w-full mx-2">
             <div class="flex flex-row {isMobile ? 'p-4' : 'p-8'} mt-2 mb-2 bg-slate-100 dark:bg-slate-700 shadow-lg rounded-2xl space-x-8 opacity-90">
-                <div>
+                <div class="flex flex-col">
+                    {#if walletAvatar}
+                        <img src={walletAvatar} class="h-24 w-24 rounded-full place-self-center mb-2" />
+                    {/if}
                     <div class="flex flex-row space-x-2 text-2xl font-bold mb-0">
                         <div class="text-blue dark:text-blue-100">
                         {walletNFD??formattedWallet}
