@@ -80,51 +80,57 @@
             {/each}
         </div>
         <div class="flex justify-center items-center w-full mx-2">
-            <div class="flex flex-row {isMobile ? 'p-4' : 'p-8'} mt-2 mb-2 bg-slate-100 dark:bg-slate-700 shadow-lg rounded-2xl space-x-8 opacity-90">
-                <div class="flex flex-col">
+            <div class="flex flex-col {isMobile ? 'p-4' : 'p-8'} mt-2 mb-2 bg-slate-100 dark:bg-slate-700 shadow-lg rounded-2xl opacity-90 space-y-4">
+                <div class="flex flex-row space-x-4">
                     {#if walletAvatar}
                         <img src={walletAvatar} class="h-24 w-24 rounded-full place-self-center mb-2" />
                     {/if}
-                    <div class="flex flex-row space-x-2 text-2xl font-bold mb-0">
-                        <div class="text-blue dark:text-blue-100">
-                        {walletNFD??formattedWallet}
-                        {#if !walletNFD}
-                            <i use:copy={walletIds[0]} class="fas fa-copy pointer" on:svelte-copy={() => toast.push(`Wallet Copied to Clipboard:<br/> ${walletIds[0].substring(0,20)}...`)}></i>
+                    <div class="flex flex-col">
+                        <div class="flex flex-row space-x-2 text-2xl font-bold mb-0">
+                            <div class="text-blue dark:text-blue-100">
+                            {walletNFD??formattedWallet}
+                            {#if !walletNFD}
+                                <i use:copy={walletIds[0]} class="fas fa-copy pointer" on:svelte-copy={() => toast.push(`Wallet Copied to Clipboard:<br/> ${walletIds[0].substring(0,20)}...`)}></i>
+                            {/if}
+                            </div>
+                        </div>
+                        {#if walletNFD}
+                            <div class="text-sm font-bold mb-4 text-left">
+                                {formattedWallet}
+                                <i use:copy={walletIds[0]} class="fas fa-copy pointer" on:svelte-copy={() => toast.push(`Wallet Copied to Clipboard:<br/> ${walletIds[0].substring(0,20)}...`)}></i>
+                            </div>
                         {/if}
-                        </div>
-                    </div>
-                    {#if walletNFD}
-                        <div class="text-sm font-bold mb-4 text-left">
-                            {formattedWallet}
-                            <i use:copy={walletIds[0]} class="fas fa-copy pointer" on:svelte-copy={() => toast.push(`Wallet Copied to Clipboard:<br/> ${walletIds[0].substring(0,20)}...`)}></i>
-                        </div>
-                    {/if}
-                    <div class="text-sm font-bold mb-4 text-left">
-                        <a href="https://voi.observer/explorer/account/{walletIds[0]}" target="_blank" class="text-blue-500 hover:text-blue-700 underline">
-                            Voi Observer
-                            <i class="fas fa-external-link-alt"></i>
-                        </a>
-                    </div>
-                    <div class="text-sm font-bold mb-4 text-left">
-                        <a href="https://shellyssandbox.xyz/#/account/{walletIds[0]}" target="_blank" class="text-blue-500 hover:text-blue-700 underline">
-                            ARC-200 Balances
-                            <i class="fas fa-external-link-alt"></i>
-                        </a>
                     </div>
                 </div>
-                <div class="flex flex-col items-start">
-                    {#if voiBalance != undefined}
-                        <div class="flex flex-col items-end w-full">
-                            <div class="text-lg font-bold text-green-500 dark:text-green-300">{(voiBalance / Math.pow(10,6)).toLocaleString()}</div>
-                            <div class="text-md font-bold text-gray-500 dark:text-gray-300 mb-2">VOI</div>
+                <div class="flex flex-row justify-between space-x-8">
+                    <div class="flex flex-col">
+                        {#if voiBalance != undefined}
+                            <div class="flex flex-row w-full space-x-2 items-stretch">
+                                <div class="text-lg font-bold text-green-500 dark:text-green-300">{(voiBalance / Math.pow(10,6)).toLocaleString()}</div>
+                                <div class="text-md font-bold text-gray-500 dark:text-gray-300 mb-2">VOI</div>
+                            </div>
+                        {/if}
+                        {#if viaBalance != undefined}
+                            <div class="flex flex-row w-full space-x-2 items-stretch">
+                                <div class="text-lg font-bold text-green-500 dark:text-green-300">{(viaBalance / Math.pow(10,6)).toLocaleString()}</div>
+                                <div class="text-md font-bold text-gray-500 dark:text-gray-300 mb-2">VIA</div>
+                            </div>
+                        {/if}
+                    </div>
+                    <div class="flex flex-col">
+                        <div class="text-sm font-bold mb-4 text-left">
+                            <a href="https://voi.observer/explorer/account/{walletIds[0]}" target="_blank" class="text-blue-500 hover:text-blue-700 underline">
+                                Voi Observer
+                                <i class="fas fa-external-link-alt"></i>
+                            </a>
                         </div>
-                    {/if}
-                    {#if viaBalance != undefined}
-                        <div class="flex flex-col items-end w-full">
-                            <div class="text-lg font-bold text-green-500 dark:text-green-300">{(viaBalance / Math.pow(10,6)).toLocaleString()}</div>
-                            <div class="text-md font-bold text-gray-500 dark:text-gray-300 mb-2">VIA</div>
+                        <div class="text-sm font-bold mb-4 text-left">
+                            <a href="https://shellyssandbox.xyz/#/account/{walletIds[0]}" target="_blank" class="text-blue-500 hover:text-blue-700 underline">
+                                ARC-200 Balances
+                                <i class="fas fa-external-link-alt"></i>
+                            </a>
                         </div>
-                    {/if}
+                    </div>
                 </div>
             </div>
         </div>
