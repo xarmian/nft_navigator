@@ -144,8 +144,15 @@
     position: relative;
     height: 330px;
     width: 290px;
+    transition: transform 0.3s ease-out;
 }
 
+.card-container:hover {
+    position: relative;
+    height: 330px;
+    width: 290px;
+    transform: scale(1.04);
+}
 .card {
     width: 100%;
     height: 100%;
