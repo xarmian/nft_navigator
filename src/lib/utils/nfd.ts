@@ -85,7 +85,7 @@ export async function getNFD(data: string[], fetchF: typeof fetch = fetch): Prom
     
                 const replacementValue: string = value.name;
 
-                const verifiedAvatar: string | null = (value.properties?.verified?.avatar) ? ('https://imageproxy.nf.domains/3840x,q75,jpeg/https://images.nf.domains/ipfs/'+value.properties?.verified?.avatar?.split('//')[1]) : null;
+                const verifiedAvatar: string | null = (value.properties?.verified?.avatar) ? ('https://images.nf.domains/ipfs/'+value.properties?.verified?.avatar?.split('//')[1]) : null;
                 const userDefinedAvatar: string | null = value.properties?.userDefined?.avatar ?? null;
 
                 const avatar: string | null = verifiedAvatar ?? userDefinedAvatar ?? null;
