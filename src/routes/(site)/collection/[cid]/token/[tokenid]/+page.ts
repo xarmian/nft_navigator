@@ -1,12 +1,13 @@
 import type { PageLoad } from './$types';
-import type { Token } from '$lib/data/types';
+import type { Token, Collection } from '$lib/data/types';
 import { getNFD } from '$lib/utils/nfd';
-import { reformatTokenName, getTokens } from '$lib/utils/indexer';
+import { reformatTokenName, getTokens, getCollection } from '$lib/utils/indexer';
 
 export const load = (async ({ params, fetch }) => {
-	const contractId = params.cid;
+	const contractId = Number(params.cid);
 	const tokenId = Number(params.tokenid);
 	let token: Token | null = null;
+	let collection: Collection | null = null;
 
 	if (contractId && tokenId) {
 		const tokens = await getTokens({ contractId, tokenId, fetch });
@@ -23,6 +24,9 @@ export const load = (async ({ params, fetch }) => {
 				token.ownerNFD = nfdObj.replacementValue;
 			}
 		}
+
+		// get collection
+		collection = await getCollection({ contractId, fetch });
 	}
 
 	const tokenName = reformatTokenName(token?.metadata.name??'');
@@ -38,6 +42,7 @@ export const load = (async ({ params, fetch }) => {
 		contractId: params.cid,
 		tokenId: params.tokenid,
 		token: token,
+		collection: collection,
 		pageMetaTags,
 	};
 }) satisfies PageLoad;

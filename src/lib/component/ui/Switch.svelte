@@ -1,20 +1,18 @@
 <script lang="ts">
+	  import type { ChangeEventHandler } from "svelte/elements";
+
     export let label: string = '';
     export let checked: boolean = false;
-    export let onChange: Function | null = null;
+    export let onChange: ChangeEventHandler<HTMLInputElement> | null = null;
     export let title = '';
     export let labelStyle = '';
     export let sliderStyle = '';
-
-    $: if (onChange) {
-        onChange(checked);
-    }
 </script>
 
 
 <div title={title}>
   <label class="switch">
-      <input type="checkbox" bind:checked={checked}>
+      <input type="checkbox" bind:checked={checked} on:change={onChange}>
       <span class="slider round" style={sliderStyle}></span>
   </label>
   <span class="label-text" style={labelStyle}>{label}<slot/></span>

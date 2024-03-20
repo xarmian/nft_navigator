@@ -1,8 +1,8 @@
-import type { PageLoad } from './$types';
+import type { PageLoad } from '../$types';
 import type { Token, Collection, Listing } from '$lib/data/types';
 import { getCollection, getTokens, populateTokenRanking } from '$lib/utils/indexer';
 import { getCurrency } from '$lib/utils/currency';
-import { userPreferences, recentSearch } from '../../../../stores/collection';
+import { userPreferences, recentSearch } from '../../../../../stores/collection';
 import { get } from 'svelte/store';
 import algosdk from 'algosdk';
 
@@ -14,7 +14,12 @@ export const load = (async ({ params, fetch }) => {
 	//const isVoiGames: boolean = false;
 	let categories: { [key: string]: { [key: string]: number } } = {};
 	let filters: { [key: string]: string } = {};
-	
+
+	let subpage = params.subpage ?? 'tokens';
+	if (subpage === null || subpage === '') {
+		subpage = 'tokens';
+	}
+
 	let floor = '';
 	let ceiling = '';
 
@@ -114,8 +119,16 @@ export const load = (async ({ params, fetch }) => {
 
 	}
 
+	let title = collection?.highforgeData?.title ?? collectionName;
+	if (subpage === 'forsale') {
+		title = `For Sale | ${title}`;
+	}
+	else if (subpage === 'collectors') {
+		title = `Collectors | ${title}`;
+	}
+
 	const pageMetaTags = {
-        title: collection?.highforgeData?.title ?? collectionName ?? undefined,
+        title: title,
         description: tokens[0]?.metadata?.description ?? collection?.highforgeData?.description ?? undefined,
         imageUrl: collection?.highforgeData?.coverImageURL ?? tokens[0]?.metadata?.image ?? undefined,
       };
@@ -130,6 +143,7 @@ export const load = (async ({ params, fetch }) => {
 		pageMetaTags,
 		categories,
 		filters,
+		subpage,
 		//isVoiGames: isVoiGames ? true : false,
 	};
 }) satisfies PageLoad;

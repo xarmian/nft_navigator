@@ -42,7 +42,7 @@
 </script>
 
 <div class="app dark:text-white">
-	<header class="bg-gray-100 dark:bg-gray-800 py-4 px-4 flex flex-col border-b border-b-gray-200 dark:border-b-gray-900 relative">
+	<header class="h-20 bg-gray-100 dark:bg-gray-800 py-4 px-4 flex flex-col border-b border-b-gray-200 dark:border-b-gray-900 fixed w-full z-50 dark:bg-opacity-50 bg-opacity-50">
 		<div class="flex">
 			<div class="flex-start">
 				<a href="/" class="absolute top-0 left-0 p-4 flex flex-row space-x-2">
@@ -100,6 +100,7 @@
 			</div>
 		</div>		
 	</header>
+	<div class="w-full h-20"></div>
 	<main>
 		<slot />
 	</main>

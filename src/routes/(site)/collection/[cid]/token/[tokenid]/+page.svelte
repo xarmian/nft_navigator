@@ -2,11 +2,16 @@
 	import type { PageData } from './$types';
 	import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
     import TokenTransactionHistory from '$lib/component/ui/TokenTransactionHistory.svelte';
+	import NautilusButton from '$lib/component/ui/NautilusButton.svelte';
+	import HighforgeButton from '$lib/component/ui/HighforgeButton.svelte';
+	import NftGamesButton from '$lib/component/ui/NFTGamesButton.svelte';
+    import { handleScroll } from '$lib/utils/functions';
+    import FanIcon from '$lib/component/ui/icons/FanIcon.svelte';
 
     export let data: PageData;
     let contractId = data.contractId;
-    let tokenId = data.tokenId;
     let token = data.token;
+    let collection = data.collection;
 
     let isMenuOpen = false;
 
@@ -19,49 +24,27 @@
             isMenuOpen = false;
         }
     }
-
-    const goToMarketplace = () => {
-        if (token) window.open(`https://nautilus.sh/#/collection/${token.contractId}/token/${token.tokenId}`,'_blank');
-    }
-
-    const goToContract = () => {
-        if (token) window.open(`https://voi.observer/explorer/application/${token.contractId}/transactions`, '_blank');
-    }
-
-    const goToProjectPage = () => {
-        //window.location.href = token.metadata.image;
-    }
-
 </script>
 <svelte:window on:click={closeMenu} />
 <div class="m-5">
-    <div class="button-bar">
-            <div class="hamburger-container block md:hidden">
-                <button class="hamburger-button" on:click={toggleMenu}>
-                    <span class="hamburger-icon"></span>
-                    <span class="hamburger-icon"></span>
-                    <span class="hamburger-icon"></span>
-                </button>
-                {#if isMenuOpen}
-                    <div class="menu">
-                        <a class="mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToMarketplace}>Marketplace <i class="fas fa-external-link-alt"></i></a>
-                        <a class="mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToContract}>Contract <i class="fas fa-external-link-alt"></i></a>
-                        <a class="mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={() => window.open('https://highforge.io/project/'+contractId)}>High Forge <i class="fas fa-external-link-alt"></i></a>
-                        <!--<a class="bg-gray-200 dark:bg-gray-600 opacity-50 !cursor-not-allowed" on:click={goToProjectPage}>Project Page</a>-->
-                    </div>
-                {/if}
-            </div>
-            <div class="hidden md:block">
-                <a class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" href={`/collection/${token?.contractId}`}><i class='fas fa-arrow-left'></i> Collection</a>
-                <a class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToMarketplace}>Marketplace <i class="fas fa-external-link-alt"></i></a>
-                <a class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={goToContract}>Contract <i class="fas fa-external-link-alt"></i></a>
-                <a class="mr-2 mb-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" on:click={() => window.open('https://highforge.io/project/'+contractId)}>High Forge <i class="fas fa-external-link-alt"></i></a>
-                <!--<button class="mr-2 bg-gray-200 dark:bg-gray-600 opacity-50 !cursor-not-allowed" on:click={goToProjectPage}>Project Page <i class="fas fa-external-link-alt"></i></button>-->
-            </div>
+    <div use:handleScroll class="button-bar">
+        <div class="flex flex-row space-x-3">
+            <a class="content-evenly text-md bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" href={`/collection/${token?.contractId}`}><FanIcon /> Collection</a>
+            {#if token}
+                <NautilusButton contractid={contractId} tokenid={String(token.tokenId)} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14 w-20 md:w-24"/>
+                <HighforgeButton buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14 w-20 md:w-24"/>
+            {/if}
+            {#if collection?.gameData}
+                <NftGamesButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14 w-20 md:w-24"/>
+            {/if}
+            <!--<button class="mr-2 bg-gray-200 dark:bg-gray-600 opacity-50 !cursor-not-allowed" on:click={goToProjectPage}>Project Page <i class="fas fa-external-link-alt"></i></button>-->
+        </div>
     </div>
     {#if token}
         <div class='mb-4'>
-            <TokenDetail {token} />
+            {#if collection}
+                <TokenDetail {token} {collection} />
+            {/if}
         </div>
         <TokenTransactionHistory {token}/>
     {/if}
@@ -78,52 +61,5 @@
         border: none;
         border-radius: 0.5rem;
         cursor: pointer;
-    }
-    .hamburger-container {
-        position: relative;
-    }
-    .hamburger-button {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-around;
-        width: 1.5rem;
-        height: 1.5rem;
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        padding: 0;
-        z-index: 10;
-    }
-    .hamburger-icon {
-        width: 1.5rem;
-        height: 0.2rem;
-        background: #333;
-    }
-    .menu {
-        position: absolute;
-        top: 0rem;
-        left: 2rem;
-        background-color: #f0f0f0;
-        border: 1px solid #e0e0e0;
-        border-radius: 0.5rem;
-        padding: 0.5rem;
-        display: flex;
-        flex-direction: column;
-        z-index: 9;
-        white-space: nowrap;
-    }
-    @media (prefers-color-scheme: dark) {
-        button {
-            background-color: #333;
-            color: #f0f0f0;
-        }
-
-        button:hover {
-            background-color: #444;
-        }
-        .menu {
-            background-color: #444;
-            border: 1px solid #333;
-        }
     }
 </style>

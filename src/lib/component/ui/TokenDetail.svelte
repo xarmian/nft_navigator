@@ -2,8 +2,6 @@
     import type { Token, Collection } from '$lib/data/types';
     import TokenName from '$lib/component/ui/TokenName.svelte';
     import { zeroAddress } from '$lib/data/constants';
-    import { getCollection, getCollections, getTokens } from '$lib/utils/indexer';
-	import { onMount } from 'svelte';
 
     export let token: Token;
     export let collection: Collection | undefined;
@@ -67,9 +65,9 @@
         ? `${token.approved.slice(0, 8)}...${token.approved.slice(-8)}`
         : token.approved : '';
         
-    const collectionName = token?.metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
+    const collectionName = collection?.highforgeData?.title ?? token?.metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
 </script>
-<div class="flex flex-col md:flex-row items-start">
+<div class="flex flex-col md:flex-row items-center md:items-start">
     <img src={token.metadata.image} class="max-w-72 object-contain mr-3 rounded-xl"/>
     <div class="text-left flex-grow">
         <div class="mb-2">
@@ -100,10 +98,20 @@
         </div>
     </div>
 </div>
-<div class="flex flex-wrap w-full">
+<div class="flex flex-wrap w-full justify-center md:justify-start">
     {#each tokenProps as prop}
         <div class="p-2 m-1 text-md rounded-xl max-w-56 text-nowrap overflow-ellipsis overflow-hidden" style="color: {prop.fgcolor}; background-color: {prop.bgcolor}">
             <span class="font-bold">{prop.trait_type}:</span> {prop.value}
         </div>
     {/each}
 </div>
+
+<style>
+    a {
+        color: #6c63ff;
+        text-decoration: underline;
+    }
+    a:hover {
+        color: #9994f2;
+    }
+</style>

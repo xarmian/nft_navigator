@@ -12,7 +12,7 @@ interface AdditionalData {
     };
 }
 
-interface AggregatedNFD {
+export interface AggregatedNFD {
     key: string;
     replacementValue: string;
     avatar: string | null;
@@ -53,7 +53,7 @@ export async function getAddressesForNFD(nfdName: string, fetchF: typeof fetch =
     return [];
 }
 
-export async function getNFD(data: string[], fetchF: typeof fetch = fetch): Promise<unknown[]> {
+export async function getNFD(data: string[], fetchF: typeof fetch = fetch): Promise<AggregatedNFD[]> {
     const aggregatedNFDs: AggregatedNFD[] = [];
     const addressChunks = [];
     const chunkSize = 20;
@@ -78,12 +78,17 @@ export async function getNFD(data: string[], fetchF: typeof fetch = fetch): Prom
         return fetchF(url)
         .then((response: Response) => response.json())
         .then((additionalData: AdditionalData) => {
+            console.log(additionalData);
             Object.entries(additionalData).forEach((val) => {
                 const key = val[0];
                 const value = val[1];
     
                 const replacementValue: string = value.name;
-                const avatar: string | null = value.properties?.verified?.avatar ?? value.properties?.userDefined?.avatar ?? null;
+
+                const verifiedAvatar: string | null = (value.properties?.verified?.avatar) ? ('https://imageproxy.nf.domains/3840x,q75,jpeg/https://images.nf.domains/ipfs/'+value.properties?.verified?.avatar?.split('//')[1]) : null;
+                const userDefinedAvatar: string | null = value.properties?.userDefined?.avatar ?? null;
+
+                const avatar: string | null = verifiedAvatar ?? userDefinedAvatar ?? null;
                 aggregatedNFDs.push({ key, replacementValue, avatar });
             });
         })

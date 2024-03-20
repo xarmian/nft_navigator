@@ -1,5 +1,6 @@
 // types.ts
 export interface Token {
+	ownerAvatar?: string | null;
     owner: string;
     ownerNFD?: string | null;
     contractId: number;
