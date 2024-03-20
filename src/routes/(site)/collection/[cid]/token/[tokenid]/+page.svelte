@@ -7,6 +7,7 @@
 	import NftGamesButton from '$lib/component/ui/NFTGamesButton.svelte';
     import { handleScroll } from '$lib/utils/functions';
     import FanIcon from '$lib/component/ui/icons/FanIcon.svelte';
+	import PixelPursuitButton from '$lib/component/ui/PixelPursuitButton.svelte';
 
     export let data: PageData;
     let contractId = data.contractId;
@@ -33,6 +34,7 @@
             {#if token}
                 <NautilusButton contractid={contractId} tokenid={String(token.tokenId)} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14 w-20 md:w-24"/>
                 <HighforgeButton buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14 w-20 md:w-24"/>
+                <PixelPursuitButton contractid={contractId} tokenid={String(token.tokenId)} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 text-black px-2 rounded-md cursor-pointer min-h-14 w-20 md:w-24"/>
             {/if}
             {#if collection?.gameData}
                 <NftGamesButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14 w-20 md:w-24"/>
