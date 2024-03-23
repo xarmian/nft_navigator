@@ -22,10 +22,8 @@ export const load = (async ({ fetch }) => {
 
     const pageMetaTags = {
         title: 'Home',
-        description: 'NFT Navigator Homepage',
         openGraph: {
-          title: 'Home',
-          description: 'NFT Navigator Homepage',
+          title: 'ARC-72 Collections',
         }
       };
 

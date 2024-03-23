@@ -19,7 +19,9 @@ export const load = (async ({ params, fetch }) => {
 
     const pageMetaTags = {
         title: `Analytics | ${collectionName} | NFT Navigator`,
-        description: collection?.highforgeData?.description + ' Market Analytics' ?? 'NFT Token Market Statistics',
+        description: collection?.highforgeData?.description 
+            ? collection.highforgeData.description + ' Market Analytics' 
+            : 'NFT Token Market Statistics',
         imageUrl: collection?.highforgeData?.coverImageURL ?? undefined,
       };
 
