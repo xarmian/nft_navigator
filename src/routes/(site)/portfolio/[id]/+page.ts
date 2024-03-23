@@ -8,7 +8,7 @@ export const load = (async ({ params, fetch }) => {
 	const walletId: string = params.id;
 	const walletIds = walletId.split(',');
 	let walletNFD: null | string = null;
-	let walletAvatar: null | string = null;
+	let walletAvatar: undefined | string = undefined;
 	const tokens: Token[] = [];
 	const approvals: Token[] = [];
 	const collections = await getCollections({ fetch });
@@ -16,8 +16,8 @@ export const load = (async ({ params, fetch }) => {
 	try {
 		const nfd = await getNFD([walletIds[0]], fetch); // nfd is array of objects with key = owner, replacementValue = nfd
 		const nfdObj: any = nfd.find((n: any) => n.key === walletIds[0]);
-		walletNFD = nfdObj?.replacementValue ?? null;
-		walletAvatar = nfdObj?.avatar ?? null;
+		walletNFD = nfdObj?.replacementValue ?? undefined;
+		walletAvatar = nfdObj?.avatar ?? '/blank_avatar_small.png';
 
 		// owned tokens
 		for(const wid of walletIds) {
@@ -65,8 +65,8 @@ export const load = (async ({ params, fetch }) => {
 
 	const pageMetaTags = {
 		title: 'Portfolio: ' + walletId.substring(0, 8) + '...' + walletId.substring(walletId.length - 8),
-		description: 'NFT Navigator Portfolio for ' + walletNFD ?? walletId,
-		imageUrl: walletAvatar ?? '/blank_avatar.png',
+		description: 'NFT Navigator Portfolio: ' + (walletNFD ?? walletId),
+		imageUrl: walletAvatar,
 	};
 
 	return {
