@@ -94,6 +94,7 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
                 tokenId: token.tokenId,
                 owner: token.owner,
                 ownerNFD: null,
+                ownerAvatar: '/blank_avatar.png',
                 metadataURI: token.metadataURI,
                 metadata: metadata,
                 mintRound: token['mint-round'],
