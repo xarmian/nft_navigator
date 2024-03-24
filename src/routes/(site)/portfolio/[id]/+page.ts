@@ -64,7 +64,7 @@ export const load = (async ({ params, fetch }) => {
 	}
 
 	const pageMetaTags = {
-		title: 'Portfolio: ' + walletId.substring(0, 8) + '...' + walletId.substring(walletId.length - 8),
+		title: 'Portfolio - ' + (walletNFD ?? walletId),
 		description: 'NFT Navigator Portfolio: ' + (walletNFD ?? walletId),
 		imageUrl: walletAvatar,
 	};

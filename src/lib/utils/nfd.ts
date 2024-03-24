@@ -78,7 +78,6 @@ export async function getNFD(data: string[], fetchF: typeof fetch = fetch): Prom
         return fetchF(url)
         .then((response: Response) => response.json())
         .then((additionalData: AdditionalData) => {
-            console.log(additionalData);
             Object.entries(additionalData).forEach((val) => {
                 const key = val[0];
                 const value = val[1];

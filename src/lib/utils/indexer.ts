@@ -85,7 +85,7 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
     url += '?' + urlParams.toString();
     
     try {
-        const response = await fetch(url);
+        const response = await params.fetch(url);
         const data: ITokenResponse = await response.json();
         let tokens: Token[] = data.tokens.map((token: IToken) => {
             const metadata: Metadata = JSON.parse(token.metadata?.toString() ?? "{}");
@@ -150,12 +150,12 @@ export const getCollections = async (params: getCollectionsParams): Promise<Coll
     url += '?' + urlParams.toString();
 
     try {
-        const response = await fetch(url);
+        const response = await params.fetch(url);
         const data: ICollectionResponse = await response.json();
         const c = data.collections.filter((c: Collection) => c.firstToken !== null);
 
         const hfurl = 'https://test-voi.api.highforge.io/projects';
-        const hfresponse = await fetch(hfurl);
+        const hfresponse = await params.fetch(hfurl);
         const hfdata = await hfresponse.json();
         const hfprojects = hfdata.results;
     
