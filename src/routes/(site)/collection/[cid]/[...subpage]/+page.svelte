@@ -7,12 +7,10 @@
     import Select from '$lib/component/ui/Select.svelte';
     import SalesTable from '$lib/component/ui/SalesTable.svelte';
     import HoldersList from '$lib/component/ui/HoldersList.svelte';
-    import { page } from '$app/stores';
 	import NautilusButton from '$lib/component/ui/NautilusButton.svelte';
     import HighforgeButton from '$lib/component/ui/HighforgeButton.svelte';
 	import NftGamesButton from '$lib/component/ui/NFTGamesButton.svelte';
     import { handleScroll } from '$lib/utils/functions';
-    import { navigate } from 'svelte-routing';
 	import { goto } from '$app/navigation';
 	import PixelPursuitButton from '$lib/component/ui/PixelPursuitButton.svelte';
 
@@ -29,6 +27,7 @@
     $: filters = data.filters;
     let searchText = '';
     let forSaleCollection = (subpage === 'forsale');
+    let showBurned = false;
 
     $: displayTab = (subpage === 'forsale') ? 'tokens' : subpage;
     $: categories = data.categories;
@@ -36,6 +35,8 @@
     $: { 
         filteredTokens = tokens.filter(token => {
             if (forSaleCollection && (!token.marketData || token.marketData?.sale || token.marketData?.delete)) return false;
+            if (showBurned != token.isBurned) return false;
+
             if (searchText !== ''
                 && !token.metadata.name.toLowerCase().includes(searchText.toLowerCase())
                 && !token.traits?.some(trait => trait.toLowerCase().includes(searchText.toLowerCase()))
@@ -103,9 +104,16 @@
                             <div class="text-sm">Ceiling</div>
                             <div class="text-lg text-blue-300">{data.ceiling}</div>
                         </div>
-                        <div>
+                        <div class="tooltip">
                             <div class="text-sm">Tokens</div>
-                            <div class="text-lg text-blue-300">{collection?.totalSupply}</div>
+                            <div class="text-lg text-blue-300">
+                                {tokens.filter(token => !token.isBurned).length}/{tokens.length}                        
+                            </div>
+                            <div class="tooltiptext flex flex-col space-y-1 w-auto whitespace-nowrap p-2 bg-slate-100 dark:bg-slate-700">
+                                <div>Original Supply: {tokens.length}</div>
+                                <div>Tokens Burned: {tokens.filter(token => token.isBurned).length}</div>
+                                <div>Tokens Remaining: {tokens.filter(token => !token.isBurned).length}</div>
+                            </div>
                         </div>
                         <div>
                             <div class="text-sm">Collectors</div>
@@ -129,7 +137,10 @@
         </div>
         <div class="pt-2 md:pt-4 md:p-4 md:flex flex-col lg:flex-row space-x-1 space-y-1 absolute bottom-0 right-0 hidden place-items-end">
             {#if displayTab == 'tokens'}
+            <div>
                 <Switch label="For Sale" onChange={onForSaleChange} bind:checked={forSaleCollection} sliderStyle="border:1px solid #3c3c3c;" labelStyle="text-shadow: -1px 0 #3c3c3c, 0 1px #3c3c3c, 1px 0 #3c3c3c, 0 -1px #3c3c3c;" ></Switch>
+                <Switch label="Burned" bind:checked={showBurned} sliderStyle="border:1px solid #3c3c3c;" labelStyle="text-shadow: -1px 0 #3c3c3c, 0 1px #3c3c3c, 1px 0 #3c3c3c, 0 -1px #3c3c3c;" ></Switch>
+            </div>
             {/if}
             <Select bind:value={displayTab} options={tabs} onchange={onSubpageChange}></Select>
         </div>
@@ -173,7 +184,10 @@
                         <div class="flex pl-4 justify-center h-10 md:hidden">
                             <input type="text" placeholder="Search" bind:value={searchText} class="border border-gray-300 rounded-lg dark:bg-gray-600 w-40" />
                         </div>
-                        <Switch label="For Sale" bind:checked={forSaleCollection} ></Switch>
+                        <div>
+                            <Switch label="For Sale" bind:checked={forSaleCollection} ></Switch>
+                            <Switch label="Burned" bind:checked={showBurned} ></Switch>
+                        </div>
                     {/if}
                     <Select bind:value={displayTab} options={tabs} onchange={onSubpageChange}></Select>
                 </div>
@@ -227,6 +241,28 @@
     }
     .collection_detail {
         width: 50%;
+    }
+    .tooltip {
+        position: relative;
+        display: inline-block;
+    }
+
+    .tooltip .tooltiptext {
+        visibility: hidden;
+        text-align: center;
+        border-radius: 6px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -60px;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
     }
     @media (max-width: 768px) {
         .mask_dark {

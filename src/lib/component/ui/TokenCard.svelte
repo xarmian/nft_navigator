@@ -73,6 +73,11 @@
                                 <i class="fas fa-medal"></i> {token.rank}
                             </div>
                         {/if}
+                        {#if token.isBurned}
+                            <div class="absolute top-0 right-0 p-1 text-red-500 text-3xl" title='Token Burned'>
+                                <i class="fas fa-fire"></i>
+                            </div>
+                        {/if}
                         {#if listing && !listing.sale && !listing.delete}
                             {#if currency}
                                 <div class="badge top-right"><div>For Sale</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}</div></div>
@@ -149,8 +154,6 @@
 
 .card-container:hover {
     position: relative;
-    height: 330px;
-    width: 290px;
     transform: scale(1.04);
 }
 .card {

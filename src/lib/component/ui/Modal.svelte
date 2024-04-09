@@ -2,6 +2,8 @@
 	export let showModal: boolean; // boolean
 	export let title: string | null = null;
 	export let focusCloseButton: boolean = true;
+    export let showTopCloseButton: boolean = false;
+    export let showBottomCloseButton: boolean = true;
 
 	let dialog: HTMLDialogElement;
 
@@ -16,17 +18,30 @@
 >
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<div on:click|stopPropagation>
-		{#if title}
-			<h2>{title}</h2>
-		{/if}
-		<slot name="header" />
-		<hr />
+        <div class="flex flex-row justify-between">
+            <div class="flex flex-col place-self-center">
+                {#if title}
+                    <h2>{title}</h2>
+                {/if}        
+                <slot name="header" />
+            </div>
+            {#if showTopCloseButton}
+                <div class="flex flex-col">
+                    <button class="close-button !px-3 !py-1 mb-1" on:click={() => dialog.close()}>
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            {/if}
+        </div>
+        <hr />
 		<slot />
-		<hr class="mb-3" />
-		<!-- svelte-ignore a11y-autofocus -->
-		<div class="flex justify-end">
-			<button autofocus={focusCloseButton} class="close-button" on:click={() => dialog.close()}>Close</button>
-		</div>
+        {#if showBottomCloseButton}
+            <hr class="mb-3" />
+            <!-- svelte-ignore a11y-autofocus -->
+            <div class="flex justify-end">
+                <button autofocus={focusCloseButton} class="close-button" on:click={() => dialog.close()}>Close</button>
+            </div>
+        {/if}
 	</div>
 </dialog>
 

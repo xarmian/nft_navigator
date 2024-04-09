@@ -102,8 +102,8 @@
         <button on:click={downloadCSV} class="px-4 py-2 ml-2 bg-green-500 text-white rounded-lg shadow-md hover:bg-green-600 dark:bg-gray-700 dark:hover:bg-gray-600">Download CSV</button>
     </div>
     {#each paginatedHolders as tokens}
-        <div class="flex flex-col space-y-4 justify-center place-items-center bg-slate-200 dark:bg-slate-700 rounded-xl m-2 p-4">
-            <div class="flex flex-row space-x-4">
+        <div class="flex flex-row space-y-4 justify-start bg-slate-200 dark:bg-slate-700 rounded-xl m-2 p-4">
+            <div class="flex flex-row space-x-4 items-start">
                 {#if tokens[0].ownerAvatar}
                     <img src={tokens[0].ownerAvatar} class="h-24 w-24 rounded-full" />
                 {/if}
@@ -117,9 +117,11 @@
                     {tokens[0].ownerNFD ?? ''}
                 </div>
             </div>
-            <div class="flex flex-row space-x-4 flex-wrap justify-center">
+            <div class="flex flex-row space-x-4 flex-wrap justify-start">
                 {#each tokens as token}
+                    <div class="transform scale-75">
                         <TokenCard token={token} />
+                    </div>
                 {/each}
             </div>
         </div>

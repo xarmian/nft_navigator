@@ -13,6 +13,7 @@ export interface Token {
     salesData?: Sale | null | undefined;
     rank: number | null;
 	traits?: string[] | undefined;
+    isBurned: boolean;
 }
 
 export interface Transfer {
@@ -25,6 +26,7 @@ export interface Transfer {
     timestamp: number;
     salePrice: number | null;
     saleCurrency: Currency | null;
+    token?: Token | null;
 }
 
 export interface Collection {
@@ -33,6 +35,7 @@ export interface Collection {
 	firstToken: RawToken;
     contractId: number;
     totalSupply: number;
+    burnedSupply: number;
     mintRound: number;
     tokens: Token[];
     uniqueOwners?: number | undefined;

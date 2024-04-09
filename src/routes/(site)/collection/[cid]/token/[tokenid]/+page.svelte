@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
-    import TokenTransactionHistory from '$lib/component/ui/TokenTransactionHistory.svelte';
+    import TransactionTable from '$lib/component/ui/TransactionTable.svelte';
 	import NautilusButton from '$lib/component/ui/NautilusButton.svelte';
 	import HighforgeButton from '$lib/component/ui/HighforgeButton.svelte';
 	import NftGamesButton from '$lib/component/ui/NFTGamesButton.svelte';
@@ -48,7 +48,7 @@
                 <TokenDetail {token} {collection} />
             {/if}
         </div>
-        <TokenTransactionHistory {token}/>
+        <TransactionTable {token}/>
     {/if}
 </div>
 <style>

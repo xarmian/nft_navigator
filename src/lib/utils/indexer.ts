@@ -1,7 +1,9 @@
-import type { Token, Collection, Metadata, Sale, IHighforgeProject } from '$lib/data/types';
+import type { Transfer, Token, Collection, Metadata, Sale, IHighforgeProject } from '$lib/data/types';
 import { collectionStore, tokenStore } from '../../stores/collection';
 import { get } from 'svelte/store';
 import voiGames from '$lib/data/voiGames.json';
+import { getCurrency } from './currency';
+import { zeroAddress } from '$lib/data/constants';
 
 
 const indexerBaseURL = "https://arc72-idx.nftnavigator.xyz/nft-indexer/v1";
@@ -21,9 +23,20 @@ interface IToken {
     tokenId: number;
     owner: string;
     metadataURI: string;
-    metadata: object;
+    metadata: string;
     "mint-round": number;
     approved: string;
+}
+
+interface ITransfer {
+    transactionId: string;
+    contractId: number;
+    tokenId: number;
+    fromAddr: string;
+    toAddr: string;
+    round: number;
+    timestamp: number;
+    token?: IToken;
 }
 
 interface FetchFunction {
@@ -103,6 +116,7 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
                 salesData: null,
                 rank: null,
                 traits: Object.entries(metadata.properties).map(([key, value]) => key + ': ' + value),
+                isBurned: (token.owner === zeroAddress && token.approved === zeroAddress),
             };
         });
         if (params.contractId) {
@@ -186,17 +200,79 @@ export const getCollections = async (params: getCollectionsParams): Promise<Coll
     }
 }
 
-export const getSales = async (contractId: number | null = null, sortBy: string, limit: number | null = null, fetch: FetchFunction): Promise<Sale[]> => {
-    let url = `${indexerBaseURL}/mp/sales?`;
-    if (contractId) {
-        url += `contractId=${contractId}`;
+export const getTransfers = async (params: { contractId?: string | undefined, tokenId?: string | undefined, user?: string | undefined, fetch: FetchFunction }): Promise<Transfer[]> => {
+    const { contractId, tokenId, user } = params;
+
+    if ((contractId && !tokenId) || (!contractId && tokenId)) {
+        throw new Error('Both contractId and tokenId must be provided');
     }
-    if (limit) {
-        url += `&limit=${limit}`;
+
+    if (!contractId && !tokenId && !user) {
+        throw new Error('At least one of contractId and tokenId, or owner must be provided');
+    }
+
+    let url = `${indexerBaseURL}/transfers?includes=token`;
+
+    if (contractId && tokenId) {
+        url += `&contractId=${contractId}&tokenId=${tokenId}`;
+    } else if (user) {
+        url += `&user=${user}`;
+    }
+
+    try {
+        const data = await fetch(url).then((response) => response.json());
+
+        // reverse sort by timestamp
+        return data.transfers.map((transfer: ITransfer) => {
+            return {
+                transactionId: transfer.transactionId,
+                contractId: transfer.contractId,
+                tokenId: transfer.tokenId,
+                from: transfer.fromAddr,
+                to: transfer.toAddr,
+                round: transfer.round,
+                timestamp: transfer.timestamp,
+                token: transfer.token ? {
+                    contractId: transfer.token.contractId,
+                    tokenId: transfer.token.tokenId,
+                    owner: transfer.token.owner,
+                    metadataURI: transfer.token.metadataURI,
+                    metadata: JSON.parse(transfer.token.metadata),
+                    mintRound: transfer.token['mint-round'],
+                    approved: transfer.token.approved,
+                    marketData: null,
+                    salesData: null,
+                    rank: null,
+                } : null,
+            };
+        }).sort((a: Transfer, b: Transfer) => b.timestamp - a.timestamp);
+    } catch (err) {
+        console.error(err);
+        return [];
+    }
+}
+
+export const getSales = async (params: { contractId?: string, tokenId?: string, user?: string, sortBy?: string, limit?: number, fetch: FetchFunction }): Promise<Sale[]> => {
+    const { contractId, tokenId, user, sortBy, limit } = params;
+    let url = `${indexerBaseURL}/mp/sales`;
+    const paramsArray = [];
+    if (contractId) {
+        paramsArray.push(['contractId', contractId]);
+    }
+    if (tokenId) {
+        paramsArray.push(['tokenId', tokenId]);
+    }
+    if (user) {
+        paramsArray.push(['buyer', user]);
     }
     if (sortBy) {
-        url += '&sort=' + sortBy;
+        paramsArray.push(['sort', sortBy]);
     }
+    if (limit) {
+        paramsArray.push(['limit', limit.toString()]);
+    }
+    const urlParams = new URLSearchParams(paramsArray);
+    url += '?' + urlParams.toString();
     try {
         const response = await fetch(url);
         const data = await response.json();
@@ -206,6 +282,19 @@ export const getSales = async (contractId: number | null = null, sortBy: string,
         return [];
     }
 };
+
+export const getSalesAndTransfers = async (params: { contractId?: string | undefined, tokenId?: string | undefined, user?: string | undefined, sortBy?: string, limit?: number, fetch: FetchFunction }): Promise<Transfer[]> => {
+    const transfers = await getTransfers(params);
+    const sales = await getSales(params);
+    for (const t of transfers) {
+        const sale = sales.find((s: Sale) => s.transactionId === t.transactionId);
+        if (sale) {
+            t.salePrice = sale.price;
+            t.saleCurrency = await getCurrency(sale.currency);
+        }
+    }
+    return transfers;
+}
 
 export async function populateTokenRanking(contractId: number, tokens: Token[], fetch: FetchFunction): Promise<Token[]> {
     // if we have more than one token, use the calculateRarityScore function to get the rarity score for each token

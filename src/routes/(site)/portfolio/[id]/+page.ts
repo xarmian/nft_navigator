@@ -36,6 +36,7 @@ export const load = (async ({ params, fetch }) => {
 					marketData: undefined,
 					salesData: undefined,
 					rank: null,
+					isBurned: token.isBurned,
 				});
 			});
 
@@ -54,7 +55,8 @@ export const load = (async ({ params, fetch }) => {
 					approved: token.approved,
 					marketData: undefined,
 					salesData: undefined,
-					rank: null
+					rank: null,
+					isBurned: token.isBurned,
 				});
 			});
 		}

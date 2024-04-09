@@ -6,7 +6,7 @@ import { getCollections, getSales } from '$lib/utils/indexer';
 export const load = (async ({ fetch }) => {
     let collections: Collection[] = await getCollections({ fetch, includes: 'unique-owners', contractId: undefined });
 
-    const sales = await getSales(null,'-round',200,fetch);
+    const sales = await getSales({ contractId: undefined, sortBy: '-round', limit: 200, fetch: fetch });
     const popularity = sales.reduce((acc: any, sale: any) => {
         if (acc[sale.collectionId]) {
             acc[sale.collectionId]++;

@@ -13,6 +13,7 @@
     import Device from 'svelte-device-info';
     import { getWalletBalance, getCurrency } from '$lib/utils/currency';
 	import { collectionSort } from '../../../../stores/collection';
+	import TransactionTable from '$lib/component/ui/TransactionTable.svelte';
 
     export let data: PageData;
     $: walletId = data.props.walletId;
@@ -174,7 +175,7 @@
                 <div class="inline">Transactions</div>
             </div>
             <div class="m-4">
-                Coming soon...
+                <TransactionTable owner={walletId} />
             </div>
         </TabItem>
     </Tabs>

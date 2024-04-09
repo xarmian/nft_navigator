@@ -5,12 +5,12 @@
 	import { getNFD } from '$lib/utils/nfd';
 	import Modal from './Modal.svelte';
     import Switch from './Switch.svelte';
-	import { getCurrency } from '$lib/utils/currency';
-    import { getSales, getSalesAndTransfers, getTransfers } from '$lib/utils/indexer';
+    import { getSalesAndTransfers } from '$lib/utils/indexer';
+    import { zeroAddress } from '$lib/data/constants';
 
-    export let token: Token;
-    let tokenId = token.tokenId;
-    let contractId = token.contractId;
+    export let token: Token | undefined = undefined;
+    export let owner: string | undefined = undefined;
+
     let transfers: Transfer[] = [];
     let filteredTransfers: Transfer[] = [];
     let paginatedTransfers: Transfer[] = [];
@@ -20,8 +20,6 @@
     let showOnlySales = false;
     let searchFrom = '';
     let searchTo = '';
-
-    let zeroAddress = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
 
     let currentPage = 1;
     const transactionsPerPage = 10;
@@ -59,7 +57,10 @@
     }
 
     onMount(async () => {
-        transfers = await getSalesAndTransfers({ contractId: String(contractId), tokenId: String(tokenId), fetch: fetch });
+        let tokenId: string | undefined = token?.tokenId ? String(token.tokenId) : undefined;
+        let contractId: string | undefined = token?.contractId ? String(token.contractId) : undefined;
+
+        transfers = await getSalesAndTransfers({ contractId, tokenId, user: owner, fetch: fetch });
 
         // get NFDs
         let addresses = new Set();
@@ -85,8 +86,9 @@
                 <thead>
                     <tr class="text-xs font-semibold tracking-wide text-left text-gray-500 dark:text-gray-100 uppercase border-b bg-gray-50 dark:bg-gray-700">
                         <th class="px-4 py-3 align-top">Date</th>
-                        <th class="px-4 py-3 align-top hidden md:block">Transaction ID</th>
-                        <th class="px-4 py-3 align-top hidden md:block">Round</th>
+                        <th class="px-4 py-3 align-top">Token</th>
+                        <!--<th class="px-4 py-3 align-top hidden md:block">Transaction ID</th>
+                        <th class="px-4 py-3 align-top hidden md:block">Round</th>-->
                         <th class="px-4 py-3 align-top">
                             <div>From</div>
                             <input type="text" placeholder="Search" class="w-full border border-gray-200 rounded-lg p-1" bind:value={searchFrom} />
@@ -102,7 +104,7 @@
                         <th></th>
                     </tr>
                 </thead>
-                <tbody class="bg-white dark:bg-gray-700 divide-y">
+                <tbody class="bg-white dark:bg-gray-700 divide-y text-left">
                     {#each paginatedTransfers as transfer (transfer.transactionId)}
                         {#if transfers.length === 0}
                             <tr class="text-gray-700 dark:text-gray-100">
@@ -111,8 +113,18 @@
                         {/if}
                         <tr class="text-gray-700 dark:text-gray-100">
                             <td class="px-4 py-3">{new Date(transfer.timestamp * 1000).toLocaleString()}</td>
-                            <td class="px-4 py-3 hidden md:block"><A href="https://voi.observer/explorer/transaction/{transfer.transactionId}" target="_blank">{transfer.transactionId.substring(0,15)}...</A></td>
-                            <td class="px-4 py-3 hidden md:block"><A href="https://voi.observer/explorer/block/{transfer.round.toString()}" target="_blank">{transfer.round}</A></td>
+                            <td class="px-4 py-3">
+                                {#if transfer.token}
+                                    <a href="/collection/{transfer.contractId}/token/{transfer.tokenId}">
+                                        <img src={transfer.token.metadata.image} class="w-8 h-8 rounded-full mr-2" />
+                                    </a>
+                                    <div class="text-xs">{transfer.token.metadata.name}</div>
+                                {:else}
+                                    {transfer.tokenId}
+                                {/if}
+                            </td>
+                            <!--<td class="px-4 py-3 hidden md:block"><A href="https://voi.observer/explorer/transaction/{transfer.transactionId}" target="_blank">{transfer.transactionId.substring(0,15)}...</A></td>
+                            <td class="px-4 py-3 hidden md:block"><A href="https://voi.observer/explorer/block/{transfer.round.toString()}" target="_blank">{transfer.round}</A></td>-->
                             <td class="px-4 py-3">
                                 {#if transfer.from == zeroAddress}
                                     <span class="text-center w-full text-sm bg-yellow-200 rounded-lg text-yellow-400 font-bold p-1 pl-2 pr-2">Minted</span>

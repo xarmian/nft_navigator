@@ -6,5 +6,8 @@ export default defineConfig({
 	define: { global: "globalThis", },
 	ssr: {
 		noExternal: ['three']
-	}
+	},
+	/* optimizeDeps: {
+		include: ['avm-wallet-svelte']
+	},*/
 });
