@@ -23,10 +23,12 @@
     async function updateTokens(tokens: Token[]) {
         holders = {};
         tokens.forEach(token => {
-            if (holders[token.owner]) {
-                holders[token.owner].push(token);
-            } else {
-                holders[token.owner] = [token];
+            if (!token.isBurned) {
+                if (holders[token.owner]) {
+                    holders[token.owner].push(token);
+                } else {
+                    holders[token.owner] = [token];
+                }
             }
         });
 

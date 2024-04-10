@@ -27,7 +27,6 @@
     $: filters = data.filters;
     let searchText = '';
     let forSaleCollection = (subpage === 'forsale');
-    let showBurned = false;
 
     $: displayTab = (subpage === 'forsale') ? 'tokens' : subpage;
     $: categories = data.categories;
@@ -35,7 +34,7 @@
     $: { 
         filteredTokens = tokens.filter(token => {
             if (forSaleCollection && (!token.marketData || token.marketData?.sale || token.marketData?.delete)) return false;
-            if (showBurned != (token.isBurned??false)) return false;
+            if ((displayTab === 'burned') != (token.isBurned??false)) return false;
 
             if (searchText !== ''
                 && !token.metadata.name.toLowerCase().includes(searchText.toLowerCase())
@@ -77,6 +76,7 @@
         {id: 'tokens', name: 'Tokens'}, 
         {id: 'transactions', name: 'Transactions'},
         {id: 'collectors', name: 'Collectors'}, 
+        {id: 'burned', name: 'Burned Tokens'},
     ];
 
     let inputElement: HTMLInputElement;
@@ -139,7 +139,6 @@
             {#if displayTab == 'tokens'}
             <div>
                 <Switch label="For Sale" onChange={onForSaleChange} bind:checked={forSaleCollection} sliderStyle="border:1px solid #3c3c3c;" labelStyle="text-shadow: -1px 0 #3c3c3c, 0 1px #3c3c3c, 1px 0 #3c3c3c, 0 -1px #3c3c3c;" ></Switch>
-                <Switch label="Burned" bind:checked={showBurned} sliderStyle="border:1px solid #3c3c3c;" labelStyle="text-shadow: -1px 0 #3c3c3c, 0 1px #3c3c3c, 1px 0 #3c3c3c, 0 -1px #3c3c3c;" ></Switch>
             </div>
             {/if}
             <Select bind:value={displayTab} options={tabs} onchange={onSubpageChange}></Select>
@@ -147,7 +146,7 @@
     </div>
 </div>
 <div class="flex pb-16">
-    {#if displayTab == 'tokens'}
+    {#if displayTab == 'tokens' || displayTab == 'burned'}
         <div class="p-4 hidden md:block">
             <div class="relative self-start">
                 <input type="text" placeholder="Search" bind:value={searchText} bind:this={inputElement} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600 w-full pr-10"/>
@@ -186,7 +185,6 @@
                         </div>
                         <div>
                             <Switch label="For Sale" bind:checked={forSaleCollection} ></Switch>
-                            <Switch label="Burned" bind:checked={showBurned} ></Switch>
                         </div>
                     {/if}
                     <Select bind:value={displayTab} options={tabs} onchange={onSubpageChange}></Select>
