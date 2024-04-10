@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageData } from '../$types';
-    import type { Token } from '$lib/data/types';
+    import type { Token, Collection } from '$lib/data/types';
 	import TokenCard from '$lib/component/ui/TokenCard.svelte';
 	import Switch from '$lib/component/ui/Switch.svelte';
     import { inview } from 'svelte-inview';
@@ -21,7 +21,7 @@
     let subpage = data.subpage;
     $: tokens = data.tokens as Token[];
     let collectionName = data.collectionName;
-    $: collection = data.collection;
+    $: collection = data.collection as Collection;
     let filteredTokens = [] as Token[];
     let displayCount = 10;
     $: filters = data.filters;
@@ -35,7 +35,7 @@
     $: { 
         filteredTokens = tokens.filter(token => {
             if (forSaleCollection && (!token.marketData || token.marketData?.sale || token.marketData?.delete)) return false;
-            if (showBurned != token.isBurned) return false;
+            if (showBurned != (token.isBurned??false)) return false;
 
             if (searchText !== ''
                 && !token.metadata.name.toLowerCase().includes(searchText.toLowerCase())
@@ -107,12 +107,12 @@
                         <div class="tooltip">
                             <div class="text-sm">Tokens</div>
                             <div class="text-lg text-blue-300">
-                                {tokens.filter(token => !token.isBurned).length}/{tokens.length}                        
+                                {collection.burnedSupply != null ? (collection.totalSupply - collection.burnedSupply) : '-'}/{collection.totalSupply}                        
                             </div>
                             <div class="tooltiptext flex flex-col space-y-1 w-auto whitespace-nowrap p-2 bg-slate-100 dark:bg-slate-700">
-                                <div>Original Supply: {tokens.length}</div>
-                                <div>Tokens Burned: {tokens.filter(token => token.isBurned).length}</div>
-                                <div>Tokens Remaining: {tokens.filter(token => !token.isBurned).length}</div>
+                                <div>Original Supply: {collection.totalSupply}</div>
+                                <div>Tokens Burned: {collection.burnedSupply}</div>
+                                <div>Tokens Remaining: {collection.totalSupply - collection.burnedSupply}</div>
                             </div>
                         </div>
                         <div>

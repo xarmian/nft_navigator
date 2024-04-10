@@ -51,6 +51,7 @@ export interface RawToken {
     metadata: string;
     metadataURI: string;
     approved: string;
+    isBurned: boolean;
 }
 
 export interface Metadata {

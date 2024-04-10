@@ -3,8 +3,6 @@ import { collectionStore, tokenStore } from '../../stores/collection';
 import { get } from 'svelte/store';
 import voiGames from '$lib/data/voiGames.json';
 import { getCurrency } from './currency';
-import { zeroAddress } from '$lib/data/constants';
-
 
 const indexerBaseURL = "https://arc72-idx.nftnavigator.xyz/nft-indexer/v1";
 
@@ -26,6 +24,7 @@ interface IToken {
     metadata: string;
     "mint-round": number;
     approved: string;
+    isBurned: boolean;
 }
 
 interface ITransfer {
@@ -116,7 +115,7 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
                 salesData: null,
                 rank: null,
                 traits: Object.entries(metadata.properties).map(([key, value]) => key + ': ' + value),
-                isBurned: (token.owner === zeroAddress && token.approved === zeroAddress),
+                isBurned: token.isBurned,
             };
         });
         if (params.contractId) {

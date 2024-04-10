@@ -120,7 +120,13 @@
                                     <A href='/portfolio/{transfer.from}'>{nfdMap[transfer.from] ? nfdMap[transfer.from] : formatAddr(transfer.from)}</A>
                                 {/if}
                             </td>
-                            <td class="px-4 py-3"><A href='/portfolio/{transfer.to}'>{nfdMap[transfer.to] ? nfdMap[transfer.to] : formatAddr(transfer.to)}</A></td>
+                            <td class="px-4 py-3">
+                                {#if transfer.to == zeroAddress}
+                                    <span class="text-center w-full text-sm bg-yellow-200 rounded-lg text-yellow-400 font-bold p-1 pl-2 pr-2">Burned</span>
+                                {:else}
+                                    <A href='/portfolio/{transfer.to}'>{nfdMap[transfer.to] ? nfdMap[transfer.to] : formatAddr(transfer.to)}</A>
+                                {/if}
+                            </td>
                             <td class="px-4 py-3">
                                 {#if transfer.salePrice}
                                     {transfer.salePrice / Math.pow(10,transfer.saleCurrency?.decimals??0)} {transfer.saleCurrency?.unitName??''}
