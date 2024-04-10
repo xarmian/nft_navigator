@@ -107,7 +107,7 @@
                         <div class="tooltip">
                             <div class="text-sm">Tokens</div>
                             <div class="text-lg text-blue-300">
-                                {collection.burnedSupply != null ? (collection.totalSupply - collection.burnedSupply) : '-'}/{collection.totalSupply}                        
+                                {collection.burnedSupply != null ? (collection.totalSupply - collection.burnedSupply) : '-'}
                             </div>
                             <div class="tooltiptext flex flex-col space-y-1 w-auto whitespace-nowrap p-2 bg-slate-100 dark:bg-slate-700">
                                 <div>Original Supply: {collection.totalSupply}</div>
@@ -250,7 +250,7 @@
         text-align: center;
         border-radius: 6px;
         position: absolute;
-        z-index: 1;
+        z-index: 100;
         bottom: 125%;
         left: 50%;
         margin-left: -60px;

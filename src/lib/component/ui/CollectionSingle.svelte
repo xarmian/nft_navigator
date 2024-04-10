@@ -34,7 +34,7 @@
         {
             "icon": "fas fa-cubes",
             "name": "Tokens",
-            "value": collection.totalSupply-collection.burnedSupply + ' / ' + collection.totalSupply
+            "value": collection.totalSupply-collection.burnedSupply,
         },
         {
             "icon": "fas fa-user",
