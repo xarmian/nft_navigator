@@ -109,7 +109,7 @@
                             <div class="text-lg text-blue-300">
                                 {collection.burnedSupply != null ? (collection.totalSupply - collection.burnedSupply) : '-'}
                             </div>
-                            <div class="tooltiptext flex flex-col space-y-1 w-auto whitespace-nowrap p-2 bg-slate-100 dark:bg-slate-700">
+                            <div class="tooltiptext flex flex-col space-y-1 w-auto whitespace-nowrap p-2 bg-slate-700">
                                 <div>Original Supply: {collection.totalSupply}</div>
                                 <div>Tokens Burned: {collection.burnedSupply}</div>
                                 <div>Tokens Remaining: {collection.totalSupply - collection.burnedSupply}</div>
