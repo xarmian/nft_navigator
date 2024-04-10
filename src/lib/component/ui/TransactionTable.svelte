@@ -20,6 +20,8 @@
     let showOnlySales = false;
     let searchFrom = '';
     let searchTo = '';
+    let tokenList: Token[] = [];
+    let filterToken: Token | undefined = undefined;
 
     let currentPage = 1;
     const transactionsPerPage = 10;
@@ -30,6 +32,11 @@
                 (searchTo.length > 0 ? t.to.toLowerCase().includes(searchTo.toLowerCase()) : true) &&
                 (!showOnlySales ? true : t.salePrice);
         });
+
+        if (filterToken) {
+            filteredTransfers = filteredTransfers.filter(t => t.token?.contractId === (filterToken?.contractId ?? '') && t.token?.tokenId === (filterToken?.tokenId ?? ''));
+        }
+
         const start = (currentPage - 1) * transactionsPerPage;
         const end = start + transactionsPerPage;
         paginatedTransfers = filteredTransfers.slice(start, end);
@@ -62,6 +69,11 @@
 
         transfers = await getSalesAndTransfers({ contractId, tokenId, user: owner, fetch: fetch });
 
+        tokenList = Array.from(new Set(transfers
+            .map(t => t.token)
+            .filter((t: Token | null | undefined): t is Token => t !== null && t !== undefined)));
+        tokenList = tokenList.filter((t, i) => i === tokenList.findIndex(tt => tt.contractId === t.contractId && tt.tokenId === t.tokenId));
+
         // get NFDs
         let addresses = new Set();
         transfers.forEach(t => {
@@ -86,16 +98,22 @@
                 <thead>
                     <tr class="text-xs font-semibold tracking-wide text-left text-gray-500 dark:text-gray-100 uppercase border-b bg-gray-50 dark:bg-gray-700">
                         <th class="px-4 py-3 align-top">Date</th>
-                        <th class="px-4 py-3 align-top">Token</th>
-                        <!--<th class="px-4 py-3 align-top hidden md:block">Transaction ID</th>
-                        <th class="px-4 py-3 align-top hidden md:block">Round</th>-->
+                        <th class="px-4 py-3 align-top">
+                            <div>Token</div>
+                            <select class="w-full border border-gray-200 rounded-lg p-1 dark:text-black" bind:value={filterToken}>
+                                <option value=''>All</option>
+                                {#each tokenList as token (token)}
+                                    <option value={token}>{token.metadata ? token.metadata.name : token.contractId + '-' + token.tokenId}</option>
+                                {/each}
+                            </select>
+                        </th>
                         <th class="px-4 py-3 align-top">
                             <div>From</div>
-                            <input type="text" placeholder="Search" class="w-full border border-gray-200 rounded-lg p-1" bind:value={searchFrom} />
+                            <input type="text" placeholder="Search" class="w-full border border-gray-200 rounded-lg p-1 dark:text-black" bind:value={searchFrom} />
                         </th>
                         <th class="px-4 py-3 align-top">
                             <div>To</div>
-                            <input type="text" placeholder="Search" class="w-full border border-gray-200 rounded-lg p-1" bind:value={searchTo} />
+                            <input type="text" placeholder="Search" class="w-full border border-gray-200 rounded-lg p-1 dark:text-black" bind:value={searchTo} />
                         </th>
                         <th class="px-4 py-3 align-top">
                             <div>Sale Price</div>
@@ -123,8 +141,6 @@
                                     {transfer.tokenId}
                                 {/if}
                             </td>
-                            <!--<td class="px-4 py-3 hidden md:block"><A href="https://voi.observer/explorer/transaction/{transfer.transactionId}" target="_blank">{transfer.transactionId.substring(0,15)}...</A></td>
-                            <td class="px-4 py-3 hidden md:block"><A href="https://voi.observer/explorer/block/{transfer.round.toString()}" target="_blank">{transfer.round}</A></td>-->
                             <td class="px-4 py-3">
                                 {#if transfer.from == zeroAddress}
                                     <span class="text-center w-full text-sm bg-yellow-200 rounded-lg text-yellow-400 font-bold p-1 pl-2 pr-2">Minted</span>
