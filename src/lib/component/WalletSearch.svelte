@@ -17,6 +17,7 @@
 	import { toast } from '@zerodevx/svelte-toast';
 	import { onMount, onDestroy } from 'svelte';
     import { SearchOutline } from 'flowbite-svelte-icons';
+	import { connectedWallets, selectedWallet } from 'avm-wallet-svelte';
 
 	let searchText = '';
 	/**
@@ -66,7 +67,11 @@
         else {
             addressList = [];
         }
-	}
+
+        if (searchText.length == 58) {
+            handleSubmit();
+        }
+    }
 
 	// Function to handle address selection or submit
 	function handleSubmit(addr?: string) {
@@ -88,6 +93,10 @@
             return;
         }
 
+        if (searchText.length == 0 && addr) {
+            searchText = addr;
+        }
+
         onSubmit(addr??searchText);
         addressList = [];
 	}
@@ -97,6 +106,25 @@
             addressList = [];
         }
         else {
+            handleInput();
+        }
+    }
+
+    function handleClick() {
+        if (document.activeElement !== inputElement) return;
+        if (searchText.length == 0) {
+            addressList = $connectedWallets.map((wallet) => wallet.address);
+
+            // remove $selectedWallet.address from addressList
+            /*if ($selectedWallet) {
+                const index = addressList.indexOf($selectedWallet.address);
+                if (index > -1) {
+                    addressList.splice(index, 1);
+                }
+            }*/
+        }
+        else {
+            selectedAddressIndex = -1;
             handleInput();
         }
     }
@@ -142,18 +170,23 @@
 </script>
 
 <div class="mx-auto sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl relative" bind:this={componentElement}>
-    <div
-        class="dark:bg-gray-800 bg-white flex"
-    >
+    <div class="dark:bg-gray-800 bg-white flex relative">
         <input bind:this={inputElement}
             type="text"
             use:init
             bind:value={searchText}
             on:input={(event) => handleInput()}
             on:change={(event) => onChange(searchText)}
-            class="dark:bg-gray-700 bg-gray-100 flex-grow dark:text-white text-gray-900 p-2 w-full md:w-96 lg:w-96 xl:w-96"
+            on:click={(event) => handleClick()}
+            class="dark:bg-gray-700 bg-gray-100 flex-grow dark:text-white text-gray-900 p-2 w-full md:w-96 lg:w-96 xl:w-96 pr-9"
             placeholder="Select wallet by Address or NFD"
         />
+        <button on:click={() => { searchText = ''; addressList = []; }} class="absolute right-0 top-0 p-2">
+            <span class="rounded-full bg-gray-300 dark:bg-gray-600 w-6 h-6 flex items-center justify-center">
+                X
+            </span>
+        </button>
+
         {#if showSubmitButton}
             <button on:click={() => handleSubmit(undefined)} class="dark:bg-blue-500 bg-blue-300 p-2">
                 <div class="hidden md:block">Submit</div>

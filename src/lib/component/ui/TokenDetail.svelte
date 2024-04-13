@@ -13,11 +13,14 @@
     let formattedOwner = '';
     let royaltyPercentage = 0;
     let isTokenOwner = false;
+    let isTokenApproved = false;
     $: showSendTokenModal = false;
+    $: sendTokenModalType = 'send';
 
     const unsub = selectedWallet.subscribe((value) => {
-        if (value?.address && token.owner === value.address) {
-            isTokenOwner = true;
+        if (value?.address) {
+            isTokenOwner = token.owner === value.address ? true : false;
+            isTokenApproved = token.approved === value.address ? true : false;
         }
     });
 
@@ -78,25 +81,30 @@
         return [softBgColors[index], softFgColors[index]];
     }
 
-    let formattedApproved = token.approved ? token.approved.length > 8
+    $: formattedApproved = token.approved ? token.approved.length > 8
         ? `${token.approved.slice(0, 8)}...${token.approved.slice(-8)}`
         : token.approved : '';
         
     const collectionName = collection?.highforgeData?.title ?? token?.metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
 
     function sendToken() {
+        if (isTokenOwner || isTokenApproved) {
+            sendTokenModalType = 'send';
+            showSendTokenModal = true;
+        }
+    }
+
+    function approveToken() {
         if (isTokenOwner) {
+            sendTokenModalType = 'approve';
             showSendTokenModal = true;
         }
     }
 
     async function sendTokenModalClose(didSend: boolean, addr: string | undefined) {
-        // reload token data
-        //console.log(token);
-        //const t = await getTokens({contractId: token.contractId, tokenId: token.tokenId, invalidate: true});
-        //isTokenOwner = ($selectedWallet?.address && t[0].owner === $selectedWallet?.address) ? true : false;
-        isTokenOwner = !didSend;
-        if (addr) token.owner = addr;
+        if (didSend) {
+            location.reload();
+        }
     }
 </script>
 <div class="shadow-md p-3 rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative">
@@ -139,12 +147,18 @@
                     {/if}
                 </div>
             </div>
-            {#if isTokenOwner}
-                <div class="m-1 justify-self-end">
-                    <button on:click={sendToken} class="flex flex-row flex-nowrap items-center px-4 py-2 bg-blue-500 text-white rounded shadow hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 transition duration-150 ease-in-out w-24">
+            {#if isTokenOwner || isTokenApproved}
+                <div class="m-1 justify-self-end space-y-2 min-w-48">
+                    <button on:click={sendToken} class="flex flex-row items-center px-4 py-2 bg-blue-500 text-white rounded shadow hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 transition duration-150 ease-in-out w-full">
                         <i class="fas fa-paper-plane mr-2"></i>
                         Send Token
                     </button>
+                    {#if isTokenOwner}
+                        <button on:click={approveToken} class="flex flex-row items-center px-4 py-2 bg-blue-500 text-white rounded shadow hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 transition duration-150 ease-in-out w-full">
+                            <i class="fas fa-coins mr-2"></i>
+                            Change Approval
+                        </button>
+                    {/if}
                 </div>
             {/if}
         </div>
@@ -157,7 +171,7 @@
         {/each}
     </div>
 </div>
-<SendTokenModal bind:showModal={showSendTokenModal} token={token} fromAddr={$selectedWallet?.address??''} onClose={sendTokenModalClose} />
+<SendTokenModal bind:showModal={showSendTokenModal} bind:type={sendTokenModalType} token={token} fromAddr={$selectedWallet?.address??''} onClose={sendTokenModalClose} />
 <style>
     a {
         color: #6c63ff;
