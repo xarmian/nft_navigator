@@ -5,6 +5,7 @@
 	import { onMount } from 'svelte';
 	import { getCurrency } from '$lib/utils/currency';
 	import { getTokens, populateTokenRanking } from '$lib/utils/indexer';
+	import { selectedWallet } from 'avm-wallet-svelte';
 
     export let token: Token | null = null;
     export let listing: Listing | null = null;
@@ -76,6 +77,11 @@
                         {#if token.isBurned}
                             <div class="absolute top-0 right-0 p-1 text-red-500 text-3xl" title='Token Burned'>
                                 <i class="fas fa-fire"></i>
+                            </div>
+                        {/if}
+                        {#if token.owner == $selectedWallet?.address}
+                            <div class="absolute top-0 left-0 p-1 text-green-500 text-3xl" title='Owned by You'>
+                                <i class="fas fa-user"></i>
                             </div>
                         {/if}
                         {#if listing && !listing.sale && !listing.delete}
