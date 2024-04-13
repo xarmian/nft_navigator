@@ -99,7 +99,7 @@
         if (addr) token.owner = addr;
     }
 </script>
-<div class="shadow-2xl p-3 rounded-xl bg-opacity-10 bg-black dark:bg-white dark:bg-opacity-10 my-2 relative">
+<div class="shadow-md p-3 rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative">
     <div class="flex flex-col md:flex-row items-center md:items-start">
         <img src={token.metadata.image} class="max-w-72 object-contain mr-3 rounded-xl"/>
         <div class="flex justify-between w-full">
