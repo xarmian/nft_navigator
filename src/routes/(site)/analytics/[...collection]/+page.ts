@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Collection } from '$lib/data/types';
 import { getCollections } from '$lib/utils/indexer';
-import type { PageLoad } from './$types';
+import type { LayoutServerLoad } from '../../../$types';
 
 export const load = (async ({ params, fetch }) => {
     const collectionId = Number(params.collection?.split('/')?.[1])??null;
@@ -31,4 +31,4 @@ export const load = (async ({ params, fetch }) => {
         collection,
         collectionOptions,
 	};
-}) satisfies PageLoad;
+}) satisfies LayoutServerLoad;

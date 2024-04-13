@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { PageLoad } from './$types';
 import type { Collection } from '$lib/data/types';
 import { getCollections, getSales } from '$lib/utils/indexer';
+import type { LayoutServerLoad } from '../$types';
 
 export const load = (async ({ fetch }) => {
     let collections: Collection[] = await getCollections({ fetch, includes: 'unique-owners', contractId: undefined });
@@ -31,4 +31,4 @@ export const load = (async ({ fetch }) => {
 		collections,
         pageMetaTags,
 	};
-}) satisfies PageLoad;
+}) satisfies LayoutServerLoad;

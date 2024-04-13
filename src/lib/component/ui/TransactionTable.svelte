@@ -1,4 +1,6 @@
 <script lang="ts">
+  import TokenIcon from './TokenIcon.svelte';
+
     import { onMount } from 'svelte';
     import { A } from 'flowbite-svelte';
     import type { Token, Transfer, Sale } from '$lib/data/types';
@@ -72,7 +74,7 @@
         tokenList = Array.from(new Set(transfers
             .map(t => t.token)
             .filter((t: Token | null | undefined): t is Token => t !== null && t !== undefined)));
-        tokenList = tokenList.filter((t, i) => i === tokenList.findIndex(tt => tt.contractId === t.contractId && tt.tokenId === t.tokenId));
+        tokenList = tokenList.filter((t, i) => i === tokenList.findIndex(tt => tt.contractId === t.contractId && tt.tokenId === t.tokenId)).sort((a, b) => a.metadata.name.localeCompare(b.metadata.name));
 
         // get NFDs
         let addresses = new Set();
@@ -91,7 +93,7 @@
     });
 
 </script>
-<div class="flex flex-col md:flex-row">
+<div class="flex flex-col md:flex-row shadow-2xl rounded-xl bg-opacity-0 bg-black dark:bg-white dark:bg-opacity-10 my-2">
     <div class="w-full overflow-hidden rounded-lg shadow-xs">
         <div class="w-full overflow-x-auto">
             <table class="w-full whitespace-no-wrap">
@@ -133,9 +135,7 @@
                             <td class="px-4 py-3">{new Date(transfer.timestamp * 1000).toLocaleString()}</td>
                             <td class="px-4 py-3">
                                 {#if transfer.token}
-                                    <a href="/collection/{transfer.contractId}/token/{transfer.tokenId}">
-                                        <img src={transfer.token.metadata.image} class="w-8 h-8 rounded-full mr-2" />
-                                    </a>
+                                    <TokenIcon token={transfer.token}></TokenIcon>
                                     <div class="text-xs">{transfer.token.metadata.name}</div>
                                 {:else}
                                     {transfer.tokenId}

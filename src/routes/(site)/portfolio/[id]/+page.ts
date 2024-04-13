@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { PageLoad } from './$types';
 import { getNFD } from '$lib/utils/nfd';
 import type { Token } from '$lib/data/types';
 import { getCollections } from '$lib/utils/indexer';
+import type { LayoutServerLoad } from '../../../$types';
 
 export const load = (async ({ params, fetch }) => {
-	const walletId: string = params.id;
+	const walletId: string = params.id??'';
 	const walletIds = walletId.split(',');
 	let walletNFD: null | string = null;
 	let walletAvatar: undefined | string = undefined;
@@ -82,4 +82,4 @@ export const load = (async ({ params, fetch }) => {
 		},
 		pageMetaTags,
 	};
-}) satisfies PageLoad;
+}) satisfies LayoutServerLoad;

@@ -3,14 +3,24 @@
 	import '../app.css';
 	import { page } from '$app/stores';
 	import '@fortawesome/fontawesome-free/css/all.min.css'
-	import { dev } from '$app/environment';
+	import { onMount } from 'svelte';
+	import { invalidate } from '$app/navigation';
+	
+	export let data;
 
-	//export let data: any;
+	/*let { supabase, session } = data;
+	$: ({ supabase, session } = data);
 
-  	// import { inject } from '@vercel/analytics';
-	// inject({ mode: dev ? 'development' : 'production' });
+	onMount(() => {
+		const { data } = supabase.auth.onAuthStateChange((event, _session) => {
+			if (_session?.expires_at !== session?.expires_at) {
+				invalidate('supabase:auth');
+			}
+		});
 
-	// $: metaTags = extend(true, {}, data.baseMetaTags, $page.data.pageMetaTags);
+		return () => data.subscription.unsubscribe();
+	});*/
+
 
 	$: metadata = $page.data.pageMetaTags ?? {};
 	$: pageName = metadata.title ?? 'Home | NFT Navigator';

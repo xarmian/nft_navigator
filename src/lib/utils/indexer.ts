@@ -48,6 +48,7 @@ interface getTokensParams {
     limit?: number | undefined;
     owner?: string | undefined;
     tokenId?: number | undefined;
+    invalidate?: boolean | undefined;
 }
 
 interface getCollectionsParams {
@@ -68,7 +69,7 @@ export function reformatTokenName(name: string) {
 }
 
 export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
-    if (params.contractId) {
+    if (params.contractId && !params.invalidate) {
         const tokens: Token[] | undefined = get(tokenStore).get(Number(params.contractId));
         if (tokens && tokens.length > 0) {
             if (params.tokenId) {
@@ -85,6 +86,9 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
     const paramsArray = [];
     if (params.contractId) {
         paramsArray.push(['contractId', params.contractId.toString()]);
+    }
+    if (params.tokenId) {
+        paramsArray.push(['tokenId', params.tokenId.toString()]);
     }
     if (params.limit) {
         paramsArray.push(['limit', params.limit.toString()]);

@@ -26,8 +26,10 @@
 	let selectedAddressIndex = -1;
 	let windowDefined = false;
     let componentElement: any;
-    export let onSubmit: (addr: string) => void;
+    export let onSubmit: (addr: string) => void = () => {};
+    export let onChange: (addr: string) => void = () => {};
     export let loadPreviousValue: boolean = true;
+    export let showSubmitButton: boolean = true;
     let inputElement: HTMLInputElement;
 
 	onMount(() => {
@@ -148,15 +150,18 @@
             use:init
             bind:value={searchText}
             on:input={(event) => handleInput()}
-            class="dark:bg-gray-700 bg-gray-100 flex-grow"
+            on:change={(event) => onChange(searchText)}
+            class="dark:bg-gray-700 bg-gray-100 flex-grow dark:text-white text-gray-900 p-2 w-full md:w-96 lg:w-96 xl:w-96"
             placeholder="Select wallet by Address or NFD"
         />
-        <button on:click={() => handleSubmit(undefined)} class="dark:bg-blue-500 bg-blue-300 p-2">
-        <div class="hidden md:block">Submit</div>
-        <div class="block md:hidden">
-            <SearchOutline />
-        </div>
-        </button>
+        {#if showSubmitButton}
+            <button on:click={() => handleSubmit(undefined)} class="dark:bg-blue-500 bg-blue-300 p-2">
+                <div class="hidden md:block">Submit</div>
+                <div class="block md:hidden">
+                    <SearchOutline />
+                </div>
+            </button>
+        {/if}
     </div>
 
     {#if addressList.length > 0}

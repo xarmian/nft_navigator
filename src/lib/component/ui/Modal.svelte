@@ -5,15 +5,25 @@
     export let showTopCloseButton: boolean = false;
     export let showBottomCloseButton: boolean = true;
 
+    export let onClose: () => void = () => {};
 	let dialog: HTMLDialogElement;
 
-	$: if (dialog && showModal) dialog.showModal();
+	$: if (dialog) {
+        if (showModal) {
+            dialog.showModal();
+        } else {
+            dialog.close();
+        }
+    }
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions -->
 <dialog
 	bind:this={dialog}
-	on:close={() => (showModal = false)}
+	on:close={() => {
+        showModal = false;
+        onClose();
+    }}
 	on:click|self={() => dialog.close()}
 >
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -52,6 +62,7 @@
         padding: 0;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         background: white;
+        @apply dark:bg-slate-600 dark:text-white;
     }
     .close-button {
         padding: 10px 20px;

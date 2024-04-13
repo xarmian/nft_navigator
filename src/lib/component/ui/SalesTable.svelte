@@ -3,6 +3,7 @@
     import { onMount } from 'svelte';
     import { copy } from 'svelte-copy';
     import { toast } from '@zerodevx/svelte-toast';
+	import TokenIcon from './TokenIcon.svelte';
     
     export let collectionId: number = 0;
     export let sales: Sale[] = [];
@@ -60,6 +61,7 @@
         const url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/sales/?collectionId=${collectionId}`;
         try {
             const data = await fetch(url).then((response) => response.json());
+            console.log(data);
             if (data.sales) sales = data.sales.reverse();
         }
         catch(err) {
@@ -108,7 +110,9 @@
                         {#if collectionId === 0}
                             <td class="dark:border-gray-500"><a href={`/collection/${sale.collectionId}`}>{sale.collectionId}</a></td>
                         {/if}
-                        <td class="dark:border-gray-500 text-center"><a href={`/collection/${sale.collectionId}/token/${sale.tokenId}`}>{sale.tokenId}</a></td>
+                        <td class="dark:border-gray-500 text-center">
+                            <a href={`/collection/${sale.collectionId}/token/${sale.tokenId}`}>{sale.tokenId}</a>
+                        </td>
                         <td class="dark:border-gray-500 inline-block md:table-cell">
                             <div class="w-20 text-ellipsis overflow-hidden inline-block">{sale.seller.slice(0,8)}...{sale.seller.slice(-8)}</div>
                             <i use:copy={sale.seller} class="fas fa-copy cursor-pointer align-super" on:svelte-copy={() => toast.push(`Wallet Copied to Clipboard:<br/> ${sale.seller.substring(0,20)}...`)}></i>
