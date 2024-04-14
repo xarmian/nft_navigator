@@ -21,14 +21,14 @@
 
     $: {
         if (token) {
-            const path = $page.url.pathname;
+            /*const path = $page.url.pathname;
             if (path.includes('/portfolio')) {
                 const pathParts = path.split('/');
                 const walletId = pathParts[2];
                 if (walletId !== token.owner && walletId !== token.approved) {
                     hidden = true;
                 }
-            }
+            }*/
             
             if ($selectedWallet?.address) {
                 isTokenOwner = token.owner === $selectedWallet.address ? true : false;

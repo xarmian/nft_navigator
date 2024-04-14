@@ -48,7 +48,10 @@
 			<div class="flex-start">
 				<a href="/" class="absolute top-0 left-0 p-4 flex flex-row space-x-2">
 					<img src="{Icon}" class="h-12 rounded-2xl" alt="Logo" />
-					<div class="cursor-pointer text-2xl font-bold content-center">NFT Navigator</div>
+					<div class="flex flex-col justify-center">
+						<div class="cursor-pointer text-2xl font-bold content-center font-[fantasy]">NFT Navigator</div>
+						<div class="cursor-pointer text-xs content-center font-sans -m-2">on the Voi Network</div>
+					</div>
 				</a>
 			</div>
 			<div class="md:flex items-center space-x-2 flex-grow justify-center p-2 hidden">

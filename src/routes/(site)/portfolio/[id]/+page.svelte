@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
     import type { Token } from '$lib/data/types';
-    import TokenComponent from '$lib/component/ui/TokenDetail.svelte';
+    import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
 	import { A } from 'flowbite-svelte';
     import { Tabs, TabItem, Indicator } from 'flowbite-svelte';
     import { onMount, onDestroy } from 'svelte';
@@ -26,7 +26,6 @@
     let pageLoaded = false;
     let isMobile: boolean | null = null;
     let headerTokens: Token[] = [];
-    $: showTransactions = false;
     
     let voiBalance: number;
     let viaBalance: number;
@@ -61,28 +60,23 @@
         : walletIds[0]) : '';
 
     $: {
+        // get viewport width to determine if one or two random tokens are displayed
         headerTokens = tokens.slice();
-        headerTokens = headerTokens.sort(() => Math.random() - 0.5).slice(0,(isMobile ? 3 : 6));
+        // const numTokens = window.innerWidth < 768 ? 1 : 2;
+        const numTokens = 1; // force to one token for now.. seems to look better
+        headerTokens = headerTokens.sort(() => Math.random() - 0.5).slice(0, numTokens);
     }
 
-    async function loadTransactions() {
-        if (showTransactions) return;
-        showTransactions = true;
-        const url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/sales/?buyer=${walletIds[0]}`;
-        const data = await fetch(url).then((response) => response.json());
-    }
-
-    
 </script>
 <div class="text-center">
-    <div class="relative w-full h-full overflow-hidden">
+    <div class="relative w-full h-52 overflow-visible">
         <div class="flex h-full w-full absolute blur-xsm -z-10 opacity-60">
             {#each headerTokens as token (token)}
                 <div class="flex-grow bg-cover bg-center inline-block" style="background-image: url({token.metadata.image});">&nbsp;</div>
             {/each}
         </div>
-        <div class="flex justify-center items-center w-full mx-2">
-            <div class="flex flex-col p-4 md:p-8 mt-2 mb-2 bg-slate-100 dark:bg-slate-700 shadow-lg rounded-2xl opacity-90 space-y-4">
+        <div class="flex justify-center items-center w-full mx-2 absolute top-16">
+            <div class="flex flex-col p-4 md:p-8 mt-2 mb-2 bg-slate-100 dark:bg-slate-700 shadow-2xl rounded-2xl opacity-90 space-y-4">
                 <div class="flex flex-row space-x-4">
                     {#if walletAvatar}
                         <img src={walletAvatar} class="h-24 w-24 rounded-full place-self-center mb-2" />
@@ -137,6 +131,7 @@
             </div>
         </div>
     </div>
+    <div class="h-32"></div>
     <Tabs style="underline" defaultClass="flex place-items-end rounded-lg divide-x rtl:divide-x-reverse divide-gray-200 shadow dark:divide-gray-700 justify-center">
         <TabItem open>
             <div slot="title">
@@ -145,9 +140,11 @@
             </div>
             <div class="m-4">
                 {#each tokens as token}
-                    <div class="m-4">
-                        <TokenComponent collection={collections.find(c => c.contractId === token.contractId)} token={token}></TokenComponent>
-                    </div>
+                    {#if token.owner === walletId}
+                        <div class="m-4">
+                            <TokenDetail collection={collections.find(c => c.contractId === token.contractId)} bind:token={token}></TokenDetail>
+                        </div>
+                    {/if}
                 {/each}
                 {#if tokens.length == 0}
                     <div class="text-2xl font-bold">No tokens found! Want to get some? <A href="https://nautilus.sh/" target="_blank">Check out the ARC-72 Marketplace</A></div>
@@ -161,16 +158,18 @@
             </div>
             <div class="m-4">
                 {#each approvals as token}
-                    <div class="m-4">
-                        <TokenComponent collection={collections.find(c => c.contractId === token.contractId)} token={token}></TokenComponent>
-                    </div>
+                    {#if token.approved === walletId}
+                        <div class="m-4">
+                            <TokenDetail collection={collections.find(c => c.contractId === token.contractId)} bind:token={token}></TokenDetail>
+                        </div>
+                    {/if}
                 {/each}
                 {#if approvals.length == 0}
                     <div class="text-2xl font-bold">No approvals found.</div>
                 {/if}
             </div>
         </TabItem>
-        <TabItem on:click={loadTransactions}>
+        <TabItem>
             <div slot="title">
                 <div class="inline">Transactions</div>
             </div>
