@@ -1,7 +1,7 @@
-import type { PageLoad } from './$types';
 import type { Token, Collection } from '$lib/data/types';
 import { getNFD } from '$lib/utils/nfd';
 import { reformatTokenName, getTokens, getCollection } from '$lib/utils/indexer';
+import type { LayoutServerLoad } from '../../../../../$types';
 
 export const load = (async ({ params, fetch }) => {
 	const contractId = Number(params.cid);
@@ -45,4 +45,4 @@ export const load = (async ({ params, fetch }) => {
 		collection: collection,
 		pageMetaTags,
 	};
-}) satisfies PageLoad;
+}) satisfies LayoutServerLoad;

@@ -11,15 +11,19 @@
 	import { zeroAddress } from '$lib/data/constants';
 	import BreadcrumbCustom from './BreadcrumbCustom.svelte';
 	import CloseButton from './CloseButton.svelte';
+    import { getNFD } from '$lib/utils/nfd';
 
     export let showModal: boolean;
     export let token: Token;
     export let fromAddr: string;
-    export let onClose: (didSend: boolean, addr: string | undefined) => void;
     export let type: string = 'send'; // send or approve
+
+    export let onClose: () => void = () => {};
+    export let onAfterSend: (t: Token) => void = () => {};
 
     enum SendingView {
         Presend = "presend",
+        Confirm = "confirm",
         Sending = "sending",
         Waiting = "waiting",
         Error = "error",
@@ -29,15 +33,24 @@
     let sendingView: SendingView = SendingView.Presend;
     
     let transferTo = '';
+    let transferToNFD = '';
     let tokenName = reformatTokenName(token.metadata?.name);
 
     let selectedVoiBalance: number;
     let selectedNFTCount: number;
-
-    let didSend = false;
+    let sendingError: string = '';
 
     $: if (transferTo && transferTo.length > 0) {
         updateBalances();
+
+        // get nfd for transferTo address
+        transferToNFD = '';
+        getNFD([transferTo]).then((nfd) => {
+            if (nfd && nfd.length > 0) transferToNFD = nfd[0].replacementValue;
+        });
+    }
+    else {
+        transferToNFD = '';
     }
 
     async function updateBalances() {
@@ -87,43 +100,65 @@
                 decodedTxns.push(algosdk.decodeUnsignedTransaction(bytes));
             }
             
-            const status = await signAndSendTransactions([decodedTxns]);
-            console.log('signing status', status);
-            sendingView = status ? SendingView.Waiting : SendingView.Error;
+            try {
+                const status = await signAndSendTransactions([decodedTxns]);
+                console.log('signing status', status);
+                sendingView = status ? SendingView.Waiting : SendingView.Error;
+                let t = null;
 
-            if (type == 'send') {
-                let owner = token.owner;
-                let newOwner = owner;
-                let i = 0;
-                while (owner === newOwner && i < 10) {
-                    await new Promise(r => setTimeout(r, 1000));
-                    const t = await getTokens({contractId: token.contractId, tokenId: token.tokenId, invalidate: true});
-                    newOwner = t[0].owner;
-                    i++;
+                if (type == 'send') {
+                    let owner = token.owner;
+                    let newOwner = owner;
+                    let i = 0;
+                    while (owner === newOwner && i < 10) {
+                        await new Promise(r => setTimeout(r, 1000));
+                        t = await getTokens({contractId: token.contractId, tokenId: token.tokenId, invalidate: true});
+                        newOwner = t[0].owner;
+                        i++;
+                    }
                 }
-            }
-            else {
-                let approved = token.approved;
-                let newApproved = approved;
-                let i = 0;
-                while (approved === newApproved && i < 10) {
-                    await new Promise(r => setTimeout(r, 1000));
-                    const t = await getTokens({contractId: token.contractId, tokenId: token.tokenId, invalidate: true});
-                    newApproved = t[0].approved;
-                    i++;
+                else {
+                    let approved = token.approved;
+                    let newApproved = approved;
+                    let i = 0;
+                    while (approved === newApproved && i < 10) {
+                        await new Promise(r => setTimeout(r, 1000));
+                        t = await getTokens({contractId: token.contractId, tokenId: token.tokenId, invalidate: true});
+                        newApproved = t[0].approved;
+                        i++;
+                    }
                 }
-            }
 
-            sendingView = SendingView.Sent;
+                sendingView = SendingView.Sent;
+                if (t) onAfterSend(t[0]);
+            }
+            catch(err: any) {
+                console.log(err);
+                sendingError = err.message;
+                sendingView = SendingView.Error;
+            }
+        }
+        else {
+            sendingError = resp.error;
+            sendingView = SendingView.Error;
         }
     }
 
-    function doOnClose() {
-        const didSend = sendingView === SendingView.Sent;
-        onClose(didSend, transferTo);
+    function reset() {
+        transferTo = '';
+        transferToNFD = '';
+        sendingError = '';
+        sendingView = SendingView.Presend;
+    }
+
+    function afterClose() {
+        console.log('afterClose');
+        //onAfterSend({...token, owner: transferTo});
+        reset();
+        onClose();
     }
 </script>
-<Modal title="{type == 'send' ? 'Transfer NFT Token' : 'Change NFT Token Approval'}" bind:showModal onClose={doOnClose} showTopCloseButton={true} showBottomCloseButton={false}>
+<Modal title="{type == 'send' ? 'Transfer NFT Token' : 'Change NFT Token Approval'}" bind:showModal onClose={afterClose} showTopCloseButton={true} showBottomCloseButton={false}>
     <div class="min-h-96 flex items-center">
         <div class="flex flex-col">
             {#if sendingView === "presend"}
@@ -143,27 +178,7 @@
                     <div class="text-xl font-bold">{type == 'send' ? 'Send to' : 'Change Approved Spender to'}</div>
                     <WalletSearch onSubmit={(v) => transferTo = v} loadPreviousValue={false} showSubmitButton={false} />
                 </div>
-                {#if transferTo.length > 0}
-                    <div class="flex flex-col items-center mt-4">
-                        <div class="text-sm text-gray-400">{transferTo}</div>
-                    </div>
-                    <div class="flex flex-row justify-center">
-                        <div class="m-1 p-3">
-                            <div class="text-sm font-bold">Voi Balance</div>
-                            <div class="text-sm text-gray-400">{selectedVoiBalance??''}</div>
-                        </div>
-                        <div class="m-1 p-3">
-                            <div class="text-sm font-bold"># NFTs</div>
-                            <div class="text-sm text-gray-400">{selectedNFTCount??''}</div>
-                        </div>
-                    </div>
-                    {#if selectedVoiBalance == 0}
-                        <div class="flex flex-col items-center">
-                            <div class="text-xl font-bold text-red-500">Warning!</div>
-                            <div class="text-sm text-gray-400">The selected address has no Voi. Please verify before sending.</div>
-                        </div>
-                    {/if}
-                {:else if type == 'approve' && token.approved !== zeroAddress}
+                {#if type == 'approve' && token.approved !== zeroAddress}
                     <div class="flex flex-col items-center mt-4">
                         <div class="mb-4">or</div>
                         <button on:click={() => revokeApproval()} class="w-64 h-10 bg-blue-500 text-white rounded-md">Revoke Approval</button>
@@ -171,7 +186,41 @@
                 {/if}
                 <div class="flex flex-row justify-between mt-4 space-x-2">
                     <button on:click={() => showModal = false} class="w-52 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
-                    <button on:click={sendToken} class="w-52 h-10 bg-blue-500 text-white rounded-md {transferTo.length == 0 ? 'bg-gray-400 cursor-default' : ''}">{type == 'send' ? 'Send' : 'Change'}</button>
+                    <button on:click={() => { if (transferTo.length > 0) sendingView = SendingView.Confirm; }} class="w-52 h-10 bg-blue-500 text-white rounded-md {transferTo.length == 0 ? 'bg-gray-400 cursor-default' : ''}">Next</button>
+                </div>
+            {:else if sendingView === "confirm"}
+                <div class="flex flex-col items-center m-2">
+                    <div class="text-lg font-bold">Please confirm the following transaction:</div>
+                    <div class="mt-2 flex flex-col items-center">
+                        <img src={token.metadata?.image} alt={token.metadata?.name} class="h-20 w-20 object-contain rounded-md"/>
+                        <div class="text-sm text-gray-800 dark:text-gray-200">{type == 'send' ? 'Send' : 'Change Approval for'} {tokenName} to</div>
+                    </div>
+                </div>
+                <div class="flex flex-col items-center mt-2">
+                    <div class="text-sm text-gray-400">{transferTo}</div>
+                    {#if transferToNFD.length > 0}
+                        <div class="text-sm text-gray-400">{transferToNFD}</div>
+                    {/if}
+                </div>
+                <div class="flex flex-row justify-center">
+                    <div class="m-1 p-3">
+                        <div class="text-sm font-bold">Voi Balance</div>
+                        <div class="text-sm text-gray-400">{selectedVoiBalance??''}</div>
+                    </div>
+                    <div class="m-1 p-3">
+                        <div class="text-sm font-bold"># NFTs</div>
+                        <div class="text-sm text-gray-400">{selectedNFTCount??''}</div>
+                    </div>
+                </div>
+                {#if selectedVoiBalance == 0}
+                    <div class="flex flex-col items-center">
+                        <div class="text-xl font-bold text-red-500">Warning!</div>
+                        <div class="text-sm text-gray-400">The selected address has no Voi. Please verify before sending.</div>
+                    </div>
+                {/if}
+                <div class="flex flex-row justify-between mt-4 space-x-2">
+                    <button on:click={reset} class="w-52 h-10 bg-blue-500 text-white rounded-md">Back</button>
+                    <button on:click={sendToken} class="w-52 h-10 bg-blue-500 text-white rounded-md">Submit</button>
                 </div>
             {:else if sendingView === "sending"}
                 <div class="flex flex-col items-center m-2 h-full place-content-center">
@@ -184,7 +233,7 @@
                     </div>
                     <div class="mt-2 text-gray-400">Please sign the transaction in your wallet.</div>
                     <div class="flex flex-col items-center mt-4">
-                        <button on:click={() => sendingView = SendingView.Presend} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
+                        <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
                     </div>
                 </div>
             {:else if sendingView === "waiting"}
@@ -198,7 +247,7 @@
                     </div>
                     <div class="mt-2 text-gray-400">Transaction signed, awaiting confirmation.</div>
                     <div class="flex flex-col items-center mt-4">
-                        <button on:click={() => sendingView = SendingView.Presend} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
+                        <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
                     </div>
                 </div>
             {:else if sendingView === "sent"}
@@ -223,8 +272,11 @@
                 <div class="flex flex-col items-center m-2">
                     <div class="text-xl font-bold">Error Sending Token</div>
                     <div class="mt-2 text-gray-400">There was an error sending the token.</div>
+                    <div class="max-w-96">
+                        <div class="mt-2 text-gray-400">{sendingError}</div>
+                    </div>
                     <div class="flex flex-col items-center mt-4">
-                        <button on:click={() => sendingView = SendingView.Presend} class="w-64 h-10 bg-blue-500 text-white rounded-md">Try Again</button>
+                        <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Start Over</button>
                     </div>
                 </div>
             {/if}

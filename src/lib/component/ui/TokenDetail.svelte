@@ -3,10 +3,9 @@
     import TokenName from '$lib/component/ui/TokenName.svelte';
     import { zeroAddress } from '$lib/data/constants';
     import { selectedWallet } from 'avm-wallet-svelte';
-    import { onDestroy } from 'svelte';
 	import SendTokenModal from './SendTokenModal.svelte';
-	import Select from './Select.svelte';
-	import { getTokens } from '$lib/utils/indexer';
+	import { goto, invalidate } from '$app/navigation';
+	import { page } from '$app/stores';
 
     export let token: Token;
     export let collection: Collection | undefined;
@@ -14,46 +13,49 @@
     let royaltyPercentage = 0;
     let isTokenOwner = false;
     let isTokenApproved = false;
-    $: showSendTokenModal = false;
-    $: sendTokenModalType = 'send';
-
-    const unsub = selectedWallet.subscribe((value) => {
-        if (value?.address) {
-            isTokenOwner = token.owner === value.address ? true : false;
-            isTokenApproved = token.approved === value.address ? true : false;
-        }
-    });
-
-    onDestroy(() => {
-        unsub();
-    });
-
-    if (token.metadata.royalties) {
-        const decodedRoyalties = atob(token.metadata.royalties);
-
-        // Convert the binary string to an array of bytes
-        const bytes = new Uint8Array(decodedRoyalties.length);
-        for (let i = 0; i < decodedRoyalties.length; i++) {
-            bytes[i] = decodedRoyalties.charCodeAt(i);
-        }
-
-        // Extract the first two bytes and convert them to a number
-        royaltyPercentage = (bytes[0] << 8) | bytes[1];
-    }
+    let showSendTokenModal = false;
+    let sendTokenModalType = 'send';
+    let tokenProps: any[] = [];
+    let formattedApproved = '';
 
     $: {
-        formattedOwner = token.ownerNFD ? token.ownerNFD as string : token.owner.length > 16
-                ? `${token.owner.slice(0, 8)}...${token.owner.slice(-8)}`
-                : token.owner;
+        if (token) {
+            if ($selectedWallet?.address) {
+                isTokenOwner = token.owner === $selectedWallet.address ? true : false;
+                isTokenApproved = token.approved === $selectedWallet.address ? true : false;
+            }
+
+            if (token.metadata.royalties) {
+                const decodedRoyalties = atob(token.metadata.royalties);
+
+                // Convert the binary string to an array of bytes
+                const bytes = new Uint8Array(decodedRoyalties.length);
+                for (let i = 0; i < decodedRoyalties.length; i++) {
+                    bytes[i] = decodedRoyalties.charCodeAt(i);
+                }
+
+                // Extract the first two bytes and convert them to a number
+                royaltyPercentage = (bytes[0] << 8) | bytes[1];
+            }
+
+            // map token.metadata.properties object of the form {"BACKGROUND":"Aquamarine","BODY":"Red","ON BODY":"Scar"}
+            // to an array of objects of the form {trait_type: "BACKGROUND", value: "Aquamarine"}
+            tokenProps = Object.keys(token.metadata.properties).map((key) => {
+                const colors = propColor(token.metadata.properties[key as keyof typeof token.metadata.properties]);
+                return { trait_type: key, value: token.metadata.properties[key as keyof typeof token.metadata.properties], fgcolor: colors[1], bgcolor: colors[0]};
+            });
+
+            formattedOwner = token.ownerNFD ? token.ownerNFD as string : token.owner.length > 16
+                    ? `${token.owner.slice(0, 8)}...${token.owner.slice(-8)}`
+                    : token.owner;
+
+            formattedApproved = token.approved ? token.approved.length > 8
+                ? `${token.approved.slice(0, 8)}...${token.approved.slice(-8)}`
+                : token.approved : '';
+        }
     }
 
-    let tokenProps: any[] = [];
-    // map token.metadata.properties object of the form {"BACKGROUND":"Aquamarine","BODY":"Red","ON BODY":"Scar"}
-    // to an array of objects of the form {trait_type: "BACKGROUND", value: "Aquamarine"}
-    tokenProps = Object.keys(token.metadata.properties).map((key) => {
-        const colors = propColor(token.metadata.properties[key as keyof typeof token.metadata.properties]);
-        return { trait_type: key, value: token.metadata.properties[key as keyof typeof token.metadata.properties], fgcolor: colors[1], bgcolor: colors[0]};
-    });
+    $: collectionName = collection?.highforgeData?.title ?? token?.metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
 
     // return a tuple of the bg color from bgcolor if value is in the bgcolor array, and its corresponding fg color
     // if value is not in the bgcolors array, return a random bgcolor and its corresponding foreground color
@@ -81,12 +83,6 @@
         return [softBgColors[index], softFgColors[index]];
     }
 
-    $: formattedApproved = token.approved ? token.approved.length > 8
-        ? `${token.approved.slice(0, 8)}...${token.approved.slice(-8)}`
-        : token.approved : '';
-        
-    const collectionName = collection?.highforgeData?.title ?? token?.metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
-
     function sendToken() {
         if (isTokenOwner || isTokenApproved) {
             sendTokenModalType = 'send';
@@ -101,13 +97,13 @@
         }
     }
 
-    async function sendTokenModalClose(didSend: boolean, addr: string | undefined) {
-        if (didSend) {
-            location.reload();
-        }
+    async function onAfterSend(t: Token) {
+        token = t;
     }
 </script>
-<div class="shadow-md p-3 rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative">
+<div class="shadow-md p-3 rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative
+    {$page.url.pathname.includes('/portfolio') && !isTokenOwner && !isTokenApproved ? 'hidden' : ''}
+    ">
     <div class="flex flex-col md:flex-row items-center md:items-start">
         <img src={token.metadata.image} class="max-w-72 object-contain mr-3 rounded-xl"/>
         <div class="flex justify-between w-full">
@@ -137,7 +133,7 @@
                     </div>
                     {#if token.approved && token.approved != zeroAddress}
                         <div class="font-bold">Approved Spender:</div>
-                        <div><a href="/portfolio/{token.approved}">{formattedApproved}</a></div>
+                        <div><button on:click={() => goto(`/portfolio/${token.approved}`,{invalidateAll:true})}>{formattedApproved}</button></div>
                     {/if}
                     <div class="font-bold">Mint Round:</div>
                     <div><a href="https://voi.observer/explorer/block/{token.mintRound}/transactions" target="_blank">{token.mintRound}</a></div>
@@ -171,7 +167,7 @@
         {/each}
     </div>
 </div>
-<SendTokenModal bind:showModal={showSendTokenModal} bind:type={sendTokenModalType} token={token} fromAddr={$selectedWallet?.address??''} onClose={sendTokenModalClose} />
+<SendTokenModal bind:showModal={showSendTokenModal} bind:type={sendTokenModalType} token={token} onAfterSend={onAfterSend} fromAddr={$selectedWallet?.address??''} />
 <style>
     a {
         color: #6c63ff;

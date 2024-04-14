@@ -122,7 +122,7 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
                 isBurned: token.isBurned,
             };
         });
-        if (params.contractId) {
+        if (params.contractId && !params.tokenId) {
             // token ranks
             tokens = await populateTokenRanking(Number(params.contractId), tokens, params.fetch);
             const tokenMap = get(tokenStore);
