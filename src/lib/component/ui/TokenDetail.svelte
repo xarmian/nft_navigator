@@ -17,9 +17,19 @@
     let sendTokenModalType = 'send';
     let tokenProps: any[] = [];
     let formattedApproved = '';
+    let hidden = false;
 
     $: {
         if (token) {
+            const path = $page.url.pathname;
+            if (path.includes('/portfolio')) {
+                const pathParts = path.split('/');
+                const walletId = pathParts[2];
+                if (walletId !== token.owner && walletId !== token.approved) {
+                    hidden = true;
+                }
+            }
+            
             if ($selectedWallet?.address) {
                 isTokenOwner = token.owner === $selectedWallet.address ? true : false;
                 isTokenApproved = token.approved === $selectedWallet.address ? true : false;
@@ -101,9 +111,8 @@
         token = t;
     }
 </script>
-<div class="shadow-md p-3 rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative
-    {$page.url.pathname.includes('/portfolio') && !isTokenOwner && !isTokenApproved ? 'hidden' : ''}
-    ">
+<div class="shadow-md p-3 rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative"
+    class:hidden={hidden}>
     <div class="flex flex-col md:flex-row items-center md:items-start">
         <img src={token.metadata.image} class="max-w-72 object-contain mr-3 rounded-xl"/>
         <div class="flex justify-between w-full">
