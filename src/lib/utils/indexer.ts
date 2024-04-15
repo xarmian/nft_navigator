@@ -3,6 +3,7 @@ import { collectionStore, tokenStore } from '../../stores/collection';
 import { get } from 'svelte/store';
 import voiGames from '$lib/data/voiGames.json';
 import { getCurrency } from './currency';
+import { getNFD } from './nfd';
 
 const indexerBaseURL = "https://arc72-idx.nftnavigator.xyz/nft-indexer/v1";
 
@@ -129,6 +130,18 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
             tokenMap.set(Number(params.contractId), tokens);
             tokenStore.set(tokenMap);
         }
+
+        // for each token, get NFD data
+        const owners = Array.from(new Set(tokens.map((token: Token) => token.owner)));
+        const nfd = await getNFD(owners, params.fetch);
+        tokens.forEach((token: Token) => {
+            const nfdObj = nfd.find((n: any) => n.key === token.owner);
+            if (nfdObj) {
+                token.ownerNFD = nfdObj.replacementValue;
+                token.ownerAvatar = nfdObj.avatar;
+            }
+        });
+
         return tokens;
     } catch (err) {
         console.error(err);

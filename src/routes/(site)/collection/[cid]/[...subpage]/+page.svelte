@@ -13,6 +13,9 @@
     import { handleScroll } from '$lib/utils/functions';
 	import { goto } from '$app/navigation';
 	import PixelPursuitButton from '$lib/component/ui/PixelPursuitButton.svelte';
+    import { supabaseClient } from '$lib/supabase';
+	import { onMount } from 'svelte';
+	import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
 
     //const forsale = $page.url.searchParams.get('forsale');
 
@@ -31,6 +34,16 @@
     $: displayTab = (subpage === 'forsale') ? 'tokens' : subpage;
     $: categories = data.categories;
 
+    /*onMount(async () => {
+        const { data, error } = await supabaseClient.from('countries').select();
+        if (error) {
+            console.error(error);
+        }
+        else {
+            console.log(data);
+        }
+    });*/
+ 
     $: { 
         filteredTokens = tokens.filter(token => {
             if (forSaleCollection && (!token.marketData || token.marketData?.sale || token.marketData?.delete)) return false;
@@ -193,7 +206,8 @@
             <div class="flex flex-wrap flex-grow justify-center md:justify-start mt-3 md:mt-0">
                 {#each filteredTokens.slice(0, displayCount) as token (token.tokenId)}
                     <div class="p-1">
-                        <TokenCard {token} />
+                        <!--<TokenCard {token} />-->
+                        <TokenDetail {collection} {token} format="small" />
                     </div>
                 {/each}
             </div>

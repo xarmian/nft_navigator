@@ -34,6 +34,12 @@
         pageLoaded = true;
         isMobile = Device.isMobile;
 
+        // get viewport width to determine if one or two random tokens are displayed
+        headerTokens = tokens.slice();
+        // const numTokens = window.innerWidth < 768 ? 1 : 2;
+        const numTokens = 1; // force to one token for now.. seems to look better
+        headerTokens = headerTokens.sort(() => Math.random() - 0.5).slice(0, numTokens);
+
     });
 
     $: {
@@ -58,14 +64,6 @@
     $: formattedWallet = (walletIds) ? (walletIds[0].length > 8
         ? `${walletIds[0].slice(0, (isMobile ? 4 : 6))}...${walletIds[0].slice((isMobile ? -4 : -6))}`
         : walletIds[0]) : '';
-
-    $: {
-        // get viewport width to determine if one or two random tokens are displayed
-        headerTokens = tokens.slice();
-        // const numTokens = window.innerWidth < 768 ? 1 : 2;
-        const numTokens = 1; // force to one token for now.. seems to look better
-        headerTokens = headerTokens.sort(() => Math.random() - 0.5).slice(0, numTokens);
-    }
 
 </script>
 <div class="text-center">
@@ -138,11 +136,11 @@
                 <div class="inline">Portfolio</div>
                 <Indicator color="blue" size="xl" class="text-xs font-bold text-white">{tokens.length}</Indicator>
             </div>
-            <div class="flex flex-row flex-wrap space-x-8 justify-center">
+            <div class="flex flex-row flex-wrap justify-center">
                 {#each tokens as token}
                     {#if token.owner === walletId}
-                        <div class="mb-4">
-                            <TokenDetail collection={collections.find(c => c.contractId === token.contractId)} bind:token={token}></TokenDetail>
+                        <div class="m-4">
+                            <TokenDetail collection={collections.find(c => c.contractId === token.contractId)} bind:token={token} showOwnerIcon={false}></TokenDetail>
                         </div>
                     {/if}
                 {/each}
@@ -156,10 +154,16 @@
                 <div class="inline">Approvals</div>
                 <Indicator color="blue" size="xl" class="text-xs font-bold text-white">{approvals.length}</Indicator>
             </div>
-            <div class="flex flex-row flex-wrap space-x-8 justify-center">
+            <div class="flex justify-center">
+                <div class="text-sm bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 max-w-fit">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Approvals are tokens are you authorized to transfer on the owner's behalf
+                </div> 
+            </div>
+            <div class="flex flex-row flex-wrap justify-center">
                 {#each approvals as token}
                     {#if token.approved === walletId}
-                        <div class="mb-4">
+                        <div class="m-4">
                             <TokenDetail collection={collections.find(c => c.contractId === token.contractId)} bind:token={token}></TokenDetail>
                         </div>
                     {/if}

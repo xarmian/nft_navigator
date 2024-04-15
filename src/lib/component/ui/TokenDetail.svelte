@@ -1,14 +1,21 @@
 <script lang="ts">
-    import type { Token, Collection } from '$lib/data/types';
+    import type { Token, Collection, Listing, Currency } from '$lib/data/types';
     import TokenName from '$lib/component/ui/TokenName.svelte';
     import { zeroAddress } from '$lib/data/constants';
     import { selectedWallet } from 'avm-wallet-svelte';
 	import SendTokenModal from './SendTokenModal.svelte';
 	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { getCurrency } from '$lib/utils/currency';
+	import { onMount } from 'svelte';
+	import algosdk from 'algosdk';
 
     export let token: Token;
     export let collection: Collection | undefined;
+    export let showOwnerIcon = true;
+    export let format = 'small';
+    export let listing: Listing | null = null;
+
     let formattedOwner = '';
     let royaltyPercentage = 0;
     let isTokenOwner = false;
@@ -18,19 +25,47 @@
     let tokenProps: any[] = [];
     let formattedApproved = '';
     let hidden = false;
-    export let format = 'small';
+
+    $: currency = null as Currency | null;
+
+    async function getMarketData() {
+        //if (listing == null) {
+            if (token?.marketData) {
+                listing = token.marketData;
+            }
+            else {
+                const marketUrl = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/listings/?collectionId=${token.contractId}&tokenId=${token.tokenId}&active=true`;
+                try {
+                    const marketData = await fetch(marketUrl).then((response) => response.json());
+                    if (marketData.listings.length > 0) {
+                        const marketToken = marketData.listings[0];
+                        if (marketToken && !marketToken.sale) {
+                            // check if token owner == marketToken.seller and mpContract id still approved to sell token
+                            if (token.owner === marketToken.seller && token.approved === algosdk.getApplicationAddress(Number(marketToken.mpContractId))) {
+                                listing = marketToken;
+                            }
+                        }
+                    }
+                }
+                catch (e) {
+                    console.error(e);
+                }
+
+            }
+        //}
+
+        if (listing) {
+            currency = await getCurrency(listing.currency);
+        }
+    }
 
     $: {
         if (token) {
-            /*const path = $page.url.pathname;
-            if (path.includes('/portfolio')) {
-                const pathParts = path.split('/');
-                const walletId = pathParts[2];
-                if (walletId !== token.owner && walletId !== token.approved) {
-                    hidden = true;
-                }
-            }*/
-            
+            listing = token?.marketData??null;
+            if (token.approved != zeroAddress) {
+                getMarketData();
+            }
+
             if ($selectedWallet?.address) {
                 isTokenOwner = token.owner === $selectedWallet.address ? true : false;
                 isTokenApproved = token.approved === $selectedWallet.address ? true : false;
@@ -66,7 +101,11 @@
         }
     }
 
-    $: collectionName = collection?.highforgeData?.title ?? token?.metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
+    let collectionName = '';
+    $: {
+        collectionName = collection?.highforgeData?.title ?? token?.metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
+        collectionName = collectionName.substring(0, 28) + (collectionName.length > 28 ? '...' : '');
+    }
 
     // return a tuple of the bg color from bgcolor if value is in the bgcolor array, and its corresponding fg color
     // if value is not in the bgcolors array, return a random bgcolor and its corresponding foreground color
@@ -112,13 +151,27 @@
         token = t;
     }
 </script>
-<div class="shadow-md p-3 rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative overflow-hidden"
+<div class="shadow-md p-3 rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative overflow-hidden h-full"
     class:hidden={hidden} class:p-3={format !== 'small'}>
-    <div class="flex flex-col md:flex-row items-center md:items-start" class:space-x-4={format !== 'small'} class:md:flex-col={format === 'small'}>
-        <a href="/collection/{token.contractId}/token/{token.tokenId}">
-            <img src={token.metadata.image} class="w-72 h-72 object-contain" class:rounded-xl={format !== 'small'} />
+    <div class="flex flex-col md:flex-row items-center md:items-start h-full" class:space-x-4={format !== 'small'} class:md:flex-col={format === 'small'}>
+        <a href="/collection/{token.contractId}/token/{token.tokenId}" class="relative overflow-hidden" class:rounded-xl={format !== 'small'} >
+            <img src={token.metadata.image} class="{format === 'small' ? 'w-72 h-72' : 'w-96'} object-contain" />
+            {#if listing && !listing.sale && !listing.delete}
+                <a href="https://nautilus.sh/#/collection/{token.contractId}/token/{token.tokenId}" on:click|stopPropagation target="_blank" class="absolute top-0 right-0 p-1 text-white rounded-full text-nowrap" title="View on Marketplace">
+                    {#if currency}
+                        <div class="badge top-right"><div>For Sale</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}</div></div>
+                    {:else}
+                        <div class="badge top-right"><div>For Sale</div><div class="text-xxs">See Marketplace</div></div>
+                    {/if}
+                </a>
+            {/if}
+            {#if showOwnerIcon && token.owner == $selectedWallet?.address}
+                <div class="absolute top-0 left-0 p-1 text-green-500 text-3xl" title='Owned by You'>
+                    <i class="fas fa-user"></i>
+                </div>
+            {/if}
         </a>
-        <div class="flex justify-between w-full" class:flex-col={format === 'small'}>
+        <div class="flex justify-between w-full" class:flex-grow={format === 'small'} class:flex-col={format === 'small'}>
             {#if format !== 'small'}
                 <div class="text-left flex-grow">
                     <div class="text-2xl font-bold mb-2 text-purple-900 dark:text-purple-100"><a href="/collection/{token.contractId}/token/{token.tokenId}"><TokenName name={token.metadata.name}></TokenName></a></div>
@@ -157,13 +210,17 @@
                     </div>
                 </div>
             {:else}
-                <div class="side back bg-gray-200 dark:bg-gray-900 relative flex flex-col p-1">
-                    <div class='p-1 flex flex-col flex-grow'>
+                <div class="side back bg-gray-200 dark:bg-gray-900 relative flex flex-col p-1 h-full">
+                    <div class='p-1 flex flex-col flex-grow h-full'>
                         <div class="flex flex-col mb-1 text-sm">
                             <div class="text-sm font-bold"><TokenName name={token.metadata.name}></TokenName></div>
                             <div class="flex justify-between">
+                                <div>Collection</div>
+                                <a href="/collection/{token.contractId}" class=" text-gray-600 dark:text-gray-300">{collectionName}</a>
+                            </div>
+                            <div class="flex justify-between">
                                 <div>Owner</div>
-                                <a href="/portfolio/{collection?.creator??''}" on:click|stopPropagation class=" text-gray-600 dark:text-gray-300">{collection?.creator.slice(0,8)+'...'+collection?.creator.slice(-8)}</a>
+                                <a href="/portfolio/{token.owner}" on:click|stopPropagation class=" text-gray-600 dark:text-gray-300">{formattedOwner}</a>
                             </div>
                             {#if token.approved && token.approved != zeroAddress}
                                 <div class="flex justify-between">
@@ -227,4 +284,48 @@
     a:hover {
         color: #9994f2;
     }
+    .badge {
+        margin: 0;
+        padding: 0;
+        color: white;
+        padding: 1px 10px;
+        font-size: 15px;
+        font-family: Arial, Helvetica, sans-serif;
+        text-align: center;
+        line-height: normal;
+        text-transform: uppercase;
+        background: #ed1b24;
+    }
+
+    .badge::before, .badge::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        margin: 0 -1px;
+        width: 100%;
+        height: 100%;
+        background: inherit;
+        min-width: 55px
+    }
+
+    .badge::before {
+        right: 100%
+    }
+
+    .badge::after {
+        left: 100%
+    }
+
+    .top-right {
+        position: absolute;
+        top: 0;
+        right: 0;
+        -ms-transform: translateX(30%) translateY(0%) rotate(45deg);
+        -webkit-transform: translateX(30%) translateY(0%) rotate(45deg);
+        transform: translateX(30%) translateY(0%) rotate(45deg);
+        -ms-transform-origin: top left;
+        -webkit-transform-origin: top left;
+        transform-origin: top left;
+    }
+
 </style>
