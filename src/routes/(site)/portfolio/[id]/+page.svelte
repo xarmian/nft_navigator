@@ -12,8 +12,8 @@
     // @ts-ignore
     import Device from 'svelte-device-info';
     import { getWalletBalance, getCurrency } from '$lib/utils/currency';
-	import { collectionSort } from '../../../../stores/collection';
 	import TransactionTable from '$lib/component/ui/TransactionTable.svelte';
+	// import Select from '$lib/component/ui/Select.svelte';
 
     export let data: PageData;
     $: walletId = data.props.walletId;
@@ -23,15 +23,28 @@
     $: tokens = data.props.tokens;
     $: approvals = data.props.approvals;
     let collections = data.props.collections;
-    let pageLoaded = false;
     let isMobile: boolean | null = null;
     let headerTokens: Token[] = [];
+    let portfolioSort = 'mint';
+
+    $: {
+        if (tokens) {
+            headerTokens = tokens.slice();
+            headerTokens = headerTokens.sort(() => Math.random() - 0.5).slice(0, 1);
+
+            // sort tokens based on portfolioSort
+            /*if (portfolioSort == 'name') {
+                tokens = tokens.sort((a, b) => a.metadata?.name.localeCompare(b.metadata?.name));
+            } else if (portfolioSort == 'mint') {
+                tokens = tokens.sort((a, b) => a.mintRound - b.mintRound);
+            }*/
+        }
+    }
     
     let voiBalance: number;
     let viaBalance: number;
 
     onMount(async () => {
-        pageLoaded = true;
         isMobile = Device.isMobile;
     });
 
@@ -45,8 +58,8 @@
     }
 
     const unsub = selectedWallet.subscribe((value) => {
-        if (pageLoaded && value?.address) {
-            goto('/portfolio/' + value?.address);
+        if (walletIds && walletIds.length > 0 && value?.address && walletIds[0] != value.address) {
+            goto('/portfolio/' + value.address);
         }
     });
 
@@ -54,20 +67,15 @@
         unsub();
     });
 
-    $: {
-        if (tokens) {
-            // get viewport width to determine if one or two random tokens are displayed
-            headerTokens = tokens.slice();
-            // const numTokens = window.innerWidth < 768 ? 1 : 2;
-            const numTokens = 1; // force to one token for now.. seems to look better
-            headerTokens = headerTokens.sort(() => Math.random() - 0.5).slice(0, numTokens);
-        }
-    }
-
     $: formattedWallet = (walletIds) ? (walletIds[0].length > 8
         ? `${walletIds[0].slice(0, (isMobile ? 4 : 6))}...${walletIds[0].slice((isMobile ? -4 : -6))}`
         : walletIds[0]) : '';
 
+    let sortOptions = [
+        { id: 'mint', name: 'Mint Date' },
+        { id: 'name', name: 'Name/Collection' },
+        //{ id: 'acquired', name: 'Acquired Date' }
+    ];
 </script>
 <div class="text-center">
     <div class="relative w-full h-52 overflow-visible">
@@ -139,17 +147,22 @@
                 <div class="inline">Portfolio</div>
                 <Indicator color="blue" size="xl" class="text-xs font-bold text-white">{tokens.length}</Indicator>
             </div>
-            <div class="flex flex-row flex-wrap justify-center">
-                {#each tokens as token}
-                    {#if token.owner === walletId}
-                        <div class="m-4">
-                            <TokenDetail collection={collections.find(c => c.contractId === token.contractId)} bind:token={token} showOwnerIcon={false}></TokenDetail>
-                        </div>
+            <div class="flex flex-col">
+                <!--<div class="flex justify-end">
+                    <Select bind:value={portfolioSort} options={sortOptions}></Select>
+                </div>-->
+                <div class="flex flex-row flex-wrap justify-center">
+                    {#each tokens as token}
+                        {#if token.owner === walletId}
+                            <div class="m-4">
+                                <TokenDetail collection={collections.find(c => c.contractId === token.contractId)} bind:token={token} showOwnerIcon={false}></TokenDetail>
+                            </div>
+                        {/if}
+                    {/each}
+                    {#if tokens.length == 0}
+                        <div class="text-2xl font-bold">No tokens found! Want to get some? <A href="https://nautilus.sh/" target="_blank">Check out the ARC-72 Marketplace</A></div>
                     {/if}
-                {/each}
-                {#if tokens.length == 0}
-                    <div class="text-2xl font-bold">No tokens found! Want to get some? <A href="https://nautilus.sh/" target="_blank">Check out the ARC-72 Marketplace</A></div>
-                {/if}
+                </div>
             </div>
         </TabItem>
         <TabItem>
