@@ -138,10 +138,10 @@
                 <div class="inline">Portfolio</div>
                 <Indicator color="blue" size="xl" class="text-xs font-bold text-white">{tokens.length}</Indicator>
             </div>
-            <div class="m-4">
+            <div class="flex flex-row flex-wrap space-x-8 justify-center">
                 {#each tokens as token}
                     {#if token.owner === walletId}
-                        <div class="m-4">
+                        <div class="mb-4">
                             <TokenDetail collection={collections.find(c => c.contractId === token.contractId)} bind:token={token}></TokenDetail>
                         </div>
                     {/if}
@@ -156,10 +156,10 @@
                 <div class="inline">Approvals</div>
                 <Indicator color="blue" size="xl" class="text-xs font-bold text-white">{approvals.length}</Indicator>
             </div>
-            <div class="m-4">
+            <div class="flex flex-row flex-wrap space-x-8 justify-center">
                 {#each approvals as token}
                     {#if token.approved === walletId}
-                        <div class="m-4">
+                        <div class="mb-4">
                             <TokenDetail collection={collections.find(c => c.contractId === token.contractId)} bind:token={token}></TokenDetail>
                         </div>
                     {/if}

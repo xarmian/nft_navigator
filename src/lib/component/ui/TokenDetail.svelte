@@ -18,6 +18,7 @@
     let tokenProps: any[] = [];
     let formattedApproved = '';
     let hidden = false;
+    export let format = 'small';
 
     $: {
         if (token) {
@@ -111,70 +112,111 @@
         token = t;
     }
 </script>
-<div class="shadow-md p-3 rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative"
-    class:hidden={hidden}>
-    <div class="flex flex-col md:flex-row items-center md:items-start">
-        <img src={token.metadata.image} class="max-w-72 object-contain mr-3 rounded-xl"/>
-        <div class="flex justify-between w-full">
-            <div class="text-left flex-grow">
-                <div class="text-2xl font-bold mb-2 text-purple-900 dark:text-purple-100"><a href="/collection/{token.contractId}/token/{token.tokenId}"><TokenName name={token.metadata.name}></TokenName></a></div>
-                <div class="mb-2">
-                    {token.metadata?.description??''}
-                </div>
-                <div class="grid-cols-2 gap-x-4 gap-y-2 mb-2 inline-grid">
-                    <div class="font-bold">Token ID:</div>
-                    <div>{token.tokenId} {#if collection}/ {collection.totalSupply}{/if}</div>
-                    <div class="font-bold">Collection:</div>
-                    <div><a href="/collection/{token.contractId}">{collectionName}</a></div>
-                    {#if token.rank}
-                        <div class="font-bold">Ranking:</div>
-                        <div>{token.rank}</div>
-                    {/if}
-                    <div class="font-bold">Owned by:</div>
-                    <div>
-                        {#if token.isBurned}
-                            <span style="font-size: 1.2rem; font-weight: bold; color: red; text-transform: uppercase;">
-                                <i class="fas fa-fire"></i> Burned
-                            </span>
-                        {:else}
-                            <a href="/portfolio/{token.owner}">{formattedOwner}</a>
+<div class="shadow-md p-3 rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative overflow-hidden"
+    class:hidden={hidden} class:p-3={format !== 'small'}>
+    <div class="flex flex-col md:flex-row items-center md:items-start" class:space-x-4={format !== 'small'} class:md:flex-col={format === 'small'}>
+        <a href="/collection/{token.contractId}/token/{token.tokenId}">
+            <img src={token.metadata.image} class="w-72 h-72 object-contain" class:rounded-xl={format !== 'small'} />
+        </a>
+        <div class="flex justify-between w-full" class:flex-col={format === 'small'}>
+            {#if format !== 'small'}
+                <div class="text-left flex-grow">
+                    <div class="text-2xl font-bold mb-2 text-purple-900 dark:text-purple-100"><a href="/collection/{token.contractId}/token/{token.tokenId}"><TokenName name={token.metadata.name}></TokenName></a></div>
+                    <div class="mb-2">
+                        {token.metadata?.description??''}
+                    </div>
+                    <div class="grid-cols-2 gap-x-4 gap-y-2 mb-2 inline-grid">
+                        <div class="font-bold">Token ID:</div>
+                        <div>{token.tokenId} {#if collection}/ {collection.totalSupply}{/if}</div>
+                        <div class="font-bold">Collection:</div>
+                        <div><a href="/collection/{token.contractId}">{collectionName}</a></div>
+                        {#if token.rank}
+                            <div class="font-bold">Ranking:</div>
+                            <div>{token.rank}</div>
+                        {/if}
+                        <div class="font-bold">Owned by:</div>
+                        <div>
+                            {#if token.isBurned}
+                                <span style="font-size: 1.2rem; font-weight: bold; color: red; text-transform: uppercase;">
+                                    <i class="fas fa-fire"></i> Burned
+                                </span>
+                            {:else}
+                                <a href="/portfolio/{token.owner}">{formattedOwner}</a>
+                            {/if}
+                        </div>
+                        {#if token.approved && token.approved != zeroAddress}
+                            <div class="font-bold">Approved Spender:</div>
+                            <div><button on:click={() => goto(`/portfolio/${token.approved}`,{invalidateAll:true})}>{formattedApproved}</button></div>
+                        {/if}
+                        <div class="font-bold">Mint Round:</div>
+                        <div><a href="https://voi.observer/explorer/block/{token.mintRound}/transactions" target="_blank">{token.mintRound}</a></div>
+                        {#if royaltyPercentage > 0}
+                            <div class="font-bold">Royalties:</div>
+                            <div>{royaltyPercentage / 100}%</div>
                         {/if}
                     </div>
-                    {#if token.approved && token.approved != zeroAddress}
-                        <div class="font-bold">Approved Spender:</div>
-                        <div><button on:click={() => goto(`/portfolio/${token.approved}`,{invalidateAll:true})}>{formattedApproved}</button></div>
-                    {/if}
-                    <div class="font-bold">Mint Round:</div>
-                    <div><a href="https://voi.observer/explorer/block/{token.mintRound}/transactions" target="_blank">{token.mintRound}</a></div>
-                    {#if royaltyPercentage > 0}
-                        <div class="font-bold">Royalties:</div>
-                        <div>{royaltyPercentage / 100}%</div>
-                    {/if}
                 </div>
-            </div>
+            {:else}
+                <div class="side back bg-gray-200 dark:bg-gray-900 relative flex flex-col p-1">
+                    <div class='p-1 flex flex-col flex-grow'>
+                        <div class="flex flex-col mb-1 text-sm">
+                            <div class="text-sm font-bold"><TokenName name={token.metadata.name}></TokenName></div>
+                            <div class="flex justify-between">
+                                <div>Owner</div>
+                                <a href="/portfolio/{collection?.creator??''}" on:click|stopPropagation class=" text-gray-600 dark:text-gray-300">{collection?.creator.slice(0,8)+'...'+collection?.creator.slice(-8)}</a>
+                            </div>
+                            {#if token.approved && token.approved != zeroAddress}
+                                <div class="flex justify-between">
+                                    <div>Approved</div>
+                                    <a href="/portfolio/{token.approved}" on:click|stopPropagation class=" text-gray-600 dark:text-gray-300">{formattedApproved}</a>
+                                </div>
+                            {/if}
+                            {#if token.rank}
+                                <div class="flex justify-between">
+                                    <div>Ranking</div>
+                                    <div>{token.rank}</div>
+                                </div>
+                            {/if}
+                            {#if royaltyPercentage > 0}
+                                <div class="flex justify-between">
+                                    <div>Royalties</div>
+                                    <div>{royaltyPercentage / 100}%</div>
+                                </div>
+                            {/if}
+                        </div>
+                    </div>
+                </div>
+            {/if}
             {#if isTokenOwner || isTokenApproved}
-                <div class="m-1 justify-self-end space-y-2 min-w-48">
-                    <button on:click={sendToken} class="flex flex-row items-center px-4 py-2 bg-blue-500 text-white rounded shadow hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 transition duration-150 ease-in-out w-full">
+                <div class="justify-self-end {format === 'small' ? 'flex flex-row space-y-0 space-x-1 bg-black' : 'm-1 space-y-2 min-w-48'}">
+                    <button on:click={sendToken} class="flex flex-row items-center px-4 py-2 bg-blue-500 text-white shadow hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 transition duration-150 ease-in-out w-full" class:rounded={format !== 'small'}>
                         <i class="fas fa-paper-plane mr-2"></i>
-                        Send Token
+                        Transfer
                     </button>
                     {#if isTokenOwner}
-                        <button on:click={approveToken} class="flex flex-row items-center px-4 py-2 bg-blue-500 text-white rounded shadow hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 transition duration-150 ease-in-out w-full">
+                        <button on:click={approveToken} class="flex flex-row items-center px-4 py-2 bg-blue-500 text-white shadow hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 transition duration-150 ease-in-out w-full" class:rounded={format !== 'small'}>
                             <i class="fas fa-coins mr-2"></i>
-                            Change Approval
+                            {#if token.approved != zeroAddress}
+                                Change
+                            {:else}
+                                Set
+                            {/if}
+                            Approval
                         </button>
                     {/if}
                 </div>
             {/if}
         </div>
     </div>
-    <div class="flex flex-wrap w-full justify-center md:justify-start">
-        {#each tokenProps as prop}
-            <div class="p-2 m-1 text-md rounded-xl max-w-56 text-nowrap overflow-ellipsis overflow-hidden" style="color: {prop.fgcolor}; background-color: {prop.bgcolor}">
-                <span class="font-bold">{prop.trait_type}:</span> {prop.value}
-            </div>
-        {/each}
-    </div>
+    {#if format !== 'small'}
+        <div class="flex flex-wrap w-full justify-center md:justify-start">
+            {#each tokenProps as prop}
+                <div class="p-2 m-1 text-md rounded-xl max-w-56 text-nowrap overflow-ellipsis overflow-hidden" style="color: {prop.fgcolor}; background-color: {prop.bgcolor}">
+                    <span class="font-bold">{prop.trait_type}:</span> {prop.value}
+                </div>
+            {/each}
+        </div>
+    {/if}
 </div>
 <SendTokenModal bind:showModal={showSendTokenModal} bind:type={sendTokenModalType} token={token} onAfterSend={onAfterSend} fromAddr={$selectedWallet?.address??''} />
 <style>

@@ -45,7 +45,7 @@
     {#if token}
         <div class='mb-4'>
             {#if collection}
-                <TokenDetail {token} {collection} />
+                <TokenDetail {token} {collection} format="large" />
             {/if}
         </div>
         <TransactionTable {token}/>
