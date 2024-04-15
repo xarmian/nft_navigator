@@ -9,9 +9,8 @@
     import algosdk from 'algosdk';
 	import { getWalletBalance } from '$lib/utils/currency';
 	import { zeroAddress } from '$lib/data/constants';
-	import BreadcrumbCustom from './BreadcrumbCustom.svelte';
-	import CloseButton from './CloseButton.svelte';
     import { getNFD } from '$lib/utils/nfd';
+	import { Breadcrumb, BreadcrumbItem } from 'flowbite-svelte';
 
     export let showModal: boolean;
     export let token: Token;
@@ -39,6 +38,7 @@
     let selectedVoiBalance: number;
     let selectedNFTCount: number;
     let sendingError: string = '';
+    let transactionId: string = '';
 
     $: if (transferTo && transferTo.length > 0) {
         updateBalances();
@@ -97,7 +97,9 @@
             // base64 decode signed transactions
             for (let i = 0; i < txnsForSigning.length; i++) {
                 const bytes = Buffer.from(txnsForSigning[i],'base64');
-                decodedTxns.push(algosdk.decodeUnsignedTransaction(bytes));
+                let tx = algosdk.decodeUnsignedTransaction(bytes);
+                transactionId = tx.txID();
+                decodedTxns.push(tx);
             }
             
             try {
@@ -113,6 +115,7 @@
                     while (owner === newOwner && i < 10) {
                         await new Promise(r => setTimeout(r, 1000));
                         t = await getTokens({contractId: token.contractId, tokenId: token.tokenId, invalidate: true});
+                        token = t[0];
                         newOwner = t[0].owner;
                         i++;
                     }
@@ -124,13 +127,13 @@
                     while (approved === newApproved && i < 10) {
                         await new Promise(r => setTimeout(r, 1000));
                         t = await getTokens({contractId: token.contractId, tokenId: token.tokenId, invalidate: true});
+                        token = t[0];
                         newApproved = t[0].approved;
                         i++;
                     }
                 }
 
                 sendingView = SendingView.Sent;
-                if (t) onAfterSend(t[0]);
             }
             catch(err: any) {
                 console.log(err);
@@ -153,14 +156,22 @@
 
     function afterClose() {
         console.log('afterClose');
-        //onAfterSend({...token, owner: transferTo});
+        if (sendingView === SendingView.Sent) {
+            onAfterSend(token);
+        }
         reset();
         onClose();
     }
 </script>
 <Modal title="{type == 'send' ? 'Transfer NFT Token' : 'Change NFT Token Approval'}" bind:showModal onClose={afterClose} showTopCloseButton={true} showBottomCloseButton={false}>
-    <div class="min-h-96 flex items-center">
-        <div class="flex flex-col">
+    <Breadcrumb separator=">" class="w-full">
+        <BreadcrumbItem><span class={sendingView === SendingView.Presend ? 'font-bold underline text-orange-500' : ''}>Select Wallet</span></BreadcrumbItem>
+        <BreadcrumbItem><span class={sendingView === SendingView.Confirm ? 'font-bold underline text-orange-500' : ''}>Confirm</span></BreadcrumbItem>
+        <BreadcrumbItem><span class={sendingView === SendingView.Sending || sendingView === SendingView.Waiting ? 'font-bold underline text-orange-500' : ''}>Sign</span></BreadcrumbItem>
+        <BreadcrumbItem><span class={sendingView === SendingView.Sent ? 'font-bold underline text-orange-500' : ''}>Complete</span></BreadcrumbItem>
+    </Breadcrumb>
+    <div class="min-h-96 flex items-center w-full">
+        <div class="flex flex-col w-full">
             {#if sendingView === "presend"}
                 <div class="flex flex-col items-center m-2">
                     <img src={token.metadata?.image} alt={token.metadata?.name} class="h-20 w-20 object-contain rounded-md"/>
@@ -263,6 +274,10 @@
                                 Token approval has been changed to {transferTo}
                             {/if}
                         {/if}
+                    </div>
+                    <div class="mt-2 text-gray-400 flex flex-col">
+                        <div class="font-bold">Transaction ID</div>
+                        <a href={"https://voi.observer/explorer/transaction/" + transactionId} target="_blank" class="text-xs underline text-blue-500 hover:text-blue-600">{transactionId}</a>
                     </div>
                     <div class="flex flex-row items-center mt-4 space-x-4">
                         <button on:click={() => showModal = false} class="w-64 h-10 bg-blue-500 text-white rounded-md">Close</button>
