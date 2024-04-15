@@ -157,7 +157,7 @@
             <div class="flex justify-center">
                 <div class="text-sm bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 max-w-fit">
                     <i class="fas fa-info-circle mr-2"></i>
-                    Approvals are tokens are you authorized to transfer on the owner's behalf
+                    Approvals are tokens {$selectedWallet?.address == walletId ? 'you are' : 'this wallet is'} authorized to transfer on the owner's behalf
                 </div> 
             </div>
             <div class="flex flex-row flex-wrap justify-center">

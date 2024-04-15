@@ -50,7 +50,7 @@
 					<img src="{Icon}" class="h-12 rounded-2xl" alt="Logo" />
 					<div class="flex flex-col justify-center">
 						<div class="cursor-pointer text-2xl font-bold content-center font-[fantasy]">NFT Navigator</div>
-						<div class="cursor-pointer text-xs content-center font-sans -m-2">on the Voi Network</div>
+						<div class="cursor-pointer text-xs content-center font-sans -m-2">on the <a href="https://voi.network" target="_blank" on:click|stopPropagation class="underline text-blue-500 hover:text-blue-600">Voi</a> Network</div>
 					</div>
 				</a>
 			</div>
