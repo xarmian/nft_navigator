@@ -171,7 +171,7 @@
                 </div>
             {/if}
         </a>
-        <div class="flex justify-between w-full" class:flex-grow={format === 'small'} class:flex-col={format === 'small'}>
+        <div class="flex justify-between w-full flex-col md:flex-row" class:flex-grow={format === 'small'} class:md:flex-col={format === 'small'}>
             {#if format !== 'small'}
                 <div class="text-left flex-grow">
                     <div class="text-2xl font-bold mb-2 text-purple-900 dark:text-purple-100"><a href="/collection/{token.contractId}/token/{token.tokenId}"><TokenName name={token.metadata.name}></TokenName></a></div>
@@ -245,7 +245,7 @@
                 </div>
             {/if}
             {#if isTokenOwner || isTokenApproved}
-                <div class="justify-self-end {format === 'small' ? 'flex flex-row space-y-0 space-x-1 bg-black' : 'm-1 space-y-2 min-w-48'}">
+                <div class="justify-self-end flex flex-row space-x-2 {format === 'small' ? 'space-y-0 md:space-x-1 bg-black' : 'm-1 md:space-y-2 md:space-x-0 min-w-48 md:flex-col'}">
                     <button on:click={sendToken} class="flex flex-row items-center px-4 py-2 bg-blue-500 text-white shadow hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 transition duration-150 ease-in-out w-full" class:rounded={format !== 'small'}>
                         <i class="fas fa-paper-plane mr-2"></i>
                         Transfer

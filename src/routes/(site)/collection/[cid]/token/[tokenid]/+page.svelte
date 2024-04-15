@@ -27,7 +27,7 @@
     }
 </script>
 <svelte:window on:click={closeMenu} />
-<div class="m-5">
+<div class="m-5 flex flex-col flex-wrap">
     <div use:handleScroll class="button-bar">
         <div class="flex flex-row space-x-3">
             <a class="content-evenly text-md bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500" href={`/collection/${token?.contractId}`}><FanIcon /> Collection</a>

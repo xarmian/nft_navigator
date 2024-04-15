@@ -33,13 +33,6 @@
     onMount(async () => {
         pageLoaded = true;
         isMobile = Device.isMobile;
-
-        // get viewport width to determine if one or two random tokens are displayed
-        headerTokens = tokens.slice();
-        // const numTokens = window.innerWidth < 768 ? 1 : 2;
-        const numTokens = 1; // force to one token for now.. seems to look better
-        headerTokens = headerTokens.sort(() => Math.random() - 0.5).slice(0, numTokens);
-
     });
 
     $: {
@@ -60,6 +53,16 @@
     onDestroy(() => {
         unsub();
     });
+
+    $: {
+        if (tokens) {
+            // get viewport width to determine if one or two random tokens are displayed
+            headerTokens = tokens.slice();
+            // const numTokens = window.innerWidth < 768 ? 1 : 2;
+            const numTokens = 1; // force to one token for now.. seems to look better
+            headerTokens = headerTokens.sort(() => Math.random() - 0.5).slice(0, numTokens);
+        }
+    }
 
     $: formattedWallet = (walletIds) ? (walletIds[0].length > 8
         ? `${walletIds[0].slice(0, (isMobile ? 4 : 6))}...${walletIds[0].slice((isMobile ? -4 : -6))}`
