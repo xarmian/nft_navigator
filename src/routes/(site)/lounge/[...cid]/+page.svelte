@@ -48,6 +48,9 @@
                 });
             });
         }
+        else {
+            nonUserCollections = allCollections;
+        }
     }
 
     const unsub = selectedWallet.subscribe((value) => {
