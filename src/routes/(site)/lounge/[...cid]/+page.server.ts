@@ -35,12 +35,20 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
   const wallets = Array.from(new Set(data.map((m) => m.walletId)));
   const nfd = await getNFD(wallets);
 
-  data.forEach((m) => {
+  for (const m of data) {
     const n = nfd.find((n) => n.key === m.walletId);
     if (n) {
       m.nfd = n;
     }
-  });
+    else {
+      const token = (await getTokens({ owner: m.walletId, limit: 1 }))?.[0] ?? {};
+      m.nfd = { 
+        key: m.walletId, 
+        replacementValue: m.walletId.substring(0, 6) + '...' + m.walletId.substring(m.walletId.length - 6), 
+        avatar: token.metadata?.image ?? '/blank_avatar_small.png'
+      };
+    }
+  }
 
   return {
     server_data: { collectionId: cid, messages: data, nfd: nfd },

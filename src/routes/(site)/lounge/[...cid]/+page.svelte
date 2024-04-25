@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Collection } from "$lib/data/types";
     import { selectedWallet, verifyToken, type WalletConnectionResult } from "avm-wallet-svelte";
-	import { onMount } from "svelte";
+	import { onMount, onDestroy } from "svelte";
     import { getTokens, getCollections } from "$lib/utils/indexer";
     import { Tabs, ButtonGroup, Button } from 'flowbite-svelte';
     import TabItem from '$lib/component/ui/TabItemCustom.svelte';
@@ -62,6 +62,10 @@
                 });
             }
         }
+    });
+
+    onDestroy(() => {
+        unsub();
     });
 
     onMount(async () => {
@@ -260,9 +264,11 @@
         </Tabs>
     </div>
 </div>
-<div class="absolute top-0 -z-10 h-screen w-screen opacity-30 dark:opacity-20 bgcontainer" style={`background-image: url(${allCollections.find(c => c.contractId === Number(selectedCollection))?.highforgeData?.coverImageURL});`}>
-    <div class="absolute inset-0 bg-black opacity-50"></div>
-</div>
+{#if selectedCollection}
+    <div class="absolute top-0 -z-10 h-screen w-screen opacity-30 dark:opacity-20 bgcontainer" style={`background-image: url(${allCollections.find(c => c.contractId === Number(selectedCollection))?.highforgeData?.coverImageURL});`}>
+        <div class="absolute inset-0 bg-black opacity-50"></div>
+    </div>
+{/if}
 <style>
 .mainview {
     height: calc(100vh - 5rem);

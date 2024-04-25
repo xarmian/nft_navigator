@@ -20,7 +20,7 @@ interface PMessage {
     deleted?: boolean;
 }
 
-export const getMessagesSim = async (collectionId: string) => {
+export const getMessagesSim = async () => {
     function generateRandomAddress() {
         const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         let address = '';
@@ -46,6 +46,8 @@ export const getMessagesSim = async (collectionId: string) => {
 }
 
 export const getMessages = async (collectionId: string, includePrivate: boolean) => {
+    if (!collectionId) return [];
+
     let query = supabasePrivateClient.from('messages').select('*').eq('collectionId', collectionId).neq('deleted', true);
 
     if (!includePrivate) {
