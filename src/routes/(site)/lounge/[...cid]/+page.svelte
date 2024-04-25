@@ -22,11 +22,16 @@
     let canViewPrivate = false;
     let messages: { walletId: string, message: string, timestamp: string, avatar?: string, private: boolean, nfd?: any }[] = [];
     let postPrivacy = selectedView;
+    let privateCount = 0;
+    let publicCount = 0;
     $: hasValidToken = false;
 
     $: selectedCollection = data.server_data.collectionId;
     $: {
         messages = data.server_data.messages;
+        privateCount = messages.filter((message) => message.private).length;
+        publicCount = messages.filter((message) => !message.private).length;
+
         //console.log(messages);
         if (selectedView == 'Public') {
             messages = messages.filter((message) => !message.private);
@@ -175,13 +180,15 @@
             <TabItem title="Overview" open={true} defaultClass="hidden">
                 <div class="flex flex-col relative h-full mt-16">
                     <div class="absolute -top-12 right-2">
-                        <ButtonGroup>
-                            <Button checked={selectedView == 'Public'} on:click={() => changeView('Public')}>Public</Button>
-                            {#if canViewPrivate}
-                                <Button checked={selectedView == 'Private'} on:click={() => changeView('Private')}>Private</Button>
-                                <Button checked={selectedView == 'All'} on:click={() => changeView('All')}>All</Button>
-                            {/if}
-                        </ButtonGroup>
+                        {#if selectedCollection}
+                            <ButtonGroup>
+                                <Button checked={selectedView == 'Public'} on:click={() => changeView('Public')}>Public ({publicCount})</Button>
+                                {#if canViewPrivate}
+                                    <Button checked={selectedView == 'Private'} on:click={() => changeView('Private')}>Private ({privateCount})</Button>
+                                    <Button checked={selectedView == 'All'} on:click={() => changeView('All')}>All</Button>
+                                {/if}
+                            </ButtonGroup>
+                        {/if}
                     </div>
                     {#if selectedCollection}
                         <div class="flex flex-col my-4 mx-1 mb-12 overflow-auto relative">
