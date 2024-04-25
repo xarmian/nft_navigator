@@ -39,6 +39,10 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
     const n = nfd.find((n) => n.key === m.walletId);
     if (n) {
       m.nfd = n;
+      if (!m.nfd.avatar) {
+        const token = (await getTokens({ owner: m.walletId, limit: 1 }))?.[0] ?? {};
+        m.nfd.avatar = token.metadata?.image ?? '/blank_avatar_small.png';
+      }
     }
     else {
       const token = (await getTokens({ owner: m.walletId, limit: 1 }))?.[0] ?? {};
