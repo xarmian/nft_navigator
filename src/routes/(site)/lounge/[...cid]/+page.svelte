@@ -69,7 +69,7 @@
 
         // sort allCollections by collection.highforgeData?.title
         allCollections = allCollections.sort((a: any, b: any) => {
-            return a.highforgeData?.title.localeCompare(b.highforgeData?.title??'');
+            return a.highforgeData?.title.localeCompare(b.highforgeData?.title??'ZZZ');
         });
     });
 
@@ -136,7 +136,7 @@
     };
 </script>
 
-<div class="flex flex-row mainview dark:bg-gray-900 text-black dark:text-gray-200">
+<div class="flex flex-row mainview bg-opacity-50 text-black dark:text-gray-200">
     <div class="flex flex-col space-y-4 w-48 overflow-x-hidden overflow-y-auto text-nowrap p-3 border-r-2 border-slate-200 dark:border-slate-700">
         <div class="flex flex-col">
             <div class="text-sm font-bold bg-gray-200 text-gray-800 dark:bg-gray-800 dark:text-gray-200 p-1 rounded-md shadow-md">
@@ -145,7 +145,7 @@
             <div class="flex flex-col ml-3 text-sm">
                 {#each userCollections as collection, i}
                     <div on:click={() => goto(`/lounge/${collection.contractId}`)} class:text-blue-500={selectedCollection == String(collection.contractId)} class="cursor-pointer text-ellipsis">
-                        # {collection.highforgeData?.title}
+                        # {collection.highforgeData?.title ?? collection.contractId}
                     </div>
                 {/each}
             </div>
@@ -157,7 +157,7 @@
             <div class="flex flex-col ml-3 text-sm">
                 {#each nonUserCollections as collection, i}
                     <div on:click={() => goto(`/lounge/${collection.contractId}`)} class:text-blue-500={selectedCollection == String(collection.contractId)} class="cursor-pointer text-ellipsis">
-                        # {collection.highforgeData?.title}
+                        # {collection.highforgeData?.title ?? collection.contractId}
                     </div>
                 {/each}
             </div>
@@ -209,7 +209,7 @@
                             <div class="flex-grow h-full m-1 w-full md:w-3/4 place-self-center">
                                 {#each messages as message}
                                     <div class="flex flex-row items-start p-6 bg-gray-50 dark:bg-gray-800 rounded-xl shadow mb-4">
-                                        <div class="w-12 h-12 bg-gray-500 rounded-full overflow-hidden"><img src={message.nfd?.avatar ?? '/blank_avatar_small.png'}/></div>
+                                        <div on:click={() => goto(`/portfolio/${message.walletId}`)} class="cursor-pointer flex-shrink-0 w-12 h-12 bg-gray-500 rounded-full overflow-hidden"><img src={message.nfd?.avatar ?? '/blank_avatar_small.png'}/></div>
                                         <div class="ml-4 flex flex-row w-full justify-between">
                                             <div class="flex flex-col">
                                                 <div class="text-sm font-bold text-blue-500 dark:text-blue-300">
@@ -260,9 +260,18 @@
         </Tabs>
     </div>
 </div>
+<div class="absolute top-0 -z-10 h-screen w-screen opacity-30 dark:opacity-20 bgcontainer" style={`background-image: url(${allCollections.find(c => c.contractId === Number(selectedCollection))?.highforgeData?.coverImageURL});`}>
+    <div class="absolute inset-0 bg-black opacity-50"></div>
+</div>
 <style>
 .mainview {
     height: calc(100vh - 5rem);
     overflow: hidden;
+}
+.bgcontainer {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: blur(10px);
 }
 </style>
