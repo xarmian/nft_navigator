@@ -6,7 +6,7 @@
 	import { onMount } from 'svelte';
 	import { invalidate } from '$app/navigation';
 	
-	export let data;
+	// export let data;
 
 	/*let { supabase, session } = data;
 	$: ({ supabase, session } = data);

@@ -7,6 +7,7 @@
 	import CollectionSearch from '$lib/component/ui/Search.svelte';
 	import { page } from '$app/stores';
 	import { algodClient, algodIndexer } from '$lib/utils/algod';
+	import Cookies from 'js-cookie';
 
 	let showMenu = false;
 	let currentPath = '';
@@ -22,6 +23,15 @@
 		}
 	});
 
+	const unsubWallet = selectedWallet.subscribe((value) => {
+        if (value) {
+			Cookies.set('avm-wallet', value.address);
+		}
+		else {
+			Cookies.remove('avm-wallet');
+		}
+    });
+
 	onMount(() => {
 		// click outside menu to close
 		document.addEventListener('click', (e: MouseEvent) => {
@@ -35,6 +45,7 @@
 
 	onDestroy(() => {
 		unsub();
+		unsubWallet();
 	});
 
 	const options = {
@@ -74,7 +85,7 @@
 				</div>
 				<div class="hidden md:flex">
 					<div class="w-42 flex">
-						<Web3Wallet availableWallets={['DeflyWallet','Kibisis','LuteWallet']} showAuthButtons={false} algodClient={algodClient} indexerClient={algodIndexer} walletListClass="bg-gray-100 dark:bg-gray-500"/>
+						<Web3Wallet availableWallets={['DeflyWallet','Kibisis','LuteWallet']} showAuthButtons={true} algodClient={algodClient} indexerClient={algodIndexer} walletListClass="bg-gray-100 dark:bg-gray-500"/>
 					</div>
 				</div>
 				<div class="ml-auto relative content-end flex flex-row">
@@ -96,7 +107,7 @@
 								<div on:click|stopPropagation>
 									<CollectionSearch />
 								</div>
-								<Web3Wallet showAuthButtons={false} algodClient={algodClient} indexerClient={algodIndexer} walletListClass="bg-gray-100 dark:bg-gray-500"/>
+								<Web3Wallet showAuthButtons={true} algodClient={algodClient} indexerClient={algodIndexer} walletListClass="bg-gray-100 dark:bg-gray-500"/>
 							</div>
 						{/if}
 					</div>
