@@ -236,9 +236,13 @@
                             </div>
                         </div>
                     {:else}
-                        <div class="text-2xl font-bold text-gray-800 dark:text-gray-200 flex flex-col place-items-center">Welcome to the Voi Lounge!</div>
+                        <div class="text-2xl font-bold text-gray-800 dark:text-gray-200 flex flex-row justify-center">Welcome to the Voi Lounge <span class="text-blue-500 super text-sm">Alpha</span></div>
                         <div class="text-lg text-gray-800 dark:text-gray-200 flex flex-col place-items-center">Select a group to get started.</div>
-                        <div class="text-sm text-gray-500 dark:text-gray-400 flex flex-col place-items-center mt-8">
+                        <div class="text-lg text-gray-600 dark:text-yellow-500 p-4 rounded flex flex-row justify-center m-6">
+                            <i class="fas fa-exclamation-circle mr-2"></i>
+                            This is currently missing many features. It should be expected to change regularly, and content could be reset at any time.
+                        </div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400 flex flex-col place-items-center">
                             Connect your wallet to see your groups. You will will automatically be added to groups for NFT collections you own.
                         </div>
                         <div class="text-sm text-gray-500 dark:text-gray-400 flex flex-col place-items-center">
