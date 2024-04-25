@@ -144,7 +144,7 @@
             </div>
             <div class="flex flex-col ml-3 text-sm">
                 {#each userCollections as collection, i}
-                    <div on:click={() => goto(`/social/${collection.contractId}`)} class:text-blue-500={selectedCollection == String(collection.contractId)} class="cursor-pointer text-ellipsis">
+                    <div on:click={() => goto(`/lounge/${collection.contractId}`)} class:text-blue-500={selectedCollection == String(collection.contractId)} class="cursor-pointer text-ellipsis">
                         # {collection.highforgeData?.title}
                     </div>
                 {/each}
@@ -156,7 +156,7 @@
             </div>
             <div class="flex flex-col ml-3 text-sm">
                 {#each nonUserCollections as collection, i}
-                    <div on:click={() => goto(`/social/${collection.contractId}`)} class:text-blue-500={selectedCollection == String(collection.contractId)} class="cursor-pointer text-ellipsis">
+                    <div on:click={() => goto(`/lounge/${collection.contractId}`)} class:text-blue-500={selectedCollection == String(collection.contractId)} class="cursor-pointer text-ellipsis">
                         # {collection.highforgeData?.title}
                     </div>
                 {/each}
@@ -165,8 +165,8 @@
     </div>
     <div class="flex flex-col flex-grow h-full">
         <Tabs contentClass="h-full">
-            <TabItem title="Overview" open={true}>
-                <div class="flex flex-col relative h-full">
+            <TabItem title="Overview" open={true} defaultClass="hidden">
+                <div class="flex flex-col relative h-full mt-16">
                     <div class="absolute -top-12 right-2">
                         <ButtonGroup>
                             <Button checked={selectedView == 'Public'} on:click={() => changeView('Public')}>Public</Button>
@@ -235,13 +235,22 @@
                                 {/if}
                             </div>
                         </div>
+                    {:else}
+                        <div class="text-2xl font-bold text-gray-800 dark:text-gray-200 flex flex-col place-items-center">Welcome to the Voi Lounge!</div>
+                        <div class="text-lg text-gray-800 dark:text-gray-200 flex flex-col place-items-center">Select a group to get started.</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400 flex flex-col place-items-center mt-8">
+                            Connect your wallet to see your groups. You will will automatically be added to groups for NFT collections you own.
+                        </div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400 flex flex-col place-items-center">
+                            Authenticate your wallet to post messages and view private channels.
+                        </div>
                     {/if}
                 </div>
             </TabItem>
-            <TabItem title="Members">
+            <TabItem title="Members" defaultClass="hidden">
                 <div>Members</div>
             </TabItem>
-            <TabItem title="Activity">
+            <TabItem title="Activity" defaultClass="hidden">
                 <div>Activity</div>
             </TabItem>
         </Tabs>
