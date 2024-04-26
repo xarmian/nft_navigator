@@ -85,7 +85,7 @@
 				</div>
 				<div class="hidden md:flex">
 					<div class="w-42 flex">
-						<Web3Wallet availableWallets={['DeflyWallet','Kibisis','LuteWallet']} showAuthButtons={true} algodClient={algodClient} indexerClient={algodIndexer} walletListClass="bg-gray-100 dark:bg-gray-500"/>
+						<Web3Wallet availableWallets={['DeflyWallet','Kibisis','LuteWallet']} showAuthButtons={true} algodClient={algodClient} indexerClient={algodIndexer} walletListClass="bg-gray-100 dark:bg-slate-600 dark:text-gray-200"/>
 					</div>
 				</div>
 				<div class="ml-auto relative content-end flex flex-row">

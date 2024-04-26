@@ -3,13 +3,14 @@
     import { selectedWallet, verifyToken, type WalletConnectionResult } from "avm-wallet-svelte";
 	import { onMount, onDestroy } from "svelte";
     import { getTokens, getCollections } from "$lib/utils/indexer";
-    import { Tabs, ButtonGroup, Button } from 'flowbite-svelte';
+    import { Tabs, ButtonGroup, Button, Popover } from 'flowbite-svelte';
     import TabItem from '$lib/component/ui/TabItemCustom.svelte';
     //@ts-expect-error no types
     import EmojiPicker from "svelte-emoji-picker";
     import type { PageData } from './$types';
 	import { goto, invalidateAll } from "$app/navigation";
     import Cookies from 'js-cookie';
+	import { toast } from "@zerodevx/svelte-toast";
     export let data: PageData;
 
     let wallet: WalletConnectionResult | null = null;
@@ -179,21 +180,34 @@
         <Tabs contentClass="h-full">
             <TabItem title="Overview" open={true} defaultClass="hidden">
                 <div class="flex flex-col relative h-full mt-16">
-                    <div class="absolute -top-12 right-2">
+                    <div class="absolute -top-12 right-2 flex flex-row">
                         {#if selectedCollection}
                             <ButtonGroup>
                                 <Button checked={selectedView == 'Public'} on:click={() => changeView('Public')}>Public ({publicCount})</Button>
-                                {#if canViewPrivate}
-                                    <Button checked={selectedView == 'Private'} on:click={() => changeView('Private')}>Private ({privateCount})</Button>
-                                    <Button checked={selectedView == 'All'} on:click={() => changeView('All')}>All</Button>
-                                {/if}
+                                <Button disabled={!canViewPrivate} checked={selectedView == 'Private'} on:click={() => changeView('Private')}>Private{canViewPrivate ? ` (${privateCount})` : ''}</Button>
+                                <Button disabled={!canViewPrivate} checked={selectedView == 'All'} on:click={() => changeView('All')}>All</Button>
                             </ButtonGroup>
+                            {#if !hasValidToken}
+                                <div class="text-2xl font-bold text-gray-800 dark:text-gray-200 flex flex-col place-items-center m-2">
+                                    <button id="auth-info-trigger">
+                                        <i class="fas fa-info-circle mr-2 text-blue-600"></i>
+                                    </button>
+                                    <Popover
+                                        triggeredBy="#auth-info-trigger"
+                                        placement="bottom"
+                                        class="w-64 text-sm p-4 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-lg"
+                                        style="z-index: 1000"
+                                    >
+                                    To access private groups, you must authenticate your wallet. Click your wallet address and then select the "Auth" option next to the wallet.
+                                    </Popover>
+                                </div>
+                            {/if}
                         {/if}
                     </div>
                     {#if selectedCollection}
                         <div class="flex flex-col my-4 mx-1 mb-12 overflow-auto relative">
                             {#if canViewPrivate && hasValidToken}
-                                <form on:submit={handleSubmit} class="h-16 p-2 py-16 mb-4 mx-1 w-full sm:w-3/4 place-self-center flex items-center bg-gray-50 dark:bg-gray-800 rounded-xl shadow relative">
+                                <form on:submit={handleSubmit} class="h-16 p-2 py-16 mb-4 mx-1 w-full sm:w-3/4 place-self-center flex items-center bg-gray-50 dark:bg-gray-800 rounded-xl shadow relative border dark:border-slate-700">
                                     <div class="text-xl mr-2 pointer" on:click|stopPropagation={() => showEmojiPicker = !showEmojiPicker}>
                                         <i class="far fa-smile"></i>
                                     </div>
@@ -222,7 +236,7 @@
                             {/if}
                             <div class="flex-grow h-full m-1 w-full md:w-3/4 place-self-center">
                                 {#each messages as message}
-                                    <div class="flex flex-row items-start p-6 bg-gray-50 dark:bg-gray-800 rounded-xl shadow mb-4">
+                                    <div class="flex flex-row items-start p-6 bg-gray-50 dark:bg-gray-800 rounded-xl shadow mb-4 dark:border-slate-700 border">
                                         <div on:click={() => goto(`/portfolio/${message.walletId}`)} class="cursor-pointer flex-shrink-0 w-12 h-12 bg-gray-500 rounded-full overflow-hidden"><img src={message.nfd?.avatar ?? '/blank_avatar_small.png'}/></div>
                                         <div class="ml-4 flex flex-row w-full justify-between">
                                             <div class="flex flex-col">
