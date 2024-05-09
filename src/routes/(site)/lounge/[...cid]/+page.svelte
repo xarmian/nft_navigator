@@ -259,14 +259,14 @@
                                         <div on:click={() => goto(`/portfolio/${message.walletId}`)} class="cursor-pointer flex-shrink-0 w-12 h-12 bg-gray-500 rounded-full overflow-hidden"><img src={message.nfd?.avatar ?? '/blank_avatar_small.png'}/></div>
                                         <div class="ml-4 flex flex-row w-full justify-between">
                                             <div class="flex flex-col">
-                                                <div class="text-sm font-bold text-blue-500 dark:text-blue-300">
-                                               {#if message.nfd}
-                                                   {message.nfd.replacementValue}
-                                               {:else}
-                                                   {message.walletId.slice(0, 8)}...{message.walletId.slice(-8)}
-                                               {/if}
-                                           </div>
-                                           <div class="text-sm text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-line">{message.message}</div>
+                                                <a on:click={() => goto(`/portfolio/${message.walletId}`)} class="text-sm font-bold text-blue-500 dark:text-blue-300 cursor-pointer">
+                                                    {#if message.nfd}
+                                                        {message.nfd.replacementValue}
+                                                    {:else}
+                                                        {message.walletId.slice(0, 8)}...{message.walletId.slice(-8)}
+                                                    {/if}
+                                                </a>
+                                                <div class="text-sm text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-line">{message.message}</div>
                                                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-2 hover:text-blue-500 cursor-pointer" title={new Date(message.timestamp).toLocaleString()}>
                                                     {timeSince(message.timestamp)}
                                                 </div>
@@ -276,7 +276,7 @@
                                                     {message.private ? 'Private' : 'Public'}
                                                 </div>
                                                 {#if selectedCollection === 'all' || selectedCollection === 'myfeed'}
-                                                    <div class={`place-self-end text-xs`}>
+                                                    <div class={`place-self-end text-xs text-blue-500 dark:text-blue-300`}>
                                                         <a href="/lounge/{message.collectionId}">{allCollections.find(c => c.contractId === Number(message.collectionId))?.highforgeData?.title}</a>
                                                     </div>
                                                 {/if}
