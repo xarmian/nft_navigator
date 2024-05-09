@@ -21,7 +21,7 @@
     let showEmojiPicker = false;
     let chatInput = '';
     let canViewPrivate = false;
-    let messages: { walletId: string, message: string, timestamp: string, avatar?: string, private: boolean, nfd?: any }[] = [];
+    let messages: { walletId: string, message: string, timestamp: string, avatar?: string, private: boolean, nfd?: any, collectionId: string }[] = [];
     let postPrivacy = selectedView;
     let privateCount = 0;
     let publicCount = 0;
@@ -112,7 +112,7 @@
 
     $: {
         // if selectedCollection is not in userCollections, set selectedView to 'Public'
-        if (!userCollections.some((collection) => String(collection.contractId) == selectedCollection)) {
+        if (!userCollections.some((collection) => String(collection.contractId) == selectedCollection) && selectedCollection != 'all' && selectedCollection != 'myfeed') {
             selectedView = 'Public';
             canViewPrivate = false;
         }
@@ -152,6 +152,16 @@
 <div class="flex flex-row mainview bg-opacity-50 text-black dark:text-gray-200">
     <div class="flex flex-col space-y-4 w-48 overflow-x-hidden overflow-y-auto text-nowrap p-3 border-r-2 border-slate-200 dark:border-slate-700">
         <div class="flex flex-col">
+            <div class="flex flex-col ml-3 text-sm">
+                <div on:click={() => goto(`/lounge/all`)} class:text-blue-500={selectedCollection == 'all'} class="cursor-pointer text-ellipsis">
+                    # All
+                 </div>
+                 <div on:click={() => goto(`/lounge/myfeed`)} class:text-blue-500={selectedCollection == 'myfeed'} class="cursor-pointer text-ellipsis">
+                    # My Feed
+                 </div>
+              </div>
+        </div>
+        <div class="flex flex-col">
             <div class="text-sm font-bold bg-gray-200 text-gray-800 dark:bg-gray-800 dark:text-gray-200 p-1 rounded-md shadow-md">
                 My Groups
             </div>
@@ -180,28 +190,37 @@
         <Tabs contentClass="h-full">
             <TabItem title="Overview" open={true} defaultClass="hidden">
                 <div class="flex flex-col relative h-full mt-16">
-                    <div class="absolute -top-12 right-2 flex flex-row">
-                        {#if selectedCollection}
-                            <ButtonGroup>
-                                <Button checked={selectedView == 'Public'} on:click={() => changeView('Public')}>Public ({publicCount})</Button>
-                                <Button disabled={!canViewPrivate} checked={selectedView == 'Private'} on:click={() => changeView('Private')}>Private{canViewPrivate ? ` (${privateCount})` : ''}</Button>
-                                <Button disabled={!canViewPrivate} checked={selectedView == 'All'} on:click={() => changeView('All')}>All</Button>
-                            </ButtonGroup>
-                            {#if !hasValidToken}
-                                <div class="text-2xl font-bold text-gray-800 dark:text-gray-200 flex flex-col place-items-center m-2">
-                                    <button id="auth-info-trigger">
-                                        <i class="fas fa-info-circle mr-2 text-blue-600"></i>
-                                    </button>
-                                    <Popover
-                                        triggeredBy="#auth-info-trigger"
-                                        placement="bottom"
-                                        class="w-64 text-sm p-4 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-lg"
-                                        style="z-index: 1000"
-                                    >
-                                    To access private groups, you must authenticate your wallet. Click your wallet address and then select the "Auth" option next to the wallet.
-                                    </Popover>
-                                </div>
+                    <div class="absolute -top-12 right-2 flex flex-row w-full justify-between">
+                        <div class="text-2xl font-bold mt-1 mb-2 ml-6">
+                            {#if selectedCollection != 'all' && selectedCollection != 'myfeed'}
+                                {allCollections.find(c => c.contractId === Number(selectedCollection))?.highforgeData?.title ?? selectedCollection}
+                            {:else}
+                                Voi Lounge - {selectedCollection == 'all' ? 'All' : 'My Feed'}
                             {/if}
+                        </div>
+                        {#if selectedCollection}
+                            <div class="flex flex-row">
+                                <ButtonGroup>
+                                    <Button checked={selectedView == 'Public'} on:click={() => changeView('Public')}>Public ({publicCount})</Button>
+                                    <Button disabled={!canViewPrivate} checked={selectedView == 'Private'} on:click={() => changeView('Private')}>Private{canViewPrivate ? ` (${privateCount})` : ''}</Button>
+                                    <Button disabled={!canViewPrivate} checked={selectedView == 'All'} on:click={() => changeView('All')}>All</Button>
+                                </ButtonGroup>
+                                {#if !hasValidToken}
+                                    <div class="text-2xl font-bold text-gray-800 dark:text-gray-200 flex flex-col place-items-center m-2">
+                                        <button id="auth-info-trigger">
+                                            <i class="fas fa-info-circle mr-2 text-blue-600"></i>
+                                        </button>
+                                        <Popover
+                                            triggeredBy="#auth-info-trigger"
+                                            placement="bottom"
+                                            class="w-64 text-sm p-4 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-lg"
+                                            style="z-index: 1000"
+                                        >
+                                        To access private groups, you must authenticate your wallet. Click your wallet address and then select the "Auth" option next to the wallet.
+                                        </Popover>
+                                    </div>
+                                {/if}
+                            </div>
                         {/if}
                     </div>
                     {#if selectedCollection}
@@ -252,8 +271,15 @@
                                                     {timeSince(message.timestamp)}
                                                 </div>
                                             </div>
-                                            <div class={`place-self-start text-xs px-2 py-1 rounded-lg mt-2 ${message.private ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}>
-                                                {message.private ? 'Private' : 'Public'}
+                                            <div class="flex flex-col justify-between">
+                                                <div class={`place-self-end text-xs px-2 py-1 rounded-lg mt-2 ${message.private ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}>
+                                                    {message.private ? 'Private' : 'Public'}
+                                                </div>
+                                                {#if selectedCollection === 'all' || selectedCollection === 'myfeed'}
+                                                    <div class={`place-self-end text-xs`}>
+                                                        <a href="/lounge/{message.collectionId}">{allCollections.find(c => c.contractId === Number(message.collectionId))?.highforgeData?.title}</a>
+                                                    </div>
+                                                {/if}
                                             </div>
                                         </div>
                                     </div>

@@ -70,6 +70,34 @@ export const getMessages = async (collectionId: string, includePrivate: boolean)
     return data?.reverse()??[];
 }
 
+export const getPublicFeed = async ( collectionIds: string[] ) => {
+    let query = supabasePrivateClient.from('messages').select('*').neq('deleted', true).eq('private', false);
+
+    if (collectionIds.length > 0) {
+        query = query.in('collectionId', collectionIds);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+        console.error('getPublicFeed',error);
+    }
+
+    return data?.reverse()??[];
+}
+
+export const getPrivateFeed = async ( collectionIds: string[] ) => {
+    const query = supabasePrivateClient.from('messages').select('*').neq('deleted', true).eq('private', true).in('collectionId', collectionIds);
+
+    const { data, error } = await query;
+
+    if (error) {
+        console.error('getPrivateFeed',error);
+    }
+
+    return data?.reverse()??[];
+}
+
 // Get collection data, which is generally settings for a collection
 export const getCollectionData = async (collectionId: string) => {
     console.log('getCollectionData function not yet implemented');

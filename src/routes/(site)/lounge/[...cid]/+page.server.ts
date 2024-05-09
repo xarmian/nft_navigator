@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getMessages, postMessage, saveAction } from '$lib/supabase-server';
+import { getMessages, postMessage, saveAction, getPublicFeed, getPrivateFeed } from '$lib/supabase-server';
 import { verifyToken } from 'avm-wallet-svelte';
 import { getTokens } from '$lib/utils/indexer';
 import { error } from '@sveltejs/kit';
@@ -15,20 +15,32 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
   // validate user's wallet token
   const isValid = (walletId && token) ? await verifyToken(walletId,token) : false;
 
-  // validate user can access collection
-  const ownsToken = (await getTokens({ owner: walletId, contractId: cid })).length > 0;
+  let data = [];
 
-  // fetch messages from supabase
-  const data = (cid ? await getMessages(cid, (isValid && ownsToken)) : []);
+  if (cid == 'all') {
+    const collectionIds = (await getTokens({ owner: walletId })).map((t) => String(t.contractId));
+    data = (await getPublicFeed([])).concat(await getPrivateFeed(collectionIds));
+  }
+  else if (cid === 'myfeed') {
+    const collectionIds = (await getTokens({ owner: walletId })).map((t) => String(t.contractId));
+    data = (await getPublicFeed(collectionIds)).concat(await getPrivateFeed(collectionIds));
+  }
+  else {
+    // validate user can access collection
+    const ownsToken = (await getTokens({ owner: walletId, contractId: cid })).length > 0;
 
-  if (data.length === 0) {
-    data.push({
-      collectionId: cid,
-      walletId: 'R7TBR3Y5QCM6Y2OPQP3BPNUQG7TLN75IOC2WTNRUKO4VPNSDQF52MZB4ZE',
-      message: 'Be the change you want to see in the world. - Mahatma Gandhi',
-      private: false,
-      timestamp: new Date().toString(),
-    });
+    // fetch messages from supabase
+    data = (cid ? await getMessages(cid, (isValid && ownsToken)) : []);
+
+    if (data.length === 0) {
+      data.push({
+        collectionId: cid,
+        walletId: 'R7TBR3Y5QCM6Y2OPQP3BPNUQG7TLN75IOC2WTNRUKO4VPNSDQF52MZB4ZE',
+        message: 'Be the change you want to see in the world. - Mahatma Gandhi',
+        private: false,
+        timestamp: new Date().toString(),
+      });
+    }
   }
 
   // get a list of unique wallets from data.messages.walletId and then get their NFD data
