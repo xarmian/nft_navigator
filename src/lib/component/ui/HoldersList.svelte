@@ -8,6 +8,7 @@
 	import { inview } from 'svelte-inview';
     
     export let tokens: Token[] = [];
+    export let showDownloadCSV = true;
 
     let displayCount = 10;
 
@@ -100,9 +101,11 @@
     
 </script>
 <div class="w-full m-0 md:p-4">
-    <div class="flex justify-end items-center mb-4">
-        <button on:click={downloadCSV} class="px-4 py-2 ml-2 bg-green-500 text-white rounded-lg shadow-md hover:bg-green-600 dark:bg-gray-700 dark:hover:bg-gray-600">Download CSV</button>
-    </div>
+    {#if showDownloadCSV}
+        <div class="flex justify-end items-center mb-4">
+            <button on:click={downloadCSV} class="px-4 py-2 ml-2 bg-green-500 text-white rounded-lg shadow-md hover:bg-green-600 dark:bg-gray-700 dark:hover:bg-gray-600">Download CSV</button>
+        </div>
+    {/if}
     {#each paginatedHolders as tokens}
         <div class="flex flex-row space-y-4 justify-start bg-slate-200 dark:bg-slate-700 rounded-xl m-2 p-4">
             <div class="flex flex-row space-x-4 items-start">
@@ -119,9 +122,9 @@
                     {tokens[0].ownerNFD ?? ''}
                 </div>
             </div>
-            <div class="flex flex-row space-x-4 flex-wrap justify-start">
+            <div class="flex flex-row space-x-4 flex-wrap justify-end w-full mx-12" style="margin-top:-3rem; margin-bottom:1.5rem;">
                 {#each tokens as token}
-                    <div class="transform scale-75">
+                    <div class="transform scale-50 w-36 h-40">
                         <TokenCard token={token} />
                     </div>
                 {/each}
