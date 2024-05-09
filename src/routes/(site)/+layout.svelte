@@ -2,7 +2,7 @@
 	import { SvelteToast } from '@zerodevx/svelte-toast';
 	import { DarkMode } from 'flowbite-svelte';
 	import Icon from '$lib/assets/android-chrome-192x192.png';
-	import { Web3Wallet, selectedWallet } from 'avm-wallet-svelte';
+	import { Web3Wallet, selectedWallet, setOnAddHandler, setOnAuthHandler } from 'avm-wallet-svelte';
 	import { onDestroy, onMount } from 'svelte';
 	import CollectionSearch from '$lib/component/ui/Search.svelte';
 	import { page } from '$app/stores';
@@ -32,6 +32,40 @@
 		}
     });
 
+	setOnAddHandler(async (wallets) => {
+		console.log('Wallet added', wallets);
+
+		const response = await fetch('/api/quests', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				action: 'connect_wallet',
+				wallets: wallets,
+			}),
+		});
+
+		if (!response.ok) {
+			console.error('Failed to send wallet data to backend', await response.text());
+		}
+	});
+
+	setOnAuthHandler((wallet) => {
+		console.log('Wallet authenticated', wallet);
+
+		const response = fetch('/api/quests', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				action: 'auth_wallet',
+				wallet: wallet,
+			}),
+		});
+	});
+
 	onMount(() => {
 		// click outside menu to close
 		document.addEventListener('click', (e: MouseEvent) => {
@@ -46,6 +80,7 @@
 	onDestroy(() => {
 		unsub();
 		unsubWallet();
+		//connectedWalletsUnsub();
 	});
 
 	const options = {
@@ -107,7 +142,7 @@
 								<div on:click|stopPropagation>
 									<CollectionSearch />
 								</div>
-								<Web3Wallet showAuthButtons={true} algodClient={algodClient} indexerClient={algodIndexer} walletListClass="bg-gray-100 dark:bg-gray-500"/>
+								<Web3Wallet availableWallets={['DeflyWallet','Kibisis','LuteWallet']} showAuthButtons={true} algodClient={algodClient} indexerClient={algodIndexer} walletListClass="bg-gray-100 dark:bg-gray-500"/>
 							</div>
 						{/if}
 					</div>

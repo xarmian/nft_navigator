@@ -20,6 +20,13 @@ interface PMessage {
     deleted?: boolean;
 }
 
+interface PAction {
+    action: string;
+    address: string;
+    created_at?: string;
+    description: string;
+}
+
 export const getMessagesSim = async () => {
     function generateRandomAddress() {
         const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -97,6 +104,16 @@ export const postMessage = async (message: PMessage) => {
 
     if (error) {
     console.error('postMessage',error);
+    }
+
+    return data;
+}
+
+export const saveAction = async (action: PAction) => {
+    const { data, error } = await supabasePrivateClient.from('actions').insert(action);
+
+    if (error) {
+    console.error('saveAction',error);
     }
 
     return data;

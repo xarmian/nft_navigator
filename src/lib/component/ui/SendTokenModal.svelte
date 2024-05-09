@@ -134,6 +134,23 @@
                 }
 
                 sendingView = SendingView.Sent;
+
+                // submit POST to /api/quests to record action
+                const response = await fetch('/api/quests', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: type == 'send' ? 'token_transfer' : 'token_approve',
+                        detail: {
+                            from: fromAddr,
+                            to: transferTo,
+                            token: String(token.contractId)+'-'+String(token.tokenId),
+                            transactionId: transactionId,
+                        }
+                    }),
+                });
             }
             catch(err: any) {
                 console.log(err);

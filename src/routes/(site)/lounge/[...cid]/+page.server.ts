@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getMessages, postMessage } from '$lib/supabase-server';
+import { getMessages, postMessage, saveAction } from '$lib/supabase-server';
 import { verifyToken } from 'avm-wallet-svelte';
 import { getTokens } from '$lib/utils/indexer';
 import { error } from '@sveltejs/kit';
@@ -87,6 +87,16 @@ export const actions = {
 
     // post message to supabase
     await postMessage(message);
+
+    const actionType = (message.private ? 'post_private' : 'post_public')
+
+    const action = {
+      action: actionType,
+      address: walletId,
+      description: `Posted a ${actionType} message in collection ${cid}`,
+    }
+
+    await saveAction(action);
 
     return { success: true };
   }
