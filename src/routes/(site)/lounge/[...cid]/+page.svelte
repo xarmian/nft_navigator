@@ -225,7 +225,7 @@
                     </div>
                     {#if selectedCollection}
                         <div class="flex flex-col my-4 mx-1 mb-12 overflow-auto relative">
-                            {#if canViewPrivate && hasValidToken}
+                            {#if canViewPrivate && hasValidToken && selectedCollection !== 'all' && selectedCollection !== 'myfeed'}
                                 <form on:submit={handleSubmit} class="h-16 p-2 py-16 mb-4 mx-1 w-full sm:w-3/4 place-self-center flex items-center bg-gray-50 dark:bg-gray-800 rounded-xl shadow relative border dark:border-slate-700">
                                     <div class="text-xl mr-2 pointer" on:click|stopPropagation={() => showEmojiPicker = !showEmojiPicker}>
                                         <i class="far fa-smile"></i>
