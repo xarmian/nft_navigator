@@ -3,7 +3,7 @@
     import { selectedWallet, verifyToken, type WalletConnectionResult } from "avm-wallet-svelte";
 	import { onMount, onDestroy } from "svelte";
     import { getTokens, getCollections } from "$lib/utils/indexer";
-    import { Tabs, ButtonGroup, Button, Popover } from 'flowbite-svelte';
+    import { Tabs, ButtonGroup, Button, Popover, Indicator } from 'flowbite-svelte';
     import TabItem from '$lib/component/ui/TabItemCustom.svelte';
     //@ts-expect-error no types
     import EmojiPicker from "svelte-emoji-picker";
@@ -335,15 +335,24 @@
                 </div>
             </TabItem>
             {#if selectedCollection && selectedCollection !== 'all' && selectedCollection !== 'myfeed'}
-                <TabItem title="Members" defaultClass="" activeClasses="p-4 text-primary-600 bg-gray-100 rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
+                <TabItem defaultClass="" activeClasses="p-4 text-primary-600 bg-gray-100 rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
+                    <svelte:fragment slot="title">
+                        Members
+                        <Indicator size="xl" color="indigo" class="text-sm text-white" border>{[...new Set(tokens.map(token => token.owner))].length}</Indicator>
+                    </svelte:fragment>
+
                     <div class="flex flex-col relative h-full -mt-3">
                         <div class="flex flex-col my-2 mx-1 mb-12 overflow-auto relative border-t-2 border-slate-200 dark:border-slate-400">
                             <HoldersList tokens={tokens} showDownloadCSV={false} />
                         </div>
                     </div>
                 </TabItem>
-                <TabItem title="Collection" defaultClass="" activeClasses="p-4 text-primary-600 bg-gray-100 rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
-                    {#if selectedCollection}
+                {#if selectedCollection}
+                    <TabItem defaultClass="" activeClasses="p-4 text-primary-600 bg-gray-100 rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
+                        <svelte:fragment slot="title">
+                            Collection
+                            <Indicator size="xl" color="indigo" class="text-xs text-white" border>{tokens.length}</Indicator>
+                        </svelte:fragment>
                         <div class="flex flex-col relative h-full -mt-3">
                             <div class="flex flex-col my-2 mx-1 mb-12 overflow-auto relative border-t-2 border-slate-200 dark:border-slate-400">
                                 <div class="flex flex-row space-x-3 ml-2 mt-2">
@@ -370,8 +379,8 @@
                                 </div>
                             </div>
                         </div>
-                    {/if}
                 </TabItem>
+                {/if}
             {/if}
         </Tabs>
     </div>
