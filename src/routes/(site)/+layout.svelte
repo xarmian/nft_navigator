@@ -12,6 +12,7 @@
 	let showMenu = false;
 	let currentPath = '';
 	let extensionRoute = '';
+	let extensionRouteLounge = '';
 
 	const unsub = page.subscribe(value => {
 		let pathPieces = value.url.pathname.split('/');
@@ -20,6 +21,7 @@
 		// this is a hack to allow routing from collection page directly to analytics page for the colleciton
 		if (currentPath == 'collection') {
 			extensionRoute = '/' + pathPieces[1] + '/' + pathPieces[2];
+			extensionRouteLounge = '/' + pathPieces[2];
 		}
 	});
 
@@ -105,7 +107,7 @@
 				<span class="text-gray-400">|</span>
 				<a href="/forsale" class="hover:text-blue-500 {currentPath == 'forsale' ? 'text-blue-600' : ''}">For Sale</a>
 				<span class="text-gray-400">|</span>
-				<a href="/lounge" class="hover:text-blue-500 {currentPath == 'lounge' ? 'text-blue-600' : ''}">Lounge</a>
+				<a href="/lounge{extensionRouteLounge}" class="hover:text-blue-500 {currentPath == 'lounge' ? 'text-blue-600' : ''}">Lounge</a>
 				<span class="text-gray-400">|</span>
 				<a href="/analytics{extensionRoute}" class="hover:text-blue-500 {currentPath == 'analytics' ? 'text-blue-600' : ''}">Analytics</a>
 				{#if $selectedWallet}

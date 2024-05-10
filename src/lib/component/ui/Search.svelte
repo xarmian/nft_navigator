@@ -16,7 +16,7 @@
 	let windowDefined = false;
     let filteredWallets: string[] = [];
     $: hideDropdown = false;
-    $: viewingAnalytics = false;
+    let viewing: 'analytics' | 'lounge' | null = null;
 
     onMount(async () => {
         collections = await getCollections({ fetch });
@@ -29,7 +29,15 @@
     });
 
     const unsubP = page.subscribe(value => {
-        viewingAnalytics = (value.url.pathname.includes('/analytics'));
+        if (value.url.pathname.includes('/analytics')) {
+            viewing = 'analytics';
+        }
+        else if (value.url.pathname.includes('/lounge')) {
+            viewing = 'lounge';
+        }
+        else {
+            viewing = null;
+        }
     });
 
     const unsub = recentSearch.subscribe(value => {
@@ -75,11 +83,16 @@
         const c = collections.find(collection => collection.contractId === contractId);
     
         if (c) {
-            if (viewingAnalytics) {
-                goto(`/analytics/collection/${contractId}`);
-            }
-            else {
-                goto(`/collection/${contractId}`);
+            switch(viewing) {
+                case 'analytics':
+                    goto(`/analytics/collection/${contractId}`);
+                    break;
+                case 'lounge':
+                    goto(`/lounge/${contractId}`);
+                    break;
+                default: 
+                    goto(`/collection/${contractId}`);
+                    break;
             }
 
             search = '';
