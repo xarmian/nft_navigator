@@ -18,6 +18,7 @@ interface PMessage {
     userName?: string;
     private: boolean;
     deleted?: boolean;
+    comments?: PComment[];
 }
 
 interface PAction {
@@ -25,6 +26,15 @@ interface PAction {
     address: string;
     created_at?: string;
     description: string;
+}
+
+interface PComment {
+    id?: number;
+    parent_message_id: number;
+    walletId: string;
+    comment: string;
+    timestamp?: Date;
+    deleted?: boolean;
 }
 
 export const getMessagesSim = async () => {
@@ -52,7 +62,17 @@ export const getMessagesSim = async () => {
     return simdata;
 }
 
-export const getMessages = async (collectionId: string, includePrivate: boolean) => {
+export const getMessage = async (messageId: number): Promise<PMessage | null> => {
+    const { data, error } = await supabasePrivateClient.from('messages').select('*').eq('id', messageId);
+
+    if (error) {
+        console.error('getMessage', error);
+    }
+
+    return data?.[0] ?? null;
+}
+
+export const getMessages = async (collectionId: string, includePrivate: boolean, includeComments: boolean = false) => {
     if (!collectionId) return [];
 
     let query = supabasePrivateClient.from('messages').select('*').eq('collectionId', collectionId).neq('deleted', true);
@@ -61,13 +81,33 @@ export const getMessages = async (collectionId: string, includePrivate: boolean)
         query = query.neq('private', true);
     }
 
-    const { data, error } = await query;
+    const { data: messagesData, error: messagesError } = await query;
 
-    if (error) {
-        console.error('getMessages',error);
+    if (messagesError) {
+        console.error('getMessages', messagesError);
     }
 
-    return data?.reverse()??[];
+    if (!includeComments) {
+        return messagesData?.reverse() ?? [];
+    }
+
+    const messageIds = messagesData?.map((message) => message.id) ?? [];
+
+    const { data: commentsData, error: commentsError } = await supabasePrivateClient
+        .from('comments')
+        .select('*')
+        .in('parent_message_id', messageIds);
+
+    if (commentsError) {
+        console.error('getMessages - Comments', commentsError);
+    }
+
+    const messagesWithComments = messagesData?.map((message) => {
+        const messageComments = commentsData?.filter((comment) => comment.parent_message_id === message.id);
+        return { ...message, comments: messageComments };
+    });
+
+    return messagesWithComments?.reverse() ?? [];
 }
 
 export const getPublicFeed = async ( collectionIds: string[] ) => {
@@ -132,6 +172,16 @@ export const postMessage = async (message: PMessage) => {
 
     if (error) {
     console.error('postMessage',error);
+    }
+
+    return data;
+}
+
+export const postComment = async ( comment: PComment) => {
+    const { data, error } = await supabasePrivateClient.from('comments').insert(comment);
+
+    if (error) {
+    console.error('postComment',error);
     }
 
     return data;

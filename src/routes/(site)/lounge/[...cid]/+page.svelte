@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Message from './Message.svelte';
+
 	import type { Collection, Token } from "$lib/data/types";
     import { selectedWallet, verifyToken, type WalletConnectionResult } from "avm-wallet-svelte";
 	import { onMount, onDestroy } from "svelte";
@@ -28,7 +30,7 @@
     let showEmojiPicker = false;
     let chatInput = '';
     let canViewPrivate = false;
-    let messages: { walletId: string, message: string, timestamp: string, avatar?: string, private: boolean, nfd?: any, collectionId: string }[] = [];
+    let messages: { walletId: string, message: string, timestamp: string, avatar?: string, private: boolean, collectionId: string }[] = [];
     let postPrivacy = selectedView;
     let privateCount = 0;
     let publicCount = 0;
@@ -98,30 +100,6 @@
             return a.highforgeData?.title.localeCompare(b.highforgeData?.title??'ZZZ');
         });
     });
-
-    function timeSince(date: string) {
-        const now = new Date().getTime();
-        const timeElapsed = now - new Date(date).getTime();
-        const days = Math.floor(timeElapsed / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((timeElapsed % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((timeElapsed % (1000 * 60 * 60)) / (1000 * 60));
-        
-        let result = '';
-        if (days > 0) {
-            result += `${days} day${days === 1 ? '' : 's'}`;
-            return result + ' ago';
-        }
-        if (hours > 0) {
-            result += `${hours} hour${hours === 1 ? '' : 's'}`;
-            return result + ' ago';
-        }
-        if (minutes > 0) {
-            result += `${minutes} minute${minutes === 1 ? '' : 's'}`;
-            return result + ' ago';
-        }
-        
-        return 'just now';
-    }
 
     $: {
         // if selectedCollection is not in userCollections, set selectedView to 'Public'
@@ -231,7 +209,7 @@
                             <div class="flex flex-row">
                                 <ButtonGroup>
                                     <Button checked={selectedView == 'Public'} on:click={() => changeView('Public')}>Public ({publicCount})</Button>
-                                    <Button disabled={!canViewPrivate} checked={selectedView == 'Private'} on:click={() => changeView('Private')}>Private{canViewPrivate ? ` (${privateCount})` : ''}</Button>
+                                    <Button disabled={!canViewPrivate} checked={selectedView == 'Private'} on:click={() => changeView('Private')}>Private{canViewPrivate && privateCount > 0 ? ` (${privateCount})` : ''}</Button>
                                     <Button disabled={!canViewPrivate} checked={selectedView == 'All'} on:click={() => changeView('All')}>All</Button>
                                 </ButtonGroup>
                                 {#if !hasValidToken}
@@ -253,7 +231,7 @@
                         {/if}
                     </div>
                     {#if selectedCollection}
-                        <div class="flex flex-col py-4 mx-1 {selectedCollection == 'all' || selectedCollection == 'myfeed' ? 'mb-[4.5rem]' : 'mb-12'} overflow-auto relative border-t-2 border-slate-200 dark:border-slate-400">
+                        <div class="flex flex-col py-4 mx-1 {selectedCollection == 'all' || selectedCollection == 'myfeed' ? 'mb-[4.5rem]' : 'mb-16'} overflow-auto relative border-t-2 border-slate-200 dark:border-slate-400">
                             {#if canViewPrivate && hasValidToken && selectedCollection !== 'all' && selectedCollection !== 'myfeed'}
                                 <form on:submit={handleSubmit} class="h-16 p-2 py-16 mb-4 mx-1 w-full sm:w-3/4 place-self-center flex items-center bg-gray-50 dark:bg-gray-800 rounded-xl shadow relative border dark:border-slate-700">
                                     <div class="text-xl mr-2 pointer" on:click|stopPropagation={() => showEmojiPicker = !showEmojiPicker}>
@@ -271,10 +249,10 @@
                                         </button>
                                     </div>
                                 </form>
-                            {:else if canViewPrivate && !hasValidToken}
+                            {:else if selectedView == 'Private' && canViewPrivate && !hasValidToken}
                                 <div class="text-2xl font-bold text-gray-800 dark:text-gray-200 flex flex-col place-items-center m-2">
-                                    <div>Want to Post or view the Private channel? Authenticate your wallet!</div>
-
+                                    <div>Want to Post in or view the Private channel? Authenticate your wallet!</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">Click your wallet address and then select the "Auth" option next to the wallet.</div>
                                 </div>
                             {/if}
                             {#if showEmojiPicker}
@@ -283,37 +261,10 @@
                                 </div>
                             {/if}
                             <div class="flex-grow h-full m-1 w-full md:w-3/4 place-self-center">
-                                {#each messages as message}
-                                    <div class="flex flex-row items-start p-6 bg-gray-50 dark:bg-gray-800 rounded-xl shadow mb-4 dark:border-slate-700 border">
-                                        <div on:click={() => goto(`/portfolio/${message.walletId}`)} class="cursor-pointer flex-shrink-0 w-12 h-12 bg-gray-500 rounded-full overflow-hidden"><img src={message.nfd?.avatar ?? '/blank_avatar_small.png'}/></div>
-                                        <div class="ml-4 flex flex-row w-full justify-between">
-                                            <div class="flex flex-col">
-                                                <a on:click={() => goto(`/portfolio/${message.walletId}`)} class="text-sm font-bold text-blue-500 dark:text-blue-300 cursor-pointer">
-                                                    {#if message.nfd}
-                                                        {message.nfd.replacementValue}
-                                                    {:else}
-                                                        {message.walletId.slice(0, 8)}...{message.walletId.slice(-8)}
-                                                    {/if}
-                                                </a>
-                                                <div class="text-sm text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-line">{message.message}</div>
-                                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-2 hover:text-blue-500 cursor-pointer" title={new Date(message.timestamp).toLocaleString()}>
-                                                    {timeSince(message.timestamp)}
-                                                </div>
-                                            </div>
-                                            <div class="flex flex-col justify-between">
-                                                <div class={`place-self-end text-xs px-2 py-1 rounded-lg mt-2 ${message.private ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}>
-                                                    {message.private ? 'Private' : 'Public'}
-                                                </div>
-                                                {#if selectedCollection === 'all' || selectedCollection === 'myfeed'}
-                                                    <div class={`place-self-end text-xs text-blue-500 dark:text-blue-300`}>
-                                                        <a href="/lounge/{message.collectionId}">{allCollections.find(c => c.contractId === Number(message.collectionId))?.highforgeData?.title}</a>
-                                                    </div>
-                                                {/if}
-                                            </div>
-                                        </div>
-                                    </div>
+                                {#each messages as message, i}
+                                    <Message nfds={data.server_data.nfds} {message} canComment={hasValidToken && canViewPrivate} collectionName={allCollections.find(c => c.contractId === Number(message.collectionId))?.highforgeData?.title} showCollectionName={selectedCollection === 'all' || selectedCollection === 'myfeed'}></Message>
                                 {/each}
-                                {#if messages.length == 0 && (selectedView == 'Public' || (selectedView == 'Private' && !hasValidToken))}
+                                {#if messages.length == 0 && (selectedView == 'Public' || (selectedView == 'Private' && hasValidToken))}
                                     <div class="text-2xl font-bold text-gray-800 dark:text-gray-200 flex flex-col place-items-center">This channel is empty! Be the change you want to see in the world.</div>
                                 {/if}
                             </div>
