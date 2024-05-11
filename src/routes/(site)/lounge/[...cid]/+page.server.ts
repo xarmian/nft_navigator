@@ -8,6 +8,10 @@ import { getNFD, type AggregatedNFD } from '$lib/utils/nfd';
 export const load: PageServerLoad = async ({ params, cookies }) => {
   const { cid } = params;
 
+  if (cid === 'undefined') {
+    error(400, { message: 'Invalid collection ID. Please try again.' });
+  }
+
   // get token from cookie avm-wallet-token
   const walletId = cookies.get('avm-wallet');
   const token = cookies.get(`avm-wallet-token-${walletId}`);
@@ -44,7 +48,7 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
   }
 
   // get a list of unique wallets from data.messages.walletId and data.messages.comments.walletId and then get their NFD data
-  const wallets = Array.from(new Set(data.map((m) => m.walletId).concat(data.flatMap((m) => m.comments?.map((c) => c.walletId)))));
+  const wallets = Array.from(new Set(data.map((m) => m.walletId).concat(data.flatMap((m) => m.comments?.map((c: { walletId: string; }) => c.walletId)))));
   const nfd: AggregatedNFD[] = await getNFD(wallets);
 
   // if wallets key is not in nfd, add it with default value and avatar. use token image if available
