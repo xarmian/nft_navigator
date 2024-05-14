@@ -214,7 +214,7 @@
                                 </ButtonGroup>
                                 {#if !hasValidToken}
                                     <div class="text-2xl font-bold text-gray-800 dark:text-gray-200 flex flex-col place-items-center m-2">
-                                        <button id="auth-info-trigger">
+                                        <button id="auth-info-trigger" class="flex">
                                             <i class="fas fa-info-circle mr-2 text-blue-600"></i>
                                         </button>
                                         <Popover

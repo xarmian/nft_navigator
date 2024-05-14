@@ -126,7 +126,7 @@
                     <div class="flex flex-col w-full pl-8 pr-16 mt-8">
                         <textarea class="w-full h-16 p-2 bg-gray-100 dark:bg-gray-700 rounded-lg resize-none" placeholder="Add a comment" bind:value={messageComment}></textarea>
                         <div class="flex flex-row-reverse justify-start mt-2 space-x-2">
-                            <Button on:click={submitComment}  color="purple" size="xs" icon={ArrowRightOutline}>Comment</Button>
+                            <Button on:click={submitComment}  color="purple" size="xs" icon={ArrowRightOutline}>Reply</Button>
                             <Button on:click={() => showComments = false} color="none" size="xs" icon={ArrowRightOutline}>Cancel</Button>
                         </div>
                     </div>
@@ -135,7 +135,7 @@
         </Timeline>
         {#if canComment && !showComments}
             <div class="flex flex-row mt-2 justify-end">
-                <a on:click={() => showComments = true} class="text-xs text-gray-500 dark:text-gray-400 hover:!text-blue-500 cursor-pointer">Add Comment</a>
+                <a on:click={() => showComments = true} class="text-xs text-gray-500 dark:text-gray-400 hover:!text-blue-500 cursor-pointer">Add Reply</a>
             </div>
         {/if}
     </div>

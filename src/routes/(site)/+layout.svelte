@@ -8,6 +8,7 @@
 	import { page } from '$app/stores';
 	import { algodClient, algodIndexer } from '$lib/utils/algod';
 	import Cookies from 'js-cookie';
+	import { invalidateAll } from '$app/navigation';
 
 	let showMenu = false;
 	let currentPath = '';
@@ -66,6 +67,7 @@
 				wallet: wallet,
 			}),
 		});
+		invalidateAll();
 	});
 
 	onMount(() => {
