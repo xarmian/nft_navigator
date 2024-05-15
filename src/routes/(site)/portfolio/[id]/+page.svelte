@@ -13,6 +13,7 @@
     import Device from 'svelte-device-info';
     import { getWalletBalance, getCurrency } from '$lib/utils/currency';
 	import TransactionTable from '$lib/component/ui/TransactionTable.svelte';
+	import QuestsTable from '$lib/component/ui/QuestsTable.svelte';
 	// import Select from '$lib/component/ui/Select.svelte';
 
     export let data: PageData;
@@ -195,6 +196,17 @@
             </div>
             <div class="m-4">
                 <TransactionTable owner={walletId} />
+            </div>
+        </TabItem>
+        <TabItem>
+            <div slot="title">
+                <div class="inline">
+                    Quests
+                    <div class="text-xs bg-yellow-200 text-black border-black rounded-xl inline p-1 align-super">new!</div>
+                </div>
+            </div>
+            <div class="m-4">
+                <QuestsTable wallet={walletId} />
             </div>
         </TabItem>
     </Tabs>
