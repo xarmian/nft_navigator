@@ -3,6 +3,9 @@
     import { Timeline, TimelineItem, Button } from 'flowbite-svelte';
     import { ArrowRightOutline } from 'flowbite-svelte-icons';
     import type { AggregatedNFD } from "$lib/utils/nfd";
+    //@ts-expect-error no types
+    import EmojiPicker from "svelte-emoji-picker";
+	import { onDestroy, onMount } from "svelte";
 
     type NMessage = {
         id?: number;
@@ -30,6 +33,25 @@
     export let nfds: AggregatedNFD[] = [];
 
     let messageComment = '';
+    let showEmojiPicker = false;
+
+    function handleClick(event: MouseEvent) {
+        if (showEmojiPicker && !(event.target as Element)?.closest('.emoji-picker')) {
+            showEmojiPicker = false;
+        }
+    }
+
+    onMount(async () => {
+        if (typeof window !== 'undefined') {
+            window.addEventListener('click', handleClick);
+        }
+    });
+
+    onDestroy(() => {
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('click', handleClick);
+        }
+    });
 
     function timeSince(date: string) {
         const now = new Date().getTime();
@@ -123,12 +145,22 @@
             {/each}
             {#if canComment && showComments}
                 <TimelineItem>
-                    <div class="flex flex-col w-full pl-8 pr-16 mt-8">
-                        <textarea class="w-full h-16 p-2 bg-gray-100 dark:bg-gray-700 rounded-lg resize-none" placeholder="Add a comment" bind:value={messageComment}></textarea>
+                    <div class="flex flex-col w-full pl-8 pr-16 mt-8 relative">
+                        <div class="flex flex-row">
+                            <div class="text-xl mr-2 pointer" on:click|stopPropagation={() => showEmojiPicker = !showEmojiPicker}>
+                                <i class="far fa-smile"></i>
+                            </div>
+                            <textarea class="w-full h-16 p-2 bg-gray-100 dark:bg-gray-700 rounded-lg resize-none" placeholder="Add a comment" bind:value={messageComment}></textarea>
+                        </div>
                         <div class="flex flex-row-reverse justify-start mt-2 space-x-2">
                             <Button on:click={submitComment}  color="purple" size="xs" icon={ArrowRightOutline}>Reply</Button>
                             <Button on:click={() => showComments = false} color="none" size="xs" icon={ArrowRightOutline}>Cancel</Button>
                         </div>
+                        {#if showEmojiPicker}
+                            <div class="absolute top-20 right-0 bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-600 border-2 p-2 rounded-lg">
+                                <EmojiPicker bind:value={messageComment}/>
+                            </div>
+                        {/if}
                     </div>
                 </TimelineItem>
             {/if}

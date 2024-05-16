@@ -23,11 +23,11 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
 
   if (cid == 'all') {
     const collectionIds = (await getTokens({ owner: walletId })).map((t) => String(t.contractId));
-    data = (await getPublicFeed([])).concat(await getPrivateFeed(collectionIds));
+    data = (await getPublicFeed([], true)).concat(await getPrivateFeed(collectionIds, true));
   }
   else if (cid === 'myfeed') {
     const collectionIds = (await getTokens({ owner: walletId })).map((t) => String(t.contractId));
-    data = (await getPublicFeed(collectionIds)).concat(await getPrivateFeed(collectionIds));
+    data = (await getPublicFeed(collectionIds, true)).concat(await getPrivateFeed(collectionIds, true));
   }
   else {
     // validate user can access collection

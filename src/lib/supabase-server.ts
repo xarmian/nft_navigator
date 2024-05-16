@@ -37,6 +37,27 @@ interface PComment {
     deleted?: boolean;
 }
 
+interface PGroupProfile {
+    id: number;
+    name?: string;
+    description?: string;
+    avatar?: string;
+    cover?: string;
+    members?: string[];
+    admins?: string[];
+    creator: string;
+    nsfw: boolean;
+    settings?: Record<string, string>;
+    created_at: number;
+    updated_at: number;
+    deleted?: boolean;
+}
+
+type FileOptions = {
+    contentType?: string;
+    metadata?: Record<string, string>;
+};
+
 export const getMessagesSim = async () => {
     function generateRandomAddress() {
         const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -110,7 +131,7 @@ export const getMessages = async (collectionId: string, includePrivate: boolean,
     return messagesWithComments?.reverse() ?? [];
 }
 
-export const getPublicFeed = async ( collectionIds: string[] ) => {
+export const getPublicFeed = async ( collectionIds: string[], includeComments: boolean = false ) => {
     let query = supabasePrivateClient.from('messages').select('*').neq('deleted', true).eq('private', false);
 
     if (collectionIds.length > 0) {
@@ -123,10 +144,27 @@ export const getPublicFeed = async ( collectionIds: string[] ) => {
         console.error('getPublicFeed',error);
     }
 
-    return data?.reverse()??[];
+    if (!includeComments) {
+        return data?.reverse()??[];
+    }
+
+    const messageIds = data?.map((message) => message.id)??[];
+
+    const { data: commentsData, error: commentsError } = await supabasePrivateClient.from('comments').select('*').in('parent_message_id', messageIds);
+
+    if (commentsError) {
+        console.error('getPublicFeed - Comments',commentsError);
+    }
+
+    const messagesWithComments = data?.map((message) => {
+        const messageComments = commentsData?.filter((comment) => comment.parent_message_id === message.id);
+        return { ...message, comments: messageComments };
+    });
+
+    return messagesWithComments?.reverse()??[];
 }
 
-export const getPrivateFeed = async ( collectionIds: string[] ) => {
+export const getPrivateFeed = async ( collectionIds: string[], includeComments: boolean = false ) => {
     const query = supabasePrivateClient.from('messages').select('*').neq('deleted', true).eq('private', true).in('collectionId', collectionIds);
 
     const { data, error } = await query;
@@ -135,7 +173,24 @@ export const getPrivateFeed = async ( collectionIds: string[] ) => {
         console.error('getPrivateFeed',error);
     }
 
-    return data?.reverse()??[];
+    if (!includeComments) {
+        return data?.reverse()??[];
+    }
+
+    const messageIds = data?.map((message) => message.id)??[];
+
+    const { data: commentsData, error: commentsError } = await supabasePrivateClient.from('comments').select('*').in('parent_message_id', messageIds);
+
+    if (commentsError) {
+        console.error('getPublicFeed - Comments',commentsError);
+    }
+
+    const messagesWithComments = data?.map((message) => {
+        const messageComments = commentsData?.filter((comment) => comment.parent_message_id === message.id);
+        return { ...message, comments: messageComments };
+    });
+
+    return messagesWithComments?.reverse()??[];
 }
 
 // Get collection data, which is generally settings for a collection
@@ -192,6 +247,90 @@ export const saveAction = async (action: PAction) => {
 
     if (error) {
     console.error('saveAction',error);
+    }
+
+    return data;
+}
+
+export async function storeFile(key: string, bucket: string, file: File): Promise<void> {
+    const fileName = `${key}`;  // Generates a unique filename based on wallet ID and timestamp
+    const metadata = {
+        contentType: file.type,
+        originalFileName: file.name,
+        originalFileUrl: file instanceof File ? URL.createObjectURL(file) : '',  // Generates a URL for local preview
+    };
+
+    const { error } = await supabasePrivateClient
+        .storage
+        .from(bucket)
+        .upload(fileName, file, { contentType: file.type, metadata: metadata } as FileOptions);
+
+    if (error) {
+        console.error('Error uploading file:', error);
+        return;
+    }
+
+    console.log('File uploaded successfully');
+}
+
+export async function retrieveFile(bucket: string, key: string): Promise<string | null> {
+    try {
+        const { data } = supabasePrivateClient
+            .storage
+            .from(bucket)
+            .getPublicUrl(key);
+
+        if (data) {
+            return data.publicUrl;
+        } else {
+            console.log('No file found for the given key', key);
+            return null;
+        }
+    } catch (error) {
+        console.error('Error retrieving file:', error);
+        return null;
+    }
+}
+
+export async function deleteFile(bucket: string, key: string): Promise<void> {
+    const { error } = await supabasePrivateClient
+        .storage
+        .from(bucket)
+        .remove([key]);
+
+    if (error) {
+        console.error('Error deleting file:', error);
+        return;
+    }
+
+    console.log('File deleted successfully');
+}
+
+export async function setProfile(groupProfile: PGroupProfile) {
+    const { data, error } = await supabasePrivateClient.from('group_profiles').insert(groupProfile);
+
+    if (error) {
+        console.error('setProfile', error);
+    }
+
+    return data;
+}
+
+export async function getProfile(groupId: number): Promise<PGroupProfile | null> {
+    const { data, error } = await supabasePrivateClient.from('group_profiles').select('*').eq('id', groupId);
+
+    if (error) {
+        console.error('getProfile', error);
+    }
+
+    return data?.[0] ?? null;
+}
+
+export async function updateProfile(groupProfile: PGroupProfile) {
+    const { data, error } = await supabasePrivateClient.from('group_profiles').upsert(groupProfile);
+
+    if (error) {
+        console.error('updateProfile', error);
     }
 
     return data;

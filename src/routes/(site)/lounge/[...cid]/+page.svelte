@@ -92,6 +92,12 @@
         unsub();
     });
 
+    function handleClick(event: MouseEvent) {
+        if (showEmojiPicker && !(event.target as Element)?.closest('.emoji-picker')) {
+            showEmojiPicker = false;
+        }
+    }
+
     onMount(async () => {
         allCollections = await getCollections({fetch});
 
@@ -99,6 +105,16 @@
         allCollections = allCollections.sort((a: any, b: any) => {
             return a.highforgeData?.title.localeCompare(b.highforgeData?.title??'ZZZ');
         });
+
+        if (typeof window !== 'undefined') {
+            window.addEventListener('click', handleClick);
+        }
+    });
+
+    onDestroy(() => {
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('click', handleClick);
+        }
     });
 
     $: {
@@ -262,7 +278,7 @@
                             {/if}
                             <div class="flex-grow h-full m-1 w-full md:w-3/4 place-self-center">
                                 {#each messages as message, i}
-                                    <Message nfds={data.server_data.nfds} {message} canComment={hasValidToken && canViewPrivate} collectionName={allCollections.find(c => c.contractId === Number(message.collectionId))?.highforgeData?.title} showCollectionName={selectedCollection === 'all' || selectedCollection === 'myfeed'}></Message>
+                                    <Message nfds={data.server_data.nfds} {message} canComment={hasValidToken && (canViewPrivate || userCollections.find((c) => String(c.contractId) == message.collectionId) != undefined)} collectionName={allCollections.find(c => c.contractId === Number(message.collectionId))?.highforgeData?.title} showCollectionName={selectedCollection === 'all' || selectedCollection === 'myfeed'}></Message>
                                 {/each}
                                 {#if messages.length == 0 && (selectedView == 'Public' || (selectedView == 'Private' && hasValidToken))}
                                     <div class="text-2xl font-bold text-gray-800 dark:text-gray-200 flex flex-col place-items-center">This channel is empty! Be the change you want to see in the world.</div>
