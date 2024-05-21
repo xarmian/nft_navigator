@@ -8,7 +8,7 @@ export const load = (async ({ data, params, fetch }) => {
     let collection: Collection | null = null;
     let collectionName = '';
 
-    if (cid) {
+    if (cid && cid !== 'undefined' && cid !== 'all' && cid !== 'myfeed') {
         collection = await getCollection({ contractId: Number(cid), fetch });
         collectionName = (collection?.highforgeData?.title ?? '');
     }
