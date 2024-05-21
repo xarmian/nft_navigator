@@ -1,12 +1,18 @@
 import type { PageServerLoad } from './$types';
-import { getMessages, postMessage, postComment, getMessage, saveAction, getPublicFeed, getPrivateFeed } from '$lib/supabase-server';
+import { getMessages, postMessage, postComment, getMessage, saveAction, postReaction } from '$lib/supabase-server';
 import { verifyToken } from 'avm-wallet-svelte';
 import { getTokens } from '$lib/utils/indexer';
 import { error } from '@sveltejs/kit';
 import { getNFD, type AggregatedNFD } from '$lib/utils/nfd';
 
-export const load: PageServerLoad = async ({ params, cookies }) => {
+export const load: PageServerLoad = async ({ params, cookies, url }) => {
   const { cid } = params;
+  const page = url.searchParams.get('page') ?? 1;
+
+  if (cid === 'undefined' || cid === undefined) return {
+    server_data: { collectionId: cid, messages: [], nfds: [] },
+  }
+  const limit = 100;
 
   if (cid === 'undefined') {
     error(400, { message: 'Invalid collection ID. Please try again.' });
@@ -22,21 +28,24 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
   let data = [];
 
   if (cid == 'all') {
-    const collectionIds = (await getTokens({ owner: walletId })).map((t) => String(t.contractId));
-    data = (await getPublicFeed([], true)).concat(await getPrivateFeed(collectionIds, true));
+    //const collectionIds = (await getTokens({ owner: walletId })).map((t) => String(t.contractId));
+    //data = (await getPublicFeed([], true, limit, Number(page))).concat(await getPrivateFeed(collectionIds, true));
+    data = await getMessages(null, false, walletId, limit);
+    //console.log(data);
   }
   else if (cid === 'myfeed') {
     const collectionIds = (await getTokens({ owner: walletId })).map((t) => String(t.contractId));
-    data = (await getPublicFeed(collectionIds, true)).concat(await getPrivateFeed(collectionIds, true));
+    //data = (await getPublicFeed(collectionIds, true, limit, Number(page))).concat(await getPrivateFeed(collectionIds, true));
+    data = await getMessages(collectionIds, true, walletId, limit);
   }
   else {
     // validate user can access collection
     const ownsToken = (await getTokens({ owner: walletId, contractId: cid })).length > 0;
 
     // fetch messages from supabase
-    data = (cid ? await getMessages(cid, (isValid && ownsToken), true) : []);
+    data = (cid ? await getMessages(cid, (isValid && ownsToken), walletId, limit) : []);
 
-    if (data.length === 0) {
+    /*if (data.length === 0) {
       data.push({
         collectionId: cid,
         walletId: 'R7TBR3Y5QCM6Y2OPQP3BPNUQG7TLN75IOC2WTNRUKO4VPNSDQF52MZB4ZE',
@@ -44,11 +53,11 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
         private: false,
         timestamp: new Date().toString(),
       });
-    }
+    }*/
   }
 
   // get a list of unique wallets from data.messages.walletId and data.messages.comments.walletId and then get their NFD data
-  const wallets = Array.from(new Set(data.map((m) => m.walletId).concat(data.flatMap((m) => m.comments?.map((c: { walletId: string; }) => c.walletId)))));
+  const wallets: string[] = Array.from(new Set(data.map((m) => m.walletId).concat(data.flatMap((m) => m.comments?.map((c: { walletId: string; }) => c.walletId)))));
   const nfd: AggregatedNFD[] = await getNFD(wallets);
 
   // if wallets key is not in nfd, add it with default value and avatar. use token image if available
@@ -57,7 +66,7 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
       const token = (await getTokens({ owner: w, limit: 1 }))?.[0] ?? {};
       nfd.push({ 
         key: w, 
-        replacementValue: w, 
+        replacementValue: w?.slice(0, 8) + '...' + w?.slice(-8),
         avatar: token.metadata?.image ?? '/blank_avatar_small.png'
       });
     }
@@ -155,6 +164,46 @@ export const actions = {
       action: 'post_comment',
       address: walletId,
       description: `Posted a comment in message ${messageId}`,
+    }
+
+    await saveAction(action);
+
+    return { success: true };
+  },
+  postReaction: async ({ request, cookies }) => {
+    const formData = await request.formData();
+    const messageId = Number(formData.get('messageId')?.toString()) ?? 0;
+    const commentId = Number(formData.get('commentId')?.toString()) ?? 0;
+    const reaction = formData.get('reaction')?.toString() || undefined;
+
+    if (messageId === 0 || !reaction) {
+      error(400, { message: 'Invalid reaction data. Please try again.' });
+    }
+
+    // get token from cookie avm-wallet-token
+    const walletId = cookies.get('avm-wallet');
+    const token = cookies.get(`avm-wallet-token-${walletId}`);
+
+    // validate user's wallet token
+    const isValid = (walletId && token) ? await verifyToken(walletId,token) : false;
+
+    const message = await getMessage(messageId);
+    const cid = message?.collectionId;
+
+    // validate user can access collection
+    const ownsToken = (walletId && cid) ? (await getTokens({ owner: walletId, contractId: cid })).length > 0 : false;
+
+    if (!isValid || !ownsToken || !walletId) {
+      error(401, { message: 'Invalid authorization token. Please re-authenticate and try again.' });
+    }
+
+   // post reaction to supabase
+    await postReaction(messageId, (commentId == 0 ? null : commentId), walletId, parseInt(reaction));
+
+    const action = {
+      action: 'post_reaction',
+      address: walletId,
+      description: `Posted reaction ${reaction} in message ${messageId}, comment ${commentId}`,
     }
 
     await saveAction(action);

@@ -10,6 +10,14 @@ const supabaseRoleKey = PRIVATE_SUPABASE_ROLE_KEY;
 export const supabasePublicClient = createClient(supabaseUrl!, supabaseAnonKey!);
 export const supabasePrivateClient = createClient(supabaseUrl!, supabaseRoleKey!);
 
+interface PReaction {
+    id: number;
+    walletId: string;
+    messages_id: number;
+    comments_id: number;
+    reaction: number;
+}
+
 interface PMessage {
     collectionId: number;
     message: string;
@@ -19,6 +27,8 @@ interface PMessage {
     private: boolean;
     deleted?: boolean;
     comments?: PComment[];
+    reactions?: number[];
+    mr?: PReaction[];
 }
 
 interface PAction {
@@ -35,6 +45,8 @@ interface PComment {
     comment: string;
     timestamp?: Date;
     deleted?: boolean;
+    reactions?: number[];
+    mcr?: PReaction[];
 }
 
 interface PGroupProfile {
@@ -93,10 +105,36 @@ export const getMessage = async (messageId: number): Promise<PMessage | null> =>
     return data?.[0] ?? null;
 }
 
-export const getMessages = async (collectionId: string, includePrivate: boolean, includeComments: boolean = false) => {
-    if (!collectionId) return [];
+export const getMessages = async (collectionId: string[] | string | null, includePrivate: boolean, walletId: string = '', limit: number = 10) => {
+    let query = supabasePrivateClient
+        .from('messages')
+        .select(`
+            *,
+            mr:reactions (
+                reaction,
+                messages_id,
+                comments_id
+            ),
+            comments (
+                *,
+                mcr:reactions (
+                    reaction,
+                    messages_id,
+                    comments_id
+                )
+            )
+        `)
+        .neq('deleted', true)
+        .eq('reactions.wallet_id', walletId)
+        .order('timestamp', { ascending: false })
+        .limit(limit);
 
-    let query = supabasePrivateClient.from('messages').select('*').eq('collectionId', collectionId).neq('deleted', true);
+    if (Array.isArray(collectionId)) {
+        query = query.in('collectionId', collectionId);
+    }
+    else if (collectionId) {
+        query = query.eq('collectionId', collectionId);
+    }
 
     if (!includePrivate) {
         query = query.neq('private', true);
@@ -108,89 +146,7 @@ export const getMessages = async (collectionId: string, includePrivate: boolean,
         console.error('getMessages', messagesError);
     }
 
-    if (!includeComments) {
-        return messagesData?.reverse() ?? [];
-    }
-
-    const messageIds = messagesData?.map((message) => message.id) ?? [];
-
-    const { data: commentsData, error: commentsError } = await supabasePrivateClient
-        .from('comments')
-        .select('*')
-        .in('parent_message_id', messageIds);
-
-    if (commentsError) {
-        console.error('getMessages - Comments', commentsError);
-    }
-
-    const messagesWithComments = messagesData?.map((message) => {
-        const messageComments = commentsData?.filter((comment) => comment.parent_message_id === message.id);
-        return { ...message, comments: messageComments };
-    });
-
-    return messagesWithComments?.reverse() ?? [];
-}
-
-export const getPublicFeed = async ( collectionIds: string[], includeComments: boolean = false ) => {
-    let query = supabasePrivateClient.from('messages').select('*').neq('deleted', true).eq('private', false);
-
-    if (collectionIds.length > 0) {
-        query = query.in('collectionId', collectionIds);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-        console.error('getPublicFeed',error);
-    }
-
-    if (!includeComments) {
-        return data?.reverse()??[];
-    }
-
-    const messageIds = data?.map((message) => message.id)??[];
-
-    const { data: commentsData, error: commentsError } = await supabasePrivateClient.from('comments').select('*').in('parent_message_id', messageIds);
-
-    if (commentsError) {
-        console.error('getPublicFeed - Comments',commentsError);
-    }
-
-    const messagesWithComments = data?.map((message) => {
-        const messageComments = commentsData?.filter((comment) => comment.parent_message_id === message.id);
-        return { ...message, comments: messageComments };
-    });
-
-    return messagesWithComments?.reverse()??[];
-}
-
-export const getPrivateFeed = async ( collectionIds: string[], includeComments: boolean = false ) => {
-    const query = supabasePrivateClient.from('messages').select('*').neq('deleted', true).eq('private', true).in('collectionId', collectionIds);
-
-    const { data, error } = await query;
-
-    if (error) {
-        console.error('getPrivateFeed',error);
-    }
-
-    if (!includeComments) {
-        return data?.reverse()??[];
-    }
-
-    const messageIds = data?.map((message) => message.id)??[];
-
-    const { data: commentsData, error: commentsError } = await supabasePrivateClient.from('comments').select('*').in('parent_message_id', messageIds);
-
-    if (commentsError) {
-        console.error('getPublicFeed - Comments',commentsError);
-    }
-
-    const messagesWithComments = data?.map((message) => {
-        const messageComments = commentsData?.filter((comment) => comment.parent_message_id === message.id);
-        return { ...message, comments: messageComments };
-    });
-
-    return messagesWithComments?.reverse()??[];
+    return messagesData ?? [];
 }
 
 // Get collection data, which is generally settings for a collection
@@ -247,6 +203,16 @@ export const saveAction = async (action: PAction) => {
 
     if (error) {
     console.error('saveAction',error);
+    }
+
+    return data;
+}
+
+export const postReaction = async (p_message_id: number, p_comment_id: number | null, p_wallet_id: string, p_reaction: number) => {
+    const { data, error } = await supabasePrivateClient.rpc('handle_reaction', { p_message_id, p_comment_id, p_wallet_id, p_reaction });
+
+    if (error) {
+        console.error('postReaction', error);
     }
 
     return data;

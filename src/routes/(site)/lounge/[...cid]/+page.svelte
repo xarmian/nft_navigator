@@ -88,10 +88,6 @@
         }
     });
 
-    onDestroy(() => {
-        unsub();
-    });
-
     function handleClick(event: MouseEvent) {
         if (showEmojiPicker && !(event.target as Element)?.closest('.emoji-picker')) {
             showEmojiPicker = false;
@@ -112,6 +108,7 @@
     });
 
     onDestroy(() => {
+        unsub();
         if (typeof window !== 'undefined') {
             window.removeEventListener('click', handleClick);
         }
@@ -170,6 +167,12 @@
         await goto(`/lounge/${contractId}`, { invalidateAll: true });
         isLoading = false;
     };
+
+    const loadPage = async () => {
+        const response = await fetch(`/?page=1`);
+        messages = await response.json();
+        console.log(messages);
+    };
 </script>
 
 <div class="flex flex-row mainview bg-opacity-50 text-black dark:text-gray-200">
@@ -177,7 +180,7 @@
         <div class="flex flex-col">
             <div class="flex flex-col ml-3 text-sm">
                 <div on:click={() => loadCollection('all')} class:text-blue-500={selectedCollection == 'all'} class="cursor-pointer text-ellipsis">
-                    # All Feeds
+                    # Public Feed
                  </div>
                  <div on:click={() => loadCollection('myfeed')} class:text-blue-500={selectedCollection == 'myfeed'} class="cursor-pointer text-ellipsis">
                     # My Feed

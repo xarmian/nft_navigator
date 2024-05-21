@@ -135,7 +135,7 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
         const owners = Array.from(new Set(tokens.map((token: Token) => token.owner)));
         const nfd = await getNFD(owners, params.fetch);
         tokens.forEach((token: Token) => {
-            const nfdObj = nfd.find((n: any) => n.key === token.owner);
+            const nfdObj = nfd.find((n: { key: string }) => n.key === token.owner);
             if (nfdObj) {
                 token.ownerNFD = nfdObj.replacementValue;
                 token.ownerAvatar = nfdObj.avatar;

@@ -112,3 +112,33 @@ export interface IHighforgeProject {
     publicLaunchDateTime: string;
     title: string;
 }
+
+export type NReaction = {
+    messages_id?: number;
+    comments_id?: number;
+    reaction: number;
+}
+
+export type NMessage = {
+    id?: number;
+    walletId: string;
+    message: string;
+    timestamp: string;
+    private: boolean;
+    collectionId: string;
+    nfd?: any;
+    comments?: NComment[];
+    reactions?: number[];
+    mr?: NReaction[];
+};
+
+export type NComment = {
+    id?: number;
+    walletId: string;
+    comment: string;
+    timestamp: string;
+    nfd?: any;
+    reactions?: number[];
+    mcr?: NReaction[];
+};
+

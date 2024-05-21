@@ -1,4 +1,5 @@
 <script lang="ts">
+    import Reactions from './Reactions.svelte';
 	import { goto, invalidateAll } from "$app/navigation";
     import { Timeline, TimelineItem, Button } from 'flowbite-svelte';
     import { ArrowRightOutline } from 'flowbite-svelte-icons';
@@ -6,24 +7,8 @@
     //@ts-expect-error no types
     import EmojiPicker from "svelte-emoji-picker";
 	import { onDestroy, onMount } from "svelte";
-
-    type NMessage = {
-        id?: number;
-        walletId: string;
-        message: string;
-        timestamp: string;
-        private: boolean;
-        collectionId: string;
-        nfd?: any;
-        comments?: NComment[];
-    };
-
-    type NComment = {
-        walletId: string;
-        comment: string;
-        timestamp: string;
-        nfd?: any;
-    };
+    import type { NMessage } from "$lib/data/types";
+    import Markdown from 'svelte-markdown';
 
     export let message: NMessage;
     export let collectionName = '';
@@ -97,6 +82,7 @@
             invalidateAll();
         }
     };
+
 </script>
 {#if message}
     <div class="flex flex-col p-6 mb-4 bg-gray-50 dark:bg-gray-800 rounded-xl shadow dark:border-slate-700 border">
@@ -107,17 +93,20 @@
                     <a on:click={() => goto(`/portfolio/${message.walletId}`)} class="text-sm font-bold text-blue-500 dark:text-blue-300 cursor-pointer">
                         {nfds.find(nfd => nfd.key === message.walletId)?.replacementValue ?? (message.walletId.slice(0, 8) + '...' + message.walletId.slice(-8))}
                     </a>
-                    <div class="text-sm text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-line">{message.message}</div>
+                    <div class="text-sm text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-line markdown"><Markdown source={message.message} /></div>
                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-2 hover:text-blue-500 cursor-pointer" title={new Date(message.timestamp).toLocaleString()}>
                         {timeSince(message.timestamp)}
                     </div>
+                    <div class="place-self-start text-md flex space-x-2 mt-4 z-10">
+                        <Reactions canReact={canComment} message={message}></Reactions>
+                    </div>
                 </div>
-                <div class="flex flex-col justify-between">
+                <div class="flex flex-col space-y-4">
                     <div class={`place-self-end text-xs px-2 py-1 rounded-lg mt-2 ${message.private ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}>
                         {message.private ? 'Private' : 'Public'}
                     </div>
                     {#if showCollectionName}
-                        <div class={`place-self-end text-xs text-blue-500 dark:text-blue-300`}>
+                        <div class='place-self-end text-xs text-blue-500 dark:text-blue-300'>
                             <a href="/lounge/{message.collectionId}">{collectionName}</a>
                         </div>
                     {/if}
@@ -134,9 +123,12 @@
                                 <a on:click={() => goto(`/portfolio/${comment.walletId}`)} class="text-sm font-bold text-blue-500 dark:text-blue-300 cursor-pointer">
                                     {nfds.find(nfd => nfd.key === comment.walletId)?.replacementValue ?? (comment.walletId.slice(0, 8) + '...' + comment.walletId.slice(-8))}
                                 </a>
-                                <div class="text-sm text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-line">{comment.comment}</div>
+                                <div class="text-sm text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-line markdown"><Markdown source={comment.comment} /></div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-2 hover:text-blue-500 cursor-pointer" title={new Date(comment.timestamp).toLocaleString()}>
                                     {timeSince(comment.timestamp)}
+                                </div>
+                                <div class="place-self-start text-md flex space-x-2 mt-4 z-10">
+                                    <Reactions comment={comment} message={message}></Reactions>
                                 </div>
                             </div>
                         </div>
@@ -166,11 +158,9 @@
             {/if}
         </Timeline>
         {#if canComment && !showComments}
-            <div class="flex flex-row mt-2 justify-end">
+            <div class="flex flex-row -mt-6 justify-end">
                 <a on:click={() => showComments = true} class="text-xs text-gray-500 dark:text-gray-400 hover:!text-blue-500 cursor-pointer">Add Reply</a>
             </div>
         {/if}
     </div>
 {/if}
-<style>
-</style>
