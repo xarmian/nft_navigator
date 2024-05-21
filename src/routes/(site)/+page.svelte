@@ -8,6 +8,7 @@
 	import { onMount } from 'svelte';
 	import { MetaTags } from 'svelte-meta-tags';
 	import MultiCollectionView from '$lib/component/ui/MultiCollectionView.svelte';
+    import SecondaryNavBar from '$lib/component/ui/SecondaryNavBar.svelte';
     
     export let data: PageData;
     let collections: Collection[] = data.collections;
@@ -74,17 +75,7 @@
 </script>
 
 <MetaTags title="Home | NFT Navigator" />
-<div class="bg-white dark:bg-gray-800 shadow-md text-sm">
-    <div class="container mx-auto px-4 py-2">
-        <ul class="flex space-x-8 place-content-end">
-            <li><a href="/blog/arc72" class="text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:underline">What are ARC-72 NFTs?</a></li>
-            <li><a href="https://arc72-idx.nftnavigator.xyz/api-docs" target="_blank" class="text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:underline">Voi ARC-72 Indexer</a> <i class="fas fa-external-link"></i></li>
-            <li><a href="https://voi.network" target="_blank" class="text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:underline">What is Voi?</a> <i class="fas fa-external-link"></i></li>
-            <li><a href="https://voirewards.com/phase2" target="_blank" class="text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:underline">More Quests</a> <i class="fas fa-external-link"></i></li>
-            <li><a href="https://x.com/voinftnavigator" target="_blank" class="text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:underline"><i class="fa-brands fa-x"></i></a></li>
-        </ul>
-    </div>
-</div>
+<SecondaryNavBar></SecondaryNavBar>
 <div class="flex justify-between flex-col md:flex-row">
     <div class="m-2 flex justify-center md:justify-start">
         <Select options={[{id:'Popularity', name: 'Popularity'},{id: 'Mint', name: 'Mint Date'},{id: 'Name', name: 'Name'},{id: 'Randomize', name: 'Randomize'}]} bind:value={$sort.by} containerClass="m-1"></Select>

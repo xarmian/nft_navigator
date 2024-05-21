@@ -105,12 +105,12 @@
 				</a>
 			</div>
 			<div class="lg:flex items-center -space-x-3 flex-grow justify-center p-2 hidden">
-				<a href="/" class="-mt-5 hover:text-blue-500 {currentPath == '' ? 'text-blue-600' : ''}">Home</a>
-				<a href="/forsale" class="mt-5 hover:text-blue-500 {currentPath == 'forsale' ? 'text-blue-600' : ''}">For Sale</a>
-				<a href="/lounge{extensionRouteLounge}" class="-mt-5 hover:text-blue-500 {currentPath == 'lounge' ? 'text-blue-600' : ''}">Lounge</a>
-				<a href="/analytics{extensionRoute}" class="mt-5 hover:text-blue-500 {currentPath == 'analytics' ? 'text-blue-600' : ''}">Analytics</a>
+				<a href="/" class="-mt-8 hover:text-blue-500 {currentPath == '' ? 'text-blue-600' : ''}">Home</a>
+				<a href="/forsale" class="mt-4 hover:text-blue-500 {currentPath == 'forsale' ? 'text-blue-600' : ''}">For Sale</a>
+				<a href="/lounge{extensionRouteLounge}" class="-mt-8 hover:text-blue-500 {currentPath == 'lounge' ? 'text-blue-600' : ''}">Lounge</a>
+				<a href="/analytics{extensionRoute}" class="mt-4 hover:text-blue-500 {currentPath == 'analytics' ? 'text-blue-600' : ''}">Analytics</a>
 				{#if $selectedWallet}
-					<a href="/portfolio/{$selectedWallet?.address}" class="-mt-5 hover:text-blue-500 {currentPath == 'portfolio' ? 'text-blue-600' : ''}">
+					<a href="/portfolio/{$selectedWallet?.address}" class="-mt-8 hover:text-blue-500 {currentPath == 'portfolio' ? 'text-blue-600' : ''}">
 						My Portfolio
 					</a>
 				{/if}
