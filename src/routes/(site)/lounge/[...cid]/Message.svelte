@@ -159,7 +159,7 @@
         </Timeline>
         {#if canComment && !showComments}
             <div class="flex flex-row -mt-6 justify-end">
-                <a on:click={() => showComments = true} class="text-xs text-gray-500 dark:text-gray-400 hover:!text-blue-500 cursor-pointer">Add Reply</a>
+                <a on:click={() => showComments = true} class="z-10 text-xs text-gray-500 dark:text-gray-400 hover:!text-blue-500 cursor-pointer">Add Reply</a>
             </div>
         {/if}
     </div>
