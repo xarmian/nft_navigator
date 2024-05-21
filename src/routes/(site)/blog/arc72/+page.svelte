@@ -1,6 +1,7 @@
 <script>
 </script>
-<main class="prose dark:prose-invert mx-2 lg:mx-40 px-4 py-8">
+<main class="prose dark:prose-invert mx-2 lg:mx-40 px-4 py-8 mt-18">
+<img src="/images/arc72-blog-image-3.jpg" class="w-full mb-6" alt="ARC-72 Tokens on Voi"/>
 <h1 class="text-3xl font-bold mb-4">Understanding ARC-72 Tokens on Voi</h1>
 <p class="mb-6">Various standards for Non-fungible tokens (NFTs) have emerged across different chains. Voi has embraced the ARC-72 token standard, a new NFT standard implemented as smart contracts on AVM (Algorand Virtual Machine) blockchain networks. This article explores ARC-72 tokens, their benefits, and how they stand out compared to other NFT standards.</p>
 
