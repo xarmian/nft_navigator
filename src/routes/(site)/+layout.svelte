@@ -104,34 +104,30 @@
 					</div>
 				</a>
 			</div>
-			<div class="md:flex items-center space-x-2 flex-grow justify-center p-2 hidden">
-				<a href="/" class="hover:text-blue-500 {currentPath == '' ? 'text-blue-600' : ''}">Home</a>
-				<span class="text-gray-400">|</span>
-				<a href="/forsale" class="hover:text-blue-500 {currentPath == 'forsale' ? 'text-blue-600' : ''}">For Sale</a>
-				<span class="text-gray-400">|</span>
-				<a href="/lounge{extensionRouteLounge}" class="hover:text-blue-500 {currentPath == 'lounge' ? 'text-blue-600' : ''}">Lounge</a>
-				<span class="text-gray-400">|</span>
-				<a href="/analytics{extensionRoute}" class="hover:text-blue-500 {currentPath == 'analytics' ? 'text-blue-600' : ''}">Analytics</a>
+			<div class="lg:flex items-center -space-x-3 flex-grow justify-center p-2 hidden">
+				<a href="/" class="-mt-5 hover:text-blue-500 {currentPath == '' ? 'text-blue-600' : ''}">Home</a>
+				<a href="/forsale" class="mt-5 hover:text-blue-500 {currentPath == 'forsale' ? 'text-blue-600' : ''}">For Sale</a>
+				<a href="/lounge{extensionRouteLounge}" class="-mt-5 hover:text-blue-500 {currentPath == 'lounge' ? 'text-blue-600' : ''}">Lounge</a>
+				<a href="/analytics{extensionRoute}" class="mt-5 hover:text-blue-500 {currentPath == 'analytics' ? 'text-blue-600' : ''}">Analytics</a>
 				{#if $selectedWallet}
-					<span class="text-gray-400">|</span>
-					<a href="/portfolio/{$selectedWallet?.address}" class="hover:text-blue-500 {currentPath == 'portfolio' ? 'text-blue-600' : ''}">
+					<a href="/portfolio/{$selectedWallet?.address}" class="-mt-5 hover:text-blue-500 {currentPath == 'portfolio' ? 'text-blue-600' : ''}">
 						My Portfolio
 					</a>
 				{/if}
 			</div>
-			<div class="flex-grow p-2 md:hidden">&nbsp;</div>
+			<div class="flex-grow p-2 lg:hidden">&nbsp;</div>
 			<div class="absolute top-0 right-0 flex p-4 flex-row space-x-2">
-				<div class="hidden md:flex">
+				<div class="hidden lg:flex">
 					<CollectionSearch />
 				</div>
-				<div class="hidden md:flex">
+				<div class="hidden lg:flex">
 					<div class="w-42 flex">
 						<Web3Wallet availableWallets={['DeflyWallet','Kibisis','LuteWallet']} showAuthButtons={true} algodClient={algodClient} indexerClient={algodIndexer} walletListClass="bg-gray-100 dark:bg-slate-600 dark:text-gray-200"/>
 					</div>
 				</div>
 				<div class="ml-auto relative content-end flex flex-row">
 					<DarkMode />
-					<div class="flex flex-row md:hidden">
+					<div class="flex flex-row lg:hidden">
 						<button on:click|stopPropagation={() => showMenu = !showMenu} class="h-10 w-10 rounded-2xl bg-slate-500 flex items-center justify-center mr-2">
 							<i class="fas fa-bars cursor-pointer"></i>
 						</button>
@@ -170,8 +166,9 @@
 			<FooterLink href="/about">About</FooterLink>
 		  </FooterLinkGroup>
 		  <FooterLinkGroup ulClass="flex flex-wrap items-center mb-6 text-sm text-gray-500 sm:mb-0 dark:text-gray-400">
-			<FooterLink href="https://twitter.com/xarmian" target="_blank">My Twitter</FooterLink>
-			<FooterLink href="https://twitter.com/Voi_Net" target="_blank">Voi Twitter</FooterLink>
+			<FooterLink href="https://x.com/voinftnavigator" target="_blank">NFTNavigator X</FooterLink>
+			<FooterLink href="https://x.com/xarmian" target="_blank">My X</FooterLink>
+			<FooterLink href="https://x.com/Voi_Net" target="_blank">Voi X</FooterLink>
 			<FooterLink href="https://t.co/mXYdYkWE6i" target="_blank">Voi Discord</FooterLink>
 			<FooterLink href="https://github.com/xarmian/voi_rewards_svelte" target="_blank">Source Code</FooterLink>
 		  </FooterLinkGroup>
