@@ -20,14 +20,15 @@ export async function POST({ request, cookies }) {
 
     if (body.action == 'connect_wallet' && body.wallets) {
         const wallets = body.wallets
-        wallets.forEach(async (wallet: { address: string; app: string;}) => {
+        for (let i = 0; i < wallets.length; i++) {
+            const wallet = wallets[i];
             const action = {
                 action: body.action,
                 address: wallet.address,
                 description: `Connected ${wallet.app}, Total connected = ${wallets.length}`,
             }
-            saveAction(action);
-        });
+            await saveAction(action);
+        }
     }
     else if (body.action == 'auth_wallet' && body.wallet) {
         const wallet = body.wallet;
