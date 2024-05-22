@@ -199,10 +199,11 @@ export const postComment = async ( comment: PComment) => {
 }
 
 export const saveAction = async (action: PAction) => {
+    console.log(`saveAction`, action);
     const { data, error } = await supabasePrivateClient.from('actions').insert(action);
 
     if (error) {
-    console.error('saveAction',error);
+        console.error('saveAction',error);
     }
 
     return data;
