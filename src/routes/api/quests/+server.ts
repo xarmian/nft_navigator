@@ -16,6 +16,7 @@ export async function POST({ request, cookies }) {
     }
 
     console.log('action',body.action);
+    console.log(body.wallets);
 
     if (body.action == 'connect_wallet' && body.wallets) {
         const wallets = body.wallets
@@ -25,7 +26,7 @@ export async function POST({ request, cookies }) {
                 address: wallet.address,
                 description: `Connected ${wallet.app}, Total connected = ${wallets.length}`,
             }
-            await saveAction(action);
+            saveAction(action);
         });
     }
     else if (body.action == 'auth_wallet' && body.wallet) {
