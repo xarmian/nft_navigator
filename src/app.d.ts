@@ -3,8 +3,9 @@
 declare global {
 	namespace App {
 		interface Locals {
-			supabase: SupabaseClient
-			safeGetSession(): Promise<{ session: Session | null; user: User | null }>
+			//supabase: SupabaseClient
+			//safeGetSession(): Promise<{ session: Session | null; user: User | null }>
+			ipAddress: string;
 		}
 		interface PageData {
 			session: Session | null

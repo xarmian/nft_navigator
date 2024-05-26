@@ -85,7 +85,7 @@ export const load: PageServerLoad = async ({ params, cookies, url }) => {
 }
 
 export const actions = {
-  postMessage: async ({ request, params, cookies }) => {
+  postMessage: async ({ request, params, cookies, locals }) => {
     const { cid } = params;
     const formData = await request.formData();
 
@@ -119,13 +119,14 @@ export const actions = {
       action: actionType,
       address: walletId,
       description: `Posted a ${actionType} message in collection ${cid}`,
+      ip: locals.ipAddress,
     }
 
     await saveAction(action);
 
     return { success: true };
   },
-  postComment: async ({ request, cookies }) => {
+  postComment: async ({ request, cookies, locals }) => {
     const formData = await request.formData();
     const messageId = Number(formData.get('messageId')?.toString()) ?? null;
     const comment = formData.get('comment')?.toString() ?? '';
@@ -164,13 +165,14 @@ export const actions = {
       action: 'post_comment',
       address: walletId,
       description: `Posted a comment in message ${messageId}`,
+      ip: locals.ipAddress,
     }
 
     await saveAction(action);
 
     return { success: true };
   },
-  postReaction: async ({ request, cookies }) => {
+  postReaction: async ({ request, cookies, locals }) => {
     const formData = await request.formData();
     const messageId = Number(formData.get('messageId')?.toString()) ?? 0;
     const commentId = Number(formData.get('commentId')?.toString()) ?? 0;
@@ -204,6 +206,7 @@ export const actions = {
       action: 'post_reaction',
       address: walletId,
       description: `Posted reaction ${reaction} in message ${messageId}, comment ${commentId}`,
+      ip: locals.ipAddress,
     }
 
     await saveAction(action);

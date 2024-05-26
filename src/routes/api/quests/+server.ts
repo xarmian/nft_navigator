@@ -1,21 +1,17 @@
 import { json } from '@sveltejs/kit';
 import { saveAction } from '$lib/supabase-server';
 import { verifyToken } from 'avm-wallet-svelte';
+import type { RequestHandler } from '@sveltejs/kit';
 
 type Wallet = {
     address: string;
     app: string;
 }
 
-export async function POST({ request, cookies }) {
+export const POST: RequestHandler = async ({ request, cookies, locals }) => {
 	const body: { action: string; wallets?: Wallet[], wallet?: Wallet, detail?: { from: string, to: string, token: string, transactionId: string } } = await request.json();
 
-    const cookieWallet = cookies.get('avm-wallet');
-    if (!cookieWallet || cookieWallet.length < 58) {
-        return json({ 'success':'false', 'error':'no wallet' }, { status: 400 });
-    }
-
-    console.log('action',body.action);
+    const ipAddress = locals.ipAddress;
 
     if (body.action == 'connect_wallet' && body.wallets) {
         const wallets = body.wallets
@@ -25,6 +21,7 @@ export async function POST({ request, cookies }) {
                 action: body.action,
                 address: wallet.address,
                 description: `Connected ${wallet.app}, Total connected = ${wallets.length}`,
+                ip: ipAddress,
             }
             await saveAction(action);
         }
@@ -45,6 +42,7 @@ export async function POST({ request, cookies }) {
             action: body.action,
             address: body.wallet.address,
             description: `Authenticated wallet ${wallet.app}`,
+            ip: ipAddress,
         }
         await saveAction(action);
     }
@@ -54,6 +52,7 @@ export async function POST({ request, cookies }) {
             action: body.action,
             address: detail.from,
             description: `Approved token ${detail.token} to ${detail.to}, txId: ${detail.transactionId}`,
+            ip: ipAddress,
         }
         await saveAction(action);
     }
@@ -63,6 +62,7 @@ export async function POST({ request, cookies }) {
             action: body.action,
             address: detail.from,
             description: `Transferred token ${detail.token} to ${detail.to}, txId: ${detail.transactionId}`,
+            ip: ipAddress,
         }
         await saveAction(action);
     }
