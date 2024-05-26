@@ -1,14 +1,12 @@
 <script lang="ts">
-  import Message from './Message.svelte';
-
+    import CreatePost from './CreatePost.svelte';
+    import Message from './Message.svelte';
 	import type { Collection, Token } from "$lib/data/types";
     import { selectedWallet, verifyToken, type WalletConnectionResult } from "avm-wallet-svelte";
 	import { onMount, onDestroy } from "svelte";
     import { getTokens, getCollections } from "$lib/utils/indexer";
     import { Tabs, ButtonGroup, Button, Popover, Indicator } from 'flowbite-svelte';
     import TabItem from '$lib/component/ui/TabItemCustom.svelte';
-    //@ts-expect-error no types
-    import EmojiPicker from "svelte-emoji-picker";
     import type { PageData } from './$types';
 	import { goto, invalidateAll } from "$app/navigation";
     import Cookies from 'js-cookie';
@@ -27,8 +25,6 @@
     let allCollections: Collection[] = [];
     let nonUserCollections: Collection[] = [];
     let selectedView = 'Public';
-    let showEmojiPicker = false;
-    let chatInput = '';
     let canViewPrivate = false;
     let messages: { walletId: string, message: string, timestamp: string, avatar?: string, private: boolean, collectionId: string }[] = [];
     let postPrivacy = selectedView;
@@ -88,12 +84,6 @@
         }
     });
 
-    function handleClick(event: MouseEvent) {
-        if (showEmojiPicker && !(event.target as Element)?.closest('.emoji-picker')) {
-            showEmojiPicker = false;
-        }
-    }
-
     onMount(async () => {
         allCollections = await getCollections({fetch});
 
@@ -101,17 +91,10 @@
         allCollections = allCollections.sort((a: any, b: any) => {
             return a.highforgeData?.title.localeCompare(b.highforgeData?.title??'ZZZ');
         });
-
-        if (typeof window !== 'undefined') {
-            window.addEventListener('click', handleClick);
-        }
     });
 
     onDestroy(() => {
         unsub();
-        if (typeof window !== 'undefined') {
-            window.removeEventListener('click', handleClick);
-        }
     });
 
     $: {
@@ -140,15 +123,13 @@
         if (view != 'All') postPrivacy = view;
     }
 
-    const handleSubmit = async (event: Event) => {
-        event.preventDefault();
-
+    const onPost = async (content: string): Promise<boolean> => {
         const response = await fetch('?/postMessage', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
                 cid: selectedCollection,
-                message: chatInput,
+                message: content,
                 privacy: postPrivacy
             })
         });
@@ -156,9 +137,9 @@
         if (!response.ok) {
             const data = await response.json();
             alert(data.error.message);
+            return false;
         } else {
-            chatInput = '';
-            invalidateAll();
+            return true;
         }
     };
 
@@ -251,32 +232,18 @@
                     </div>
                     {#if selectedCollection}
                         <div class="flex flex-col py-4 mx-1 {selectedCollection == 'all' || selectedCollection == 'myfeed' ? 'mb-[4.5rem]' : 'mb-16'} overflow-auto relative border-t-2 border-slate-200 dark:border-slate-400">
+                            {#if !hasValidToken}
+                                <div class="text-sm bg-yellow-300 text-black dark:bg-yellow-600 dark:text-white border border-yellow-900 p-2 rounded-lg mb-1">
+                                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                                    You must <a href="https://wind-bolt-806.notion.site/Quest-2-Authenticate-your-Wallet-bd8a312141e0403688953625e14106df" class="text-blue-600 hover:text-blue-500 dark:text-blue-400 hover:dark:text-blue-300 underline cursor-pointer" target="_blank">authenticate your wallet</a> to post messages, react, or view private channels.
+                                </div>
+                            {/if}
                             {#if canViewPrivate && hasValidToken && selectedCollection !== 'all' && selectedCollection !== 'myfeed'}
-                                <form on:submit={handleSubmit} class="h-16 p-2 py-16 mb-4 mx-1 w-full sm:w-3/4 place-self-center flex items-center bg-gray-50 dark:bg-gray-800 rounded-xl shadow relative border dark:border-slate-700">
-                                    <div class="text-xl mr-2 pointer" on:click|stopPropagation={() => showEmojiPicker = !showEmojiPicker}>
-                                        <i class="far fa-smile"></i>
-                                    </div>
-                                    <textarea name="message" class="flex-grow bg-gray-100 dark:bg-gray-700 rounded-lg p-2 mr-2" placeholder="Type a message..." bind:value={chatInput} ></textarea>
-                                    <div class="flex flex-col place-items-start space-y-1">
-                                        <select name="privacy" class="text-xs bg-gray-100 dark:bg-gray-700 rounded-lg" bind:value={postPrivacy}>
-                                            <option value="Public">Public</option>
-                                            <option value="Private">Private</option>
-                                        </select>
-                                        <button class="flex items-center justify-center bg-blue-500 hover:bg-blue-700 text-white py-1 px-4 rounded-lg w-full">
-                                            <i class="fas fa-paper-plane mr-2"></i>
-                                            Post
-                                        </button>
-                                    </div>
-                                </form>
+                                <CreatePost onPost={onPost} postPrivacy={postPrivacy}></CreatePost>
                             {:else if selectedView == 'Private' && canViewPrivate && !hasValidToken}
                                 <div class="text-2xl font-bold text-gray-800 dark:text-gray-200 flex flex-col place-items-center m-2">
                                     <div>Want to Post in or view the Private channel? Authenticate your wallet!</div>
                                     <div class="text-sm text-gray-500 dark:text-gray-400">Click your wallet address and then select the "Auth" option next to the wallet.</div>
-                                </div>
-                            {/if}
-                            {#if showEmojiPicker}
-                                <div class="absolute top-20 right-0 bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-600 border-2 p-2 rounded-lg">
-                                    <EmojiPicker bind:value={chatInput}/>
                                 </div>
                             {/if}
                             <div class="flex-grow h-full m-1 w-full md:w-3/4 place-self-center">

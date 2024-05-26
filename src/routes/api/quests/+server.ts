@@ -16,7 +16,6 @@ export async function POST({ request, cookies }) {
     }
 
     console.log('action',body.action);
-    console.log(body.wallets);
 
     if (body.action == 'connect_wallet' && body.wallets) {
         const wallets = body.wallets
