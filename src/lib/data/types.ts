@@ -43,6 +43,12 @@ export interface Collection {
     creator: string;
 }
 
+export interface IPollOptions {
+    options: string[];
+    endTime: string;
+    voteWeight: 'wallet' | 'token';
+}
+
 export interface RawToken {
     owner: string;
     contractId: number;

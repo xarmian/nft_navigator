@@ -182,7 +182,7 @@ export const postMessage = async (message: PMessage) => {
     const { data, error } = await supabasePrivateClient.from('messages').insert(message);
 
     if (error) {
-    console.error('postMessage',error);
+        console.error('postMessage',error);
     }
 
     return data;

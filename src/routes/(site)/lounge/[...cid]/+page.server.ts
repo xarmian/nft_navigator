@@ -103,11 +103,23 @@ export const actions = {
       error(401, { message: 'Invalid authorization token. Please re-authenticate and try again.' });
     }
 
+    let poll: string | null = formData.get('poll')?.toString() ?? null;
+    if (poll === '' || poll === null) {
+      poll = null;
+    } else {
+      try {
+        poll = JSON.parse(poll);
+      } catch (e) {
+        poll = null;
+      }
+    }
+    
     const message = {
       collectionId: Number(cid),
       walletId: walletId,
       message: formData.get('message')?.toString() ?? '',
       private: formData.get('privacy') === 'Private',
+      poll: poll, // JSON
     };
 
     // post message to supabase

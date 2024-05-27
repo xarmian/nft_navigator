@@ -93,7 +93,9 @@
                     <a on:click={() => goto(`/portfolio/${message.walletId}`)} class="text-sm font-bold text-blue-500 dark:text-blue-300 cursor-pointer">
                         {nfds.find(nfd => nfd.key === message.walletId)?.replacementValue ?? (message.walletId.slice(0, 8) + '...' + message.walletId.slice(-8))}
                     </a>
-                    <div class="text-sm text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-line markdown"><Markdown source={message.message} /></div>
+                    <div class="text-sm text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-line markdown">
+                        <Markdown source={message.message} />
+                    </div>
                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-2 hover:text-blue-500 cursor-pointer" title={new Date(message.timestamp).toLocaleString()}>
                         {timeSince(message.timestamp)}
                     </div>
