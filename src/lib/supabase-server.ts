@@ -192,12 +192,12 @@ export const getMessages = async (collectionId: string[] | string | null, includ
         if (message.poll && message.poll_responses && (message.poll_responses?.length??0) > 0)  {
             // aggregate poll responses and add to message.poll.votes object
             const pollResponses = message.poll_responses;
-            const pollVotes: Record<string, number> = {};
+            const pollVotes: Record<number, number> = {};
             pollResponses.forEach((response) => {
-                if (pollVotes[response.response]) {
-                    pollVotes[response.response]++;
+                if (pollVotes[Number(response.response)]) {
+                    pollVotes[Number(response.response)]++;
                 } else {
-                    pollVotes[response.response] = 1;
+                    pollVotes[Number(response.response)] = 1;
                 }
 
                 if (response.wallet_id === walletId && message.poll) {

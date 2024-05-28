@@ -18,7 +18,7 @@
     export let nfds: AggregatedNFD[] = [];
 
     $: poll = message.poll;
-    $: canVote = (poll && !poll.voted && (!poll.endTime || new Date(poll.endTime) > new Date()) && (canComment || poll.publicVoting));
+    $: canVote = (poll && poll.voted === undefined && (!poll.endTime || new Date(poll.endTime) > new Date()) && (canComment || poll.publicVoting));
 
     let totalVotes = 0;
     let pollWinner: number | null | undefined = undefined;
@@ -34,7 +34,7 @@
         if (poll?.endTime && new Date(poll.endTime) < new Date()) {
             if (poll.votes) {
                 // pollWinner = record with highest number in poll.votes
-
+                pollWinner = Number(Object.entries(poll.votes).reduce((a, b) => a[1] > b[1] ? a : b)[0]);
             }
             else {
                 pollWinner = null;
@@ -155,7 +155,7 @@
                                             <button class="flex-grow-1 bg-gray-200 text-black px-6 py-2 text-start no-underline inline-block
                                                 text-lg m-1 rounded-full transition-colors duration-200 cursor-not-allowed
                                                 {canVote && pollWinner === undefined ? 'cursor-pointer hover:bg-green-500 hover:text-white' : ''}
-                                                {poll.voted && poll.voted === parseInt(index) ? 'bg-yellow-400' : ''}" on:click={() => handleVote(index)}
+                                                {poll.voted !== undefined && poll.voted === parseInt(index) ? 'bg-yellow-400' : ''}" on:click={() => handleVote(index)}
                                                 >
                                                 <div class="text-sm">{option}</div>
                                             </button>
