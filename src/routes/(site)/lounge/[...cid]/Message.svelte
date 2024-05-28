@@ -152,8 +152,8 @@
                                     <tr class="{parseInt(index) === pollWinner ? 'bg-yellow-100 text-black' : ''}">
                                         <td>{parseInt(index) + 1}.</td>
                                         <td>
-                                            <button class="flex-grow-1 bg-gray-200 text-black px-6 py-2 text-start no-underline inline-block
-                                                text-lg m-1 rounded-full transition-colors duration-200 cursor-not-allowed
+                                            <button class="bg-gray-200 text-black px-6 py-2 text-start no-underline inline-block
+                                                text-lg m-1 rounded-full transition-colors duration-200 cursor-not-allowed w-full
                                                 {canVote && pollWinner === undefined ? 'cursor-pointer hover:bg-green-500 hover:text-white' : ''}
                                                 {poll.voted !== undefined && poll.voted === parseInt(index) ? 'bg-yellow-400' : ''}" on:click={() => handleVote(index)}
                                                 >
@@ -162,15 +162,13 @@
                                         </td>
                                         {#if poll.votes}
                                             <td>
-                                                <div class="flex flex-grow-1 self-center items-center">
-                                                    <div class="w-40 bg-gray-200 rounded-full overflow-hidden">
-                                                        <div class="bg-green-500 rounded-full h-4" style={`width: ${Math.max((poll.votes?.[parseInt(index)]??0) / totalVotes * 100, 3)}%`}></div>
-                                                    </div>
+                                                <div class="w-40 bg-gray-200 rounded-full overflow-hidden ml-3">
+                                                    <div class="bg-green-500 rounded-full h-4" style={`width: ${Math.max((poll.votes?.[parseInt(index)]??0) / totalVotes * 100, 3)}%`}></div>
                                                 </div>
                                             </td>
                                             <td>
                                                 <div class="text-xs text-gray-500 dark:text-gray-400={parseInt(index) !== pollWinner} ml-2">
-                                                    {poll.votes?.[parseInt(index)] ?? 0} votes
+                                                    {poll.votes?.[parseInt(index)] ?? 0} vote{poll.votes?.[parseInt(index)] === 1 ? '' : 's'}
                                                 </div>
                                             </td>
                                             <td>
@@ -186,7 +184,7 @@
                                 {/each}
                             </table>
                             <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                                Total Votes: {totalVotes} | {pollWinner !== undefined ? 'Ended' : 'Ends'}: {new Date(poll.endTime).toLocaleString()}
+                                Total Votes: {totalVotes} | {pollWinner !== undefined ? 'Ended' : 'Ends'}: {new Date(poll.endTime).toLocaleString()} | {poll.publicVoting ? 'Public' : 'Private'} Poll
                             </div>
                         </div>
                     {/if}
