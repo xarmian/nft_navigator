@@ -282,7 +282,7 @@ export const postReaction = async (p_message_id: number, p_comment_id: number | 
     return data;
 }
 
-export const postPollVote = async (p_message_id: number, p_wallet_id: string, p_response: string): Promise<boolean> => {
+export const postPollVote = async (p_message_id: number, p_wallet_id: string, p_response: number): Promise<boolean> => {
     const { error } = await supabasePrivateClient.from('poll_responses').insert({ messages_id: p_message_id, wallet_id: p_wallet_id, response: p_response });
 
     if (error) {

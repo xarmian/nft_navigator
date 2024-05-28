@@ -21,7 +21,7 @@
     $: canVote = (poll && !poll.voted && (!poll.endTime || new Date(poll.endTime) > new Date()) && (canComment || poll.publicVoting));
 
     let totalVotes = 0;
-    let pollWinner: string | null | undefined = undefined;
+    let pollWinner: number | null | undefined = undefined;
 
     $: {
         if (poll && poll.votes) {
@@ -33,7 +33,8 @@
         
         if (poll?.endTime && new Date(poll.endTime) < new Date()) {
             if (poll.votes) {
-                pollWinner = Object.entries(poll.votes).reduce((a, b) => a[1] > b[1] ? a : b)[0];
+                // pollWinner = record with highest number in poll.votes
+
             }
             else {
                 pollWinner = null;
@@ -147,14 +148,14 @@
                     {#if poll}
                         <div class="flex flex-col mt-2 space-y-2">
                             <table class="mt-2 w-full text-left">
-                                {#each poll.options as option, i}
-                                    <tr class="{option === pollWinner ? 'bg-yellow-100 text-black' : ''}">
-                                        <td>{i + 1}.</td>
+                                {#each Object.entries(poll.options) as [index, option]}
+                                    <tr class="{parseInt(index) === pollWinner ? 'bg-yellow-100 text-black' : ''}">
+                                        <td>{parseInt(index) + 1}.</td>
                                         <td>
                                             <button class="flex-grow-1 bg-gray-200 text-black px-6 py-2 text-start no-underline inline-block
                                                 text-lg m-1 rounded-full transition-colors duration-200 cursor-not-allowed
                                                 {canVote && pollWinner === undefined ? 'cursor-pointer hover:bg-green-500 hover:text-white' : ''}
-                                                {poll.voted && poll.voted === option ? 'bg-yellow-400' : ''}" on:click={() => handleVote(option)}
+                                                {poll.voted && poll.voted === parseInt(index) ? 'bg-yellow-400' : ''}" on:click={() => handleVote(index)}
                                                 >
                                                 <div class="text-sm">{option}</div>
                                             </button>
@@ -163,17 +164,17 @@
                                             <td>
                                                 <div class="flex flex-grow-1 self-center items-center">
                                                     <div class="w-40 bg-gray-200 rounded-full overflow-hidden">
-                                                        <div class="bg-green-500 rounded-full h-4" style={`width: ${Math.max((poll.votes?.[option]??0) / totalVotes * 100, 3)}%`}></div>
+                                                        <div class="bg-green-500 rounded-full h-4" style={`width: ${Math.max((poll.votes?.[parseInt(index)]??0) / totalVotes * 100, 3)}%`}></div>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td>
-                                                <div class="text-xs text-gray-500 dark:text-gray-400={option !== pollWinner} ml-2">
-                                                    {poll.votes?.[option] ?? 0} votes
+                                                <div class="text-xs text-gray-500 dark:text-gray-400={parseInt(index) !== pollWinner} ml-2">
+                                                    {poll.votes?.[parseInt(index)] ?? 0} votes
                                                 </div>
                                             </td>
                                             <td>
-                                                {#if poll.voted === option}
+                                                {#if poll.voted === parseInt(index)}
                                                     <div class="text-xs text-gray-500 dark:text-gray-400 ml-2 flex place-items-end items-center">
                                                         <i class="fas fa-check text-blue-800 text-lg"></i>
                                                         Your Vote

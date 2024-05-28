@@ -44,13 +44,13 @@ export interface Collection {
 }
 
 export interface IPoll {
-    options: string[];
+    options: Record<number, string>;
     endTime: string;
     voteWeight: 'wallet' | 'token';
-    votes?: Record<string, number> | undefined;
+    votes?: Record<number, number>;
     alwaysShowResults?: boolean;
     anonymousVotes?: boolean;
-    voted?: string;
+    voted?: number;
     publicVoting?: boolean;
 }
 
@@ -58,7 +58,7 @@ export interface IPollResponse {
     id: number;
     messages_id: number;
     wallet_id: string;
-    response: string;
+    response: number;
     response_time: string;
 }
 

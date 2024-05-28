@@ -257,7 +257,7 @@ export const actions = {
     }
 
     // post poll vote to supabase
-    const status = await postPollVote(messageId, walletId, vote);
+    const status = await postPollVote(messageId, walletId, Number(vote));
 
     if (status) {
       const action = {
