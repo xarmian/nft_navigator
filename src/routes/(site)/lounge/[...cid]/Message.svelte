@@ -152,12 +152,12 @@
                                     <tr class="{parseInt(index) === pollWinner ? 'bg-yellow-100 text-black' : ''}">
                                         <td>{parseInt(index) + 1}.</td>
                                         <td>
-                                            <button class="bg-gray-200 text-black px-6 py-2 text-start no-underline inline-block
-                                                text-lg m-1 rounded-full transition-colors duration-200 cursor-not-allowed w-full
+                                            <button class="bg-gray-200 text-black px-4 py-2 text-start no-underline inline-block
+                                                text-sm m-1 rounded-full transition-colors duration-200 cursor-not-allowed w-full
                                                 {canVote && pollWinner === undefined ? 'cursor-pointer hover:bg-green-500 hover:text-white' : ''}
                                                 {poll.voted !== undefined && poll.voted === parseInt(index) ? 'bg-yellow-400' : ''}" on:click={() => handleVote(index)}
                                                 >
-                                                <div class="text-sm">{option}</div>
+                                                {option}
                                             </button>
                                         </td>
                                         {#if poll.votes}

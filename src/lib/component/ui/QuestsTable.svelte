@@ -42,6 +42,12 @@
             name: 'post_private',
             desc: 'Create a Private post in the NFT Lounge',
             guide: 'https://wind-bolt-806.notion.site/Quest-6-Create-a-Private-post-in-the-NFT-Lounge-e6254158fb994c189a19308f74478f80?pvs=25',
+        },
+        {
+            id: 7,
+            name: 'post_poll_vote',
+            desc: 'Vote in a Poll in the NFT Lounge',
+            guide: 'https://wind-bolt-806.notion.site/Quest-7-Vote-in-a-Poll-in-the-NFT-Lounge-355b4f18a068470fb4f4c4cc3d981a2d',
         }
     ]
 
