@@ -119,7 +119,7 @@
                     </div>
                 {/if}
             </div>
-            <div class="relative text-xl mr-2 cursor-pointer" on:click|stopPropagation={() => showAddMenu = !showAddMenu}>
+            <div class="relative text-xl mr-2 cursor-pointer hidden" on:click|stopPropagation={() => showAddMenu = !showAddMenu}>
                 <i class="fas fa-plus-circle"></i>
                 {#if showAddMenu}
                     <div class="absolute top-0 left-7 bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-600 border-2 p-2 rounded-lg text-sm whitespace-nowrap">
