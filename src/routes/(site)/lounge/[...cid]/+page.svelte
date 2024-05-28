@@ -1,7 +1,7 @@
 <script lang="ts">
     import CreatePost from './CreatePost.svelte';
     import Message from './Message.svelte';
-	import type { Collection, Token } from "$lib/data/types";
+	import type { Collection, Token, IPollOptions } from "$lib/data/types";
     import { selectedWallet, verifyToken, type WalletConnectionResult } from "avm-wallet-svelte";
 	import { onMount, onDestroy } from "svelte";
     import { getTokens, getCollections } from "$lib/utils/indexer";
@@ -123,14 +123,15 @@
         if (view != 'All') postPrivacy = view;
     }
 
-    const onPost = async (content: string): Promise<boolean> => {
+    const onPost = async (content: string, poll: IPollOptions | null): Promise<boolean> => {
         const response = await fetch('?/postMessage', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
                 cid: selectedCollection,
                 message: content,
-                privacy: postPrivacy
+                privacy: postPrivacy,
+                poll: poll ? JSON.stringify(poll) : '',
             })
         });
 
