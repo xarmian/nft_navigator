@@ -29,11 +29,11 @@
 	const unsubWallet = selectedWallet.subscribe((value) => {
         if (value) {
 			Cookies.set('avm-wallet', value.address);
+			invalidateAll();
 		}
 		else {
 			Cookies.remove('avm-wallet');
 		}
-		invalidateAll();
     });
 
 	setOnAddHandler(async (wallets) => {
