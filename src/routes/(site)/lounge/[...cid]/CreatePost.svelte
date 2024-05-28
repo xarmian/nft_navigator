@@ -154,7 +154,7 @@
     {#if showAddPoll}
         <div class="flex flex-col m-4 p-2 border border-gray-500 rounded-lg relative space-y-2">
             <div class="text-lg">Add Poll</div>
-            <button class="absolute top-2 right-2 p-1 border border-gray-500 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full w-8 h-8" on:click|stopPropagation={() => showAddPoll = false}>
+            <button class="absolute top-2 right-2 p-1 border border-gray-500 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full w-8 h-8" on:click|preventDefault|stopPropagation={() => showAddPoll = false}>
                 <i class="fas fa-times"></i>
             </button>
             <div class="flex flex-row space-x-2">
@@ -164,7 +164,7 @@
                     {/each}
                 </div>
                 <div class="flex items-end mb-1">
-                    <button class="bg-blue-500 hover:bg-blue-700 text-white py-1 px-4 rounded-lg" on:click|preventDefault={() => pollOptions = [...pollOptions, '']}>+</button>
+                    <button class="bg-blue-500 hover:bg-blue-700 text-white py-1 px-4 rounded-lg" on:click|preventDefault|stopPropagation={() => pollOptions = [...pollOptions, '']}>+</button>
                 </div>
             </div>
             <hr class="border-gray-300 dark:border-gray-600" />
