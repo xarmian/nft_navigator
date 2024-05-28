@@ -1,9 +1,10 @@
 import type { PageServerLoad } from './$types';
-import { getMessages, postMessage, postComment, getMessage, saveAction, postReaction } from '$lib/supabase-server';
+import { getMessages, postMessage, postComment, getMessage, saveAction, postReaction, postPollVote } from '$lib/supabase-server';
 import { verifyToken } from 'avm-wallet-svelte';
 import { getTokens } from '$lib/utils/indexer';
 import { error } from '@sveltejs/kit';
 import { getNFD, type AggregatedNFD } from '$lib/utils/nfd';
+import type { IPoll } from '$lib/data/types';
 
 export const load: PageServerLoad = async ({ params, cookies, url }) => {
   const { cid } = params;
@@ -103,23 +104,22 @@ export const actions = {
       error(401, { message: 'Invalid authorization token. Please re-authenticate and try again.' });
     }
 
-    let poll: string | null = formData.get('poll')?.toString() ?? null;
-    if (poll === '' || poll === null) {
-      poll = null;
-    } else {
+    let postPoll: IPoll | undefined;
+    const poll: string | undefined = formData.get('poll')?.toString() ?? undefined;
+    if (poll !== '' && poll !== undefined) {
       try {
-        poll = JSON.parse(poll);
+        postPoll = JSON.parse(poll);
       } catch (e) {
-        poll = null;
+        postPoll = undefined;
       }
     }
-    
+
     const message = {
       collectionId: Number(cid),
       walletId: walletId,
       message: formData.get('message')?.toString() ?? '',
       private: formData.get('privacy') === 'Private',
-      poll: poll, // JSON
+      poll: postPoll, // JSON
     };
 
     // post message to supabase
@@ -224,5 +224,55 @@ export const actions = {
     await saveAction(action);
 
     return { success: true };
-  }
+  },
+  postPollVote: async ({ request, cookies, locals }) => {
+    const formData = await request.formData();
+    const messageId = Number(formData.get('messageId')?.toString()) ?? 0;
+    const vote = formData.get('vote')?.toString()??'';
+
+    if (messageId === 0 || vote === '') {
+      error(400, { message: 'Invalid poll vote data. Please try again.' });
+    }
+
+    // get token from cookie avm-wallet-token
+    const walletId = cookies.get('avm-wallet');
+    const token = cookies.get(`avm-wallet-token-${walletId}`);
+
+    // validate user's wallet token
+    const isValid = (walletId && token) ? await verifyToken(walletId,token) : false;
+
+    const message = await getMessage(messageId);
+    const cid = message?.collectionId;
+
+    // check if we are past the end time of the poll
+    if (new Date() > new Date(message?.poll?.endTime ?? 0)) {
+      error(400, { message: 'Poll has ended. Please try again.' });
+    }
+    
+    // validate user can access collection
+    const ownsToken = (walletId && cid) ? (await getTokens({ owner: walletId, contractId: cid })).length > 0 : false;
+
+    if (!isValid || !ownsToken || !walletId) {
+      error(401, { message: 'Invalid authorization token. Please re-authenticate and try again.' });
+    }
+
+    // post poll vote to supabase
+    const status = await postPollVote(messageId, walletId, vote);
+
+    if (status) {
+      const action = {
+        action: 'post_poll_vote',
+        address: walletId,
+        description: `Voted in poll in message ${messageId}`,
+        ip: locals.ipAddress,
+      }
+
+      await saveAction(action);
+
+      return { success: true };
+    }
+    else {
+      error(401, { message: 'Error posting poll vote. Please try again.' });
+    }
+  },
 };

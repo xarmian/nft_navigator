@@ -7,7 +7,7 @@
     //@ts-expect-error no types
     import EmojiPicker from "svelte-emoji-picker";
 	import { onDestroy, onMount } from "svelte";
-    import type { NMessage } from "$lib/data/types";
+    import type { IPoll, NMessage } from "$lib/data/types";
     import Markdown from 'svelte-markdown';
 
     export let message: NMessage;
@@ -16,6 +16,33 @@
     export let canComment = false;
     export let showComments = false;
     export let nfds: AggregatedNFD[] = [];
+
+    $: poll = message.poll;
+    $: canVote = (poll && !poll.voted && (!poll.endTime || new Date(poll.endTime) > new Date()) && (canComment || poll.publicVoting));
+
+    let totalVotes = 0;
+    let pollWinner: string | null | undefined = undefined;
+
+    $: {
+        if (poll && poll.votes) {
+            totalVotes = Object.values(poll.votes).reduce((sum, vote) => sum + vote, 0);
+        }
+        else {
+            totalVotes = 0;
+        }
+        
+        if (poll?.endTime && new Date(poll.endTime) < new Date()) {
+            if (poll.votes) {
+                pollWinner = Object.entries(poll.votes).reduce((a, b) => a[1] > b[1] ? a : b)[0];
+            }
+            else {
+                pollWinner = null;
+            }
+        }
+        else {
+            pollWinner = undefined;
+        }
+    }
 
     let messageComment = '';
     let showEmojiPicker = false;
@@ -62,7 +89,7 @@
         return 'just now';
     }
 
-    const submitComment = async (event: Event) => {
+    const handleComment = async (event: Event) => {
         event.preventDefault();
 
         const response = await fetch('?/postComment', {
@@ -83,6 +110,27 @@
         }
     };
 
+    const handleVote = async (vote: string) => {
+        if (!canVote) {
+            return;
+        }
+
+        const response = await fetch('?/postPollVote', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                messageId: String(message.id),
+                vote,
+            })
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            alert(data.error.message);
+        } else {
+            invalidateAll();
+        }
+    };
 </script>
 {#if message}
     <div class="flex flex-col p-6 mb-4 bg-gray-50 dark:bg-gray-800 rounded-xl shadow dark:border-slate-700 border">
@@ -96,6 +144,51 @@
                     <div class="text-sm text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-line markdown">
                         <Markdown source={message.message} />
                     </div>
+                    {#if poll}
+                        <div class="flex flex-col mt-2 space-y-2">
+                            <table class="mt-2 w-full text-left">
+                                {#each poll.options as option, i}
+                                    <tr class="{option === pollWinner ? 'bg-yellow-100 text-black' : ''}">
+                                        <td>{i + 1}.</td>
+                                        <td>
+                                            <button class="flex-grow-1 bg-gray-200 text-black px-6 py-2 text-start no-underline inline-block
+                                                text-lg m-1 rounded-full transition-colors duration-200 cursor-not-allowed
+                                                {canVote && pollWinner === undefined ? 'cursor-pointer hover:bg-green-500 hover:text-white' : ''}
+                                                {poll.voted && poll.voted === option ? 'bg-yellow-400' : ''}" on:click={() => handleVote(option)}
+                                                >
+                                                <div class="text-sm">{option}</div>
+                                            </button>
+                                        </td>
+                                        {#if poll.votes}
+                                            <td>
+                                                <div class="flex flex-grow-1 self-center items-center">
+                                                    <div class="w-40 bg-gray-200 rounded-full overflow-hidden">
+                                                        <div class="bg-green-500 rounded-full h-4" style={`width: ${Math.max((poll.votes?.[option]??0) / totalVotes * 100, 3)}%`}></div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="text-xs text-gray-500 dark:text-gray-400={option !== pollWinner} ml-2">
+                                                    {poll.votes?.[option] ?? 0} votes
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {#if poll.voted === option}
+                                                    <div class="text-xs text-gray-500 dark:text-gray-400 ml-2 flex place-items-end items-center">
+                                                        <i class="fas fa-check text-blue-800 text-lg"></i>
+                                                        Your Vote
+                                                    </div>
+                                                {/if}
+                                            </td>
+                                        {/if}
+                                    </tr>
+                                {/each}
+                            </table>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                Total Votes: {totalVotes} | {pollWinner !== undefined ? 'Ended' : 'Ends'}: {new Date(poll.endTime).toLocaleString()}
+                            </div>
+                        </div>
+                    {/if}
                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-2 hover:text-blue-500 cursor-pointer" title={new Date(message.timestamp).toLocaleString()}>
                         {timeSince(message.timestamp)}
                     </div>
@@ -147,7 +240,7 @@
                             <textarea class="w-full h-16 p-2 bg-gray-100 dark:bg-gray-700 rounded-lg resize-none" placeholder="Add a comment" bind:value={messageComment}></textarea>
                         </div>
                         <div class="flex flex-row-reverse justify-start mt-2 space-x-2">
-                            <Button on:click={submitComment}  color="purple" size="xs" icon={ArrowRightOutline}>Reply</Button>
+                            <Button on:click={handleComment}  color="purple" size="xs" icon={ArrowRightOutline}>Reply</Button>
                             <Button on:click={() => showComments = false} color="none" size="xs" icon={ArrowRightOutline}>Cancel</Button>
                         </div>
                         {#if showEmojiPicker}

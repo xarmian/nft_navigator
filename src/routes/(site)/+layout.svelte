@@ -33,6 +33,7 @@
 		else {
 			Cookies.remove('avm-wallet');
 		}
+		invalidateAll();
     });
 
 	setOnAddHandler(async (wallets) => {

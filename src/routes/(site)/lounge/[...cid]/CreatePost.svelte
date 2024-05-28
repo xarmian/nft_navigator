@@ -3,9 +3,9 @@
 	import { onMount, onDestroy } from "svelte";
     //@ts-expect-error no types
     import EmojiPicker from "svelte-emoji-picker";
-    import type { IPollOptions } from "$lib/data/types";
+    import type { IPoll } from "$lib/data/types";
 
-    export let onPost: (content: string, poll: null | IPollOptions) => Promise<boolean>;
+    export let onPost: (content: string, poll: null | IPoll) => Promise<boolean>;
     export let postPrivacy = 'Public';
 
     let showEmojiPicker = false;
@@ -13,7 +13,7 @@
     let chatInput = '';
     let textarea: HTMLTextAreaElement;
 
-    let showAddPoll = true;
+    let showAddPoll = false;
     let pollOptions = ['', ''];
 
     let getPollEndTime = () => {
@@ -30,15 +30,19 @@
     }
     let poll_endTime = getPollEndTime();
     let poll_voteWeight: 'wallet' | 'token' = 'wallet';
+    let poll_allowPublicVoting = false;
 
     const handleSubmit = async (event: Event) => {
         event.preventDefault();
-        let poll: IPollOptions | null = null;
+        let poll: IPoll | null = null;
 
         if (chatInput.trim() === '') {
             alert(`${showAddPoll ? 'Question' : 'Message'} cannot be empty`);
             return;
         }
+
+        // convert poll end time from user's local time to UTC
+        let utc_poll_endTime = new Date(poll_endTime).toISOString();
 
         if (showAddPoll) {
             console.log(pollOptions);
@@ -55,8 +59,9 @@
             // serialize poll options, end time, and vote weight
             poll = {
                 options: pollOptions.filter((option) => option.trim() !== ''),
-                endTime: poll_endTime,
+                endTime: utc_poll_endTime,
                 voteWeight: poll_voteWeight,
+                publicVoting: poll_allowPublicVoting,
             };
         }
 
@@ -64,6 +69,11 @@
 
         if (success) {
             chatInput = '';
+            pollOptions = ['', ''];
+            poll_endTime = getPollEndTime();
+            poll_voteWeight = 'wallet';
+            poll_allowPublicVoting = false;
+            showAddPoll = false;
             invalidateAll();
         }
     };
@@ -167,9 +177,16 @@
                     <label for="vote-weight" class="text-sm w-32 text-end">Vote Weight:</label>
                     <select class="bg-gray-100 dark:bg-gray-700 rounded-lg" bind:value={poll_voteWeight}>
                         <option value="wallet">1 Vote per Wallet</option>
-                        <option value="token">1 Vote per NFT Token</option>
+                        <!--<option value="token">1 Vote per NFT Token</option>-->
                     </select>
                 </div>
+                {#if postPrivacy == 'Public'}
+                    <div class="flex items-center space-x-2">
+                        <div class="w-32">&nbsp;</div>
+                        <input type="checkbox" id="public-voting" bind:checked={poll_allowPublicVoting} class="rounded-lg" />
+                        <label for="public-voting" class="text-sm">Allow Public Voting</label>
+                    </div>
+                {/if}
             </div>
         </div>
     {/if}

@@ -43,10 +43,23 @@ export interface Collection {
     creator: string;
 }
 
-export interface IPollOptions {
+export interface IPoll {
     options: string[];
     endTime: string;
     voteWeight: 'wallet' | 'token';
+    votes?: Record<string, number> | undefined;
+    alwaysShowResults?: boolean;
+    anonymousVotes?: boolean;
+    voted?: string;
+    publicVoting?: boolean;
+}
+
+export interface IPollResponse {
+    id: number;
+    messages_id: number;
+    wallet_id: string;
+    response: string;
+    response_time: string;
 }
 
 export interface RawToken {
@@ -136,6 +149,7 @@ export type NMessage = {
     comments?: NComment[];
     reactions?: number[];
     mr?: NReaction[];
+    poll?: IPoll;
 };
 
 export type NComment = {
@@ -146,5 +160,13 @@ export type NComment = {
     nfd?: any;
     reactions?: number[];
     mcr?: NReaction[];
+};
+
+export type NPollResponse = {
+    id?: number;
+    messages_id: number;
+    walletId: string;
+    response: string;
+    response_time: string;
 };
 

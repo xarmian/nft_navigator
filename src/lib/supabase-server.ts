@@ -18,6 +18,16 @@ interface PReaction {
     reaction: number;
 }
 
+export interface IPoll {
+    options: string[];
+    endTime: string;
+    voteWeight: 'wallet' | 'token';
+    votes?: Record<string, number> | undefined;
+    alwaysShowResults?: boolean;
+    anonymousVotes?: boolean;
+    voted?: string;
+}
+
 interface PMessage {
     collectionId: number;
     message: string;
@@ -29,6 +39,8 @@ interface PMessage {
     comments?: PComment[];
     reactions?: number[];
     mr?: PReaction[];
+    poll?: IPoll;
+    poll_responses?: { response: string, response_time: string, wallet_id: string }[];
 }
 
 interface PAction {
@@ -96,7 +108,32 @@ export const getMessagesSim = async () => {
 }
 
 export const getMessage = async (messageId: number): Promise<PMessage | null> => {
-    const { data, error } = await supabasePrivateClient.from('messages').select('*').eq('id', messageId);
+    const query = supabasePrivateClient
+        .from('messages')
+        .select(`
+            *,
+            mr:reactions (
+                reaction,
+                messages_id,
+                comments_id
+            ),
+            comments (
+                *,
+                mcr:reactions (
+                    reaction,
+                    messages_id,
+                    comments_id
+                )
+            ),
+            poll_responses (
+                response,
+                response_time,
+                wallet_id
+            )
+        `)
+        .eq('id', messageId);
+    
+    const { data, error } = await query;
 
     if (error) {
         console.error('getMessage', error);
@@ -122,6 +159,11 @@ export const getMessages = async (collectionId: string[] | string | null, includ
                     messages_id,
                     comments_id
                 )
+            ),
+            poll_responses (
+                response,
+                response_time,
+                wallet_id
             )
         `)
         .neq('deleted', true)
@@ -145,6 +187,28 @@ export const getMessages = async (collectionId: string[] | string | null, includ
     if (messagesError) {
         console.error('getMessages', messagesError);
     }
+
+    messagesData?.forEach((message: PMessage) => {
+        if (message.poll && message.poll_responses && (message.poll_responses?.length??0) > 0)  {
+            // aggregate poll responses and add to message.poll.votes object
+            const pollResponses = message.poll_responses;
+            const pollVotes: Record<string, number> = {};
+            pollResponses.forEach((response) => {
+                if (pollVotes[response.response]) {
+                    pollVotes[response.response]++;
+                } else {
+                    pollVotes[response.response] = 1;
+                }
+
+                if (response.wallet_id === walletId && message.poll) {
+                    message.poll.voted = response.response;
+                }
+            });
+
+            message.poll.votes = pollVotes;
+        }
+        delete message.poll_responses;
+    });
 
     return messagesData ?? [];
 }
@@ -216,6 +280,17 @@ export const postReaction = async (p_message_id: number, p_comment_id: number | 
     }
 
     return data;
+}
+
+export const postPollVote = async (p_message_id: number, p_wallet_id: string, p_response: string): Promise<boolean> => {
+    const { error } = await supabasePrivateClient.from('poll_responses').insert({ messages_id: p_message_id, wallet_id: p_wallet_id, response: p_response });
+
+    if (error) {
+        console.error('postPollVote', error);
+        return false;
+    }
+
+    return true;
 }
 
 export async function storeFile(key: string, bucket: string, file: File): Promise<void> {
