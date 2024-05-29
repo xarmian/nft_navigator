@@ -1,7 +1,8 @@
 <script lang="ts">
     import CreatePost from './CreatePost.svelte';
     import Message from './Message.svelte';
-	import type { Collection, Token, IPollOptions } from "$lib/data/types";
+    import { inview } from 'svelte-inview';
+	import type { Collection, Token, IPoll } from "$lib/data/types";
     import { selectedWallet, verifyToken, type WalletConnectionResult } from "avm-wallet-svelte";
 	import { onMount, onDestroy } from "svelte";
     import { getTokens, getCollections } from "$lib/utils/indexer";
@@ -35,7 +36,9 @@
     let isLoading = false;
     let showChat = true;
     let collectionObject = allCollections.find(c => c.contractId === Number(data.params.cid[data.params.cid.length - 1]));
+    let displayCount = 10;
     $: hasValidToken = false;
+    
 
     $: selectedCollection = data.server_data.collectionId;
     $: {
@@ -118,12 +121,16 @@
 
     }
 
+    function showMore() {
+        displayCount += 10;
+    }
+
     function changeView(view: string) {
         selectedView = view;
         if (view != 'All') postPrivacy = view;
     }
 
-    const onPost = async (content: string, poll: IPollOptions | null): Promise<boolean> => {
+    const onPost = async (content: string, poll: IPoll | null): Promise<boolean> => {
         const response = await fetch('?/postMessage', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -309,12 +316,15 @@
                                 </div>
 
                                 <div class="flex flex-wrap flex-grow justify-center md:justify-start mt-3 md:mt-0">
-                                    {#each tokens as token (token.tokenId)}
+                                    {#each tokens.slice(0, displayCount) as token (token.tokenId)}
                                         <div class="p-1">
                                             <TokenDetail collection={collectionObject} {token} format="small" />
                                         </div>
                                     {/each}
                                 </div>
+                                {#if tokens.length > displayCount}
+                                    <div class="sentinel" use:inview={{ threshold: 1 }} on:inview_enter={showMore}></div>
+                                {/if}
                             </div>
                         </div>
                 </TabItem>
