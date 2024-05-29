@@ -6,6 +6,7 @@
 	import { getCurrency } from '$lib/utils/currency';
 	import { getTokens, populateTokenRanking } from '$lib/utils/indexer';
 	import { selectedWallet } from 'avm-wallet-svelte';
+	import { getTokenImageUrl } from '$lib/utils/functions';
 
     export let token: Token | null = null;
     export let listing: Listing | null = null;
@@ -68,7 +69,7 @@
             <a class="side cursor-pointer" href={infourl}>
                 <Card padding="none">
                     <div class="image-container relative rounded-t-lg overflow-hidden flex justify-center">
-                        <img src={token.metadata.image} alt={token.metadata.name} title={token.metadata.name} class="h-72 max-h-72 max-w-72 object-contain object-center"/>
+                        <img src={getTokenImageUrl(token,240)} alt={token.metadata.name} title={token.metadata.name} class="h-72 max-h-72 max-w-72 object-contain object-center"/>
                         {#if token.rank}
                             <div class="absolute bottom-0 left-0 bg-gray-100 dark:bg-gray-400 text-black dark:text-gray-100 p-1 text-xs">
                                 <i class="fas fa-medal"></i> {token.rank}

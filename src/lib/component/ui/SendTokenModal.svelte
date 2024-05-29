@@ -39,6 +39,7 @@
     let selectedNFTCount: number;
     let sendingError: string = '';
     let transactionId: string = '';
+    $: imageUrl = (token && token.metadataURI) ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(token.metadataURI)}?w=240` : token?.metadata.image;
 
     $: if (transferTo && transferTo.length > 0) {
         updateBalances();
@@ -191,7 +192,7 @@
         <div class="flex flex-col w-full">
             {#if sendingView === "presend"}
                 <div class="flex flex-col items-center m-2">
-                    <img src={token.metadata?.image} alt={token.metadata?.name} class="h-20 w-20 object-contain rounded-md"/>
+                    <img src={imageUrl} alt={token.metadata?.name} class="h-20 w-20 object-contain rounded-md"/>
                     <div class="text-xl font-bold">{tokenName}</div>
                     <div class="text-sm text-gray-400">{token.contractId}</div>
                 </div>

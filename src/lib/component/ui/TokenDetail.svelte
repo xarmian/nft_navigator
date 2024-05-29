@@ -9,12 +9,14 @@
 	import { getCurrency } from '$lib/utils/currency';
 	import { onMount } from 'svelte';
 	import algosdk from 'algosdk';
+	import { getTokenImageUrl } from '$lib/utils/functions';
 
     export let token: Token;
     export let collection: Collection | undefined;
     export let showOwnerIcon = true;
     export let format = 'small';
     export let listing: Listing | null = null;
+    export let quality = 'normal';
 
     let formattedOwner = '';
     let royaltyPercentage = 0;
@@ -25,6 +27,7 @@
     let tokenProps: any[] = [];
     let formattedApproved = '';
     let hidden = false;
+    $: imageUrl = (token) ? getTokenImageUrl(token,((format == 'small') ? 240 : 480)) : '';
 
     $: currency = null as Currency | null;
 
@@ -155,7 +158,7 @@
     class:hidden={hidden} class:p-3={format !== 'small'}>
     <div class="flex flex-col md:flex-row items-center md:items-start h-full" class:space-x-4={format !== 'small'} class:md:flex-col={format === 'small'}>
         <a href="/collection/{token.contractId}/token/{token.tokenId}" class="relative overflow-hidden" class:rounded-xl={format !== 'small'} >
-            <img src={token.metadata.image} class="{format === 'small' ? 'w-72 h-72' : 'w-96'} object-contain" />
+            <img src={imageUrl} class="{format === 'small' ? 'w-72 h-72' : 'w-96'} object-contain" />
             {#if listing && !listing.sale && !listing.delete}
                 <a href="https://nautilus.sh/#/collection/{token.contractId}/token/{token.tokenId}" on:click|stopPropagation target="_blank" class="absolute top-0 right-0 p-1 text-white rounded-full text-nowrap" title="View on Marketplace">
                     {#if currency}
@@ -275,7 +278,9 @@
         </div>
     {/if}
 </div>
-<SendTokenModal bind:showModal={showSendTokenModal} bind:type={sendTokenModalType} token={token} onAfterSend={onAfterSend} fromAddr={$selectedWallet?.address??''} />
+{#if showSendTokenModal}
+    <SendTokenModal bind:showModal={showSendTokenModal} bind:type={sendTokenModalType} token={token} onAfterSend={onAfterSend} fromAddr={$selectedWallet?.address??''} />
+{/if}
 <style>
     a {
         color: #6c63ff;

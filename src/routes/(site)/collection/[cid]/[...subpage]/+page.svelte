@@ -9,7 +9,7 @@
 	import NautilusButton from '$lib/component/ui/NautilusButton.svelte';
     import HighforgeButton from '$lib/component/ui/HighforgeButton.svelte';
 	import NftGamesButton from '$lib/component/ui/NFTGamesButton.svelte';
-    import { handleScroll } from '$lib/utils/functions';
+    import { getImageUrl, handleScroll } from '$lib/utils/functions';
 	import { goto } from '$app/navigation';
 	import PixelPursuitButton from '$lib/component/ui/PixelPursuitButton.svelte';
 	import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
@@ -83,8 +83,8 @@
 </script>
 
 <div use:handleScroll class="banner_container h-60 justify-between overflow-hidden overflow-ellipsis relative flex flex-row text-white" style="transition: transform 0.3s ease-out;">
-    <img src="{data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata.image}" class="banner_img object-cover" />
-    <img src="{data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata.image}" class="banner_img2 w-1/2 object-cover" />
+    <img src="{getImageUrl(data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata.image,240)}" class="banner_img object-cover" />
+    <img src="{getImageUrl(data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata.image,240)}" class="banner_img2 w-1/2 object-cover" />
     <div class="mask_dark flex justify-center h-full absolute w-full content-center bg-slate-100 dark:bg-slate-800">
         <div class="collection_detail w-1/2 flex justify-center content-center md:space-x-10 pr-2">
             <div class="flex h-full place-items-center space-between flex-col space-y-1 w-3/4 md:flex-grow">

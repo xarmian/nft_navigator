@@ -15,6 +15,7 @@
     import { getWalletBalance, getCurrency } from '$lib/utils/currency';
 	import TransactionTable from '$lib/component/ui/TransactionTable.svelte';
 	import QuestsTable from '$lib/component/ui/QuestsTable.svelte';
+    import { getImageUrl } from '$lib/utils/functions';
 	// import Select from '$lib/component/ui/Select.svelte';
 
     export let data: PageData;
@@ -88,7 +89,7 @@
     <div class="relative w-full h-52 overflow-visible">
         <div class="flex h-full w-full absolute blur-xsm -z-10 opacity-60">
             {#each headerTokens as token (token)}
-                <div class="flex-grow bg-cover bg-center inline-block" style="background-image: url({token.metadata.image});">&nbsp;</div>
+                <div class="flex-grow bg-cover bg-center inline-block" style="background-image: url({getImageUrl(token.metadata.image,240)});">&nbsp;</div>
             {/each}
         </div>
         <div class="flex justify-center items-center w-full mx-2 absolute top-16">
@@ -159,7 +160,7 @@
                     <Select bind:value={portfolioSort} options={sortOptions}></Select>
                 </div>-->
                 <div class="flex flex-row flex-wrap justify-center">
-                    {#each tokens.slice(0, displayCount) as token (token.tokenId)}
+                    {#each tokens.slice(0, displayCount) as token, i}
                         {#if token.owner === walletId}
                             <div class="m-4">
                                 <TokenDetail collection={collections.find(c => c.contractId === token.contractId)} bind:token={token} showOwnerIcon={false}></TokenDetail>

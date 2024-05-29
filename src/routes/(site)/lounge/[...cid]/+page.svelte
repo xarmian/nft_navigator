@@ -19,6 +19,7 @@
 	import PixelPursuitButton from "$lib/component/ui/PixelPursuitButton.svelte";
 	import NftGamesButton from "$lib/component/ui/NFTGamesButton.svelte";
 	import FanIcon from "$lib/component/ui/icons/FanIcon.svelte";
+	import { getImageUrl } from '$lib/utils/functions';
     export let data: PageData;
 
     let wallet: WalletConnectionResult | null = null;
@@ -27,7 +28,7 @@
     let nonUserCollections: Collection[] = [];
     let selectedView = 'Public';
     let canViewPrivate = false;
-    let messages: { walletId: string, message: string, timestamp: string, avatar?: string, private: boolean, collectionId: string }[] = [];
+    let messages: { id: number, walletId: string, message: string, timestamp: string, avatar?: string, private: boolean, collectionId: string }[] = [];
     let postPrivacy = selectedView;
     let privateCount = 0;
     let publicCount = 0;
@@ -36,7 +37,8 @@
     let isLoading = false;
     let showChat = true;
     let collectionObject = allCollections.find(c => c.contractId === Number(data.params.cid[data.params.cid.length - 1]));
-    let displayCount = 10;
+    let displayCountMessages = 5;
+    let displayCountCollection = 10;
     $: hasValidToken = false;
     
 
@@ -53,6 +55,7 @@
         else if (selectedView == 'Private') {
             messages = messages.filter((message) => message.private);
         }
+        displayCountMessages = 5;
         isLoading = false;
     }
 
@@ -121,8 +124,12 @@
 
     }
 
-    function showMore() {
-        displayCount += 10;
+    function showMoreCollection() {
+        displayCountCollection += 10;
+    }
+
+    function showMoreMessages() {
+        displayCountMessages += 5;
     }
 
     function changeView(view: string) {
@@ -262,6 +269,9 @@
                                     <div class="text-2xl font-bold text-gray-800 dark:text-gray-200 flex flex-col place-items-center">This channel is empty! Be the change you want to see in the world.</div>
                                 {/if}
                             </div>
+                            {#if messages.length > displayCountMessages}
+                                <div class="sentinel" use:inview={{ threshold: 1 }} on:inview_enter={showMoreMessages}></div>
+                            {/if}
                         </div>
                     {:else}
                         <div class="text-2xl font-bold text-gray-800 dark:text-gray-200 flex flex-row justify-center mt-8">Welcome to the Voi Lounge <span class="text-blue-500 super text-sm">Alpha</span></div>
@@ -316,14 +326,14 @@
                                 </div>
 
                                 <div class="flex flex-wrap flex-grow justify-center md:justify-start mt-3 md:mt-0">
-                                    {#each tokens.slice(0, displayCount) as token (token.tokenId)}
+                                    {#each tokens.slice(0, displayCountCollection) as token (token.tokenId)}
                                         <div class="p-1">
                                             <TokenDetail collection={collectionObject} {token} format="small" />
                                         </div>
                                     {/each}
                                 </div>
-                                {#if tokens.length > displayCount}
-                                    <div class="sentinel" use:inview={{ threshold: 1 }} on:inview_enter={showMore}></div>
+                                {#if tokens.length > displayCountCollection}
+                                    <div class="sentinel" use:inview={{ threshold: 1 }} on:inview_enter={showMoreCollection}></div>
                                 {/if}
                             </div>
                         </div>
@@ -334,7 +344,7 @@
     </div>
 </div>
 {#if selectedCollection}
-    <div class="absolute top-0 -z-10 h-screen w-screen opacity-30 dark:opacity-20 bgcontainer" style={`background-image: url(${allCollections.find(c => c.contractId === Number(selectedCollection))?.highforgeData?.coverImageURL});`}>
+    <div class="absolute top-0 -z-10 h-screen w-screen opacity-30 dark:opacity-20 bgcontainer" style={`background-image: url(${getImageUrl(allCollections.find(c => c.contractId === Number(selectedCollection))?.highforgeData?.coverImageURL??'',240)});`}>
         <div class="absolute inset-0 bg-black opacity-50"></div>
     </div>
 {/if}

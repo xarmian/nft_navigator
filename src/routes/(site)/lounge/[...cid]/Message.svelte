@@ -9,6 +9,7 @@
 	import { onDestroy, onMount } from "svelte";
     import type { IPoll, NMessage } from "$lib/data/types";
     import Markdown from 'svelte-markdown';
+    import { getImageUrl } from '$lib/utils/functions';
 
     export let message: NMessage;
     export let collectionName = '';
@@ -136,7 +137,7 @@
 {#if message}
     <div class="flex flex-col p-6 mb-4 bg-gray-50 dark:bg-gray-800 rounded-xl shadow dark:border-slate-700 border">
         <div class="flex flex-row items-start">
-            <div on:click={() => goto(`/portfolio/${message.walletId}`)} class="cursor-pointer flex-shrink-0 w-12 h-12 bg-gray-500 rounded-full overflow-hidden"><img src={nfds.find(nfd => nfd.key === message.walletId)?.avatar ?? '/blank_avatar_small.png'}/></div>
+            <div on:click={() => goto(`/portfolio/${message.walletId}`)} class="cursor-pointer flex-shrink-0 w-12 h-12 bg-gray-500 rounded-full overflow-hidden"><img src={getImageUrl(nfds.find(nfd => nfd.key === message.walletId)?.avatar ?? '/blank_avatar_small.png',240)}/></div>
             <div class="ml-4 flex flex-row w-full justify-between">
                 <div class="flex flex-col">
                     <a on:click={() => goto(`/portfolio/${message.walletId}`)} class="text-sm font-bold text-blue-500 dark:text-blue-300 cursor-pointer">
@@ -211,7 +212,7 @@
             {#each message.comments??[] as comment}
                 <TimelineItem>
                     <div class="flex flex-row items-start mt-8 ml-8">
-                        <div on:click={() => goto(`/portfolio/${comment.walletId}`)} class="cursor-pointer flex-shrink-0 w-12 h-12 bg-gray-500 rounded-full overflow-hidden"><img src={nfds.find(nfd => nfd.key === comment.walletId)?.avatar ?? '/blank_avatar_small.png'}/></div>
+                        <div on:click={() => goto(`/portfolio/${comment.walletId}`)} class="cursor-pointer flex-shrink-0 w-12 h-12 bg-gray-500 rounded-full overflow-hidden"><img src={getImageUrl(nfds.find(nfd => nfd.key === comment.walletId)?.avatar ?? '/blank_avatar_small.png',240)}/></div>
                         <div class="ml-4 flex flex-row w-full justify-between">                    
                             <div class="flex flex-col">
                                 <a on:click={() => goto(`/portfolio/${comment.walletId}`)} class="text-sm font-bold text-blue-500 dark:text-blue-300 cursor-pointer">

@@ -1,4 +1,5 @@
 // src/lib/supabaseClient.ts
+import type { IPoll } from '$lib/data/types';
 import { createClient } from '@supabase/supabase-js';
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public';
 import { PRIVATE_SUPABASE_ROLE_KEY } from '$env/static/private';
@@ -16,16 +17,6 @@ interface PReaction {
     messages_id: number;
     comments_id: number;
     reaction: number;
-}
-
-export interface IPoll {
-    options: string[];
-    endTime: string;
-    voteWeight: 'wallet' | 'token';
-    votes?: Record<string, number> | undefined;
-    alwaysShowResults?: boolean;
-    anonymousVotes?: boolean;
-    voted?: string;
 }
 
 interface PMessage {

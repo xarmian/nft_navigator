@@ -2,6 +2,7 @@
     import type { Collection } from '$lib/data/types';
     import voiGamesImage from '$lib/assets/voi-games-small.png';
 	import NftGamesButton from './NFTGamesButton.svelte';
+	import { getImageUrl } from '$lib/utils/functions';
 
     export let collection: Collection;
     export let viewType: string = 'row';
@@ -83,7 +84,7 @@
             <a href="/collection/{collection.contractId}">
                 <div class="side back bg-gray-200 dark:bg-gray-900 relative rounded-lg flex flex-col">
                     <div class="image-container relative overflow-hidden flex justify-center bg-gray-10 dark:bg-black">
-                        <img src={metadata.image} alt={metadata.name} title={metadata.name.replace(/[1#]/g, '')} class="max-h-60 h-60 max-w-60 object-contain object-center"/>
+                        <img src={getImageUrl(metadata.image,240)} alt={metadata.name} title={metadata.name.replace(/[1#]/g, '')} class="max-h-60 h-60 max-w-60 object-contain object-center"/>
                     </div>
                     <div class='p-1 flex flex-col flex-grow'>
                         <div class="flex flex-col mb-1">
