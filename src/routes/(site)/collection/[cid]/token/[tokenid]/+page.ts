@@ -29,7 +29,7 @@ export const load = (async ({ params, fetch }) => {
 		collection = await getCollection({ contractId, fetch });
 	}
 
-	const tokenName = reformatTokenName(token?.metadata.name??'');
+	const tokenName = reformatTokenName(token?.metadata.name??'', token?.tokenId);
 	//const collectionName = token?.metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
 
 	const pageMetaTags = {

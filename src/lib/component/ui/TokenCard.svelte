@@ -93,7 +93,7 @@
                             {/if}
                         {/if}
                     </div>
-                    <div class="text-center"><TokenName name="{token.metadata.name}"/></div>
+                    <div class="text-center"><TokenName name="{token.metadata.name}" tokenId={token.tokenId}/></div>
                 </Card>
             </a>
         {/if}

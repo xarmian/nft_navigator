@@ -177,7 +177,7 @@
         <div class="flex justify-between w-full flex-col md:flex-row" class:flex-grow={format === 'small'} class:md:flex-col={format === 'small'}>
             {#if format !== 'small'}
                 <div class="text-left flex-grow">
-                    <div class="text-2xl font-bold mb-2 text-purple-900 dark:text-purple-100"><a href="/collection/{token.contractId}/token/{token.tokenId}"><TokenName name={token.metadata.name}></TokenName></a></div>
+                    <div class="text-2xl font-bold mb-2 text-purple-900 dark:text-purple-100"><a href="/collection/{token.contractId}/token/{token.tokenId}"><TokenName name={token.metadata.name} tokenId={token.tokenId}></TokenName></a></div>
                     <div class="mb-2">
                         {token.metadata?.description??''}
                     </div>
@@ -216,7 +216,7 @@
                 <div class="side back bg-gray-200 dark:bg-gray-900 relative flex flex-col p-1 h-full">
                     <div class='p-1 flex flex-col flex-grow h-full'>
                         <div class="flex flex-col mb-1 text-sm">
-                            <div class="text-sm font-bold"><TokenName name={token.metadata.name}></TokenName></div>
+                            <div class="text-sm font-bold"><TokenName name={token.metadata.name} tokenId={token.tokenId}></TokenName></div>
                             <div class="flex justify-between">
                                 <div>Collection</div>
                                 <a href="/collection/{token.contractId}" class=" text-gray-600 dark:text-gray-300">{collectionName}</a>

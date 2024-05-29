@@ -33,7 +33,7 @@
     
     let transferTo = '';
     let transferToNFD = '';
-    let tokenName = reformatTokenName(token.metadata?.name);
+    let tokenName = reformatTokenName(token.metadata?.name, token.tokenId);
 
     let selectedVoiBalance: number;
     let selectedNFTCount: number;

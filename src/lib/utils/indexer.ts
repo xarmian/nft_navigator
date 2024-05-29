@@ -58,14 +58,19 @@ interface getCollectionsParams {
     includes?: string | undefined;
 }
 
-export function reformatTokenName(name: string) {
-    const match = name.match(/^(.*?)(\s*#\s*|\s*)(\d+)$/);
-    if (match) {
-        const baseName = match[1].trim();
-        const number = match[3];
-        return `${baseName} #${number}`;
+export function reformatTokenName(name: string, num?: string | number) {
+    if (num !== undefined && name.includes(String(num))) {
+        const baseName = name.replace(String(num), '').trim();
+        return `${baseName} #${num}`;
     } else {
-        return name;
+        const match = name.match(/^(.*?)(\s*#\s*|\s*)(\d+)$/);
+        if (match) {
+            const baseName = match[1].trim();
+            const number = match[3];
+            return `${baseName} #${number}`;
+        } else {
+            return name;
+        }
     }
 }
 
