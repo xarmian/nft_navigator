@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { inview } from 'svelte-inview';
 	import type { PageData } from './$types';
     import type { Token } from '$lib/data/types';
     import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
@@ -27,6 +28,7 @@
     let isMobile: boolean | null = null;
     let headerTokens: Token[] = [];
     let portfolioSort = 'mint';
+    let displayCount = 10;
 
     $: {
         if (tokens) {
@@ -77,6 +79,10 @@
         { id: 'name', name: 'Name/Collection' },
         //{ id: 'acquired', name: 'Acquired Date' }
     ];
+
+    function showMore() {
+        displayCount += 10;
+    }
 </script>
 <div class="text-center">
     <div class="relative w-full h-52 overflow-visible">
@@ -153,7 +159,7 @@
                     <Select bind:value={portfolioSort} options={sortOptions}></Select>
                 </div>-->
                 <div class="flex flex-row flex-wrap justify-center">
-                    {#each tokens as token}
+                    {#each tokens.slice(0, displayCount) as token (token.tokenId)}
                         {#if token.owner === walletId}
                             <div class="m-4">
                                 <TokenDetail collection={collections.find(c => c.contractId === token.contractId)} bind:token={token} showOwnerIcon={false}></TokenDetail>
@@ -164,6 +170,9 @@
                         <div class="text-2xl font-bold">No tokens found! Want to get some? <A href="https://nautilus.sh/" target="_blank">Check out the ARC-72 Marketplace</A></div>
                     {/if}
                 </div>
+                {#if tokens.length > displayCount}
+                    <div class="sentinel" use:inview={{ threshold: 1 }} on:inview_enter={showMore}></div>
+                {/if}
             </div>
         </TabItem>
         <TabItem>

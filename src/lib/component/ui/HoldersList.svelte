@@ -120,10 +120,14 @@
                         <i use:copy={tokens[0].owner} class="fas fa-copy cursor-pointer place-self-center" on:svelte-copy={() => toast.push(`Wallet Copied to Clipboard:<br/> ${tokens[0].owner.substring(0,20)}...`)}></i>
                     </div>
                     {tokens[0].ownerNFD ?? ''}
+                    <div class="flex flex-row space-x-2 mt-8">
+                        <div class="text-xs font-bold">Tokens:</div>
+                        <div class="text-xs">{tokens.length}</div>
+                    </div>
                 </div>
             </div>
             <div class="flex flex-row space-x-4 flex-wrap justify-end w-full mx-12" style="margin-top:-3rem; margin-bottom:1.5rem;">
-                {#each tokens as token}
+                {#each tokens.slice(0,5) as token}
                     <div class="transform scale-50 w-36 h-40">
                         <TokenCard token={token} />
                     </div>
