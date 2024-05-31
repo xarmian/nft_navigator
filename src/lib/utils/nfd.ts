@@ -1,3 +1,6 @@
+import { nfdStore } from "../../stores/collection";
+import { get as getStoreValue } from 'svelte/store';
+
 interface AdditionalData {
     [key: string]: {
         name: string;
@@ -57,6 +60,7 @@ export async function getNFD(data: string[], fetchF: typeof fetch = fetch): Prom
     const aggregatedNFDs: AggregatedNFD[] = [];
     const addressChunks = [];
     const chunkSize = 20;
+    const nfdStoreValue = getStoreValue(nfdStore);
 
     for (let i = 0; i < data.length; i += chunkSize) {
         addressChunks.push(data.slice(i, i + chunkSize));
@@ -67,33 +71,42 @@ export async function getNFD(data: string[], fetchF: typeof fetch = fetch): Prom
         const params = new URLSearchParams();
 
         addressChunk.forEach((address: string) => {
-            params.append("address", address);
+            const nfdValue = nfdStoreValue[address]; // Add type annotation to index expression
+            if (nfdValue) {
+                aggregatedNFDs.push(nfdValue);
+            } else {
+                params.append("address", address);
+            }
         });
 
-        params.append("view", "brief");
-        params.append("allowUnverified", "true");
+        if (params.has("address")) {
+            params.append("view", "brief");
+            params.append("allowUnverified", "true");
 
-        url += params.toString();
+            url += params.toString();
 
-        return fetchF(url)
-        .then((response: Response) => response.json())
-        .then((additionalData: AdditionalData) => {
-            Object.entries(additionalData).forEach((val) => {
-                const key = val[0];
-                const value = val[1];
-    
-                const replacementValue: string = value.name;
+            return fetchF(url)
+            .then((response: Response) => response.json())
+            .then((additionalData: AdditionalData) => {
+                Object.entries(additionalData).forEach((val) => {
+                    const key = val[0];
+                    const value = val[1];
 
-                const verifiedAvatar: string | null = (value.properties?.verified?.avatar) ? ('https://images.nf.domains/ipfs/'+value.properties?.verified?.avatar?.split('//')[1]) : null;
-                const userDefinedAvatar: string | null = value.properties?.userDefined?.avatar ?? null;
+                    const replacementValue: string = value.name;
 
-                const avatar: string | null = verifiedAvatar ?? userDefinedAvatar ?? null;
-                aggregatedNFDs.push({ key, replacementValue, avatar });
+                    const verifiedAvatar: string | null = (value.properties?.verified?.avatar) ? ('https://images.nf.domains/ipfs/'+value.properties?.verified?.avatar?.split('//')[1]) : null;
+                    const userDefinedAvatar: string | null = value.properties?.userDefined?.avatar ?? null;
+
+                    const avatar: string | null = verifiedAvatar ?? userDefinedAvatar ?? null;
+                    const nfdData = { key, replacementValue, avatar };
+                    aggregatedNFDs.push(nfdData);
+                    nfdStore.set({ ...getStoreValue(nfdStore), [key]: nfdData });
+                });
+            })
+            .catch(() => {
+                // console.error("Error fetching additional data:", error);
             });
-        })
-        .catch(() => {
-            // console.error("Error fetching additional data:", error);
-        });
+        }
     });
 
     await Promise.all(allFetches);

@@ -3,7 +3,6 @@ import { getMessages, postMessage, postComment, getMessage, saveAction, postReac
 import { verifyToken } from 'avm-wallet-svelte';
 import { getTokens } from '$lib/utils/indexer';
 import { error } from '@sveltejs/kit';
-import { getNFD, type AggregatedNFD } from '$lib/utils/nfd';
 import type { IPoll } from '$lib/data/types';
 
 export const load: PageServerLoad = async ({ params, cookies, url }) => {
@@ -57,34 +56,8 @@ export const load: PageServerLoad = async ({ params, cookies, url }) => {
     }*/
   }
 
-  // get a list of unique wallets from data.messages.walletId and data.messages.comments.walletId and then get their NFD data
-  const wallets: string[] = Array.from(new Set(data.map((m) => m.walletId).concat(data.flatMap((m) => m.comments?.map((c: { walletId: string; }) => c.walletId)))));
-  const nfd: AggregatedNFD[] = await getNFD(wallets);
-
-  // if wallets key is not in nfd, add it with default value and avatar. use token image if available
-  const tokenPromises = wallets.map((w) => getTokens({ owner: w, limit: 1 }));
-  const tokens = await Promise.all(tokenPromises);
-  for (let i = 0; i < wallets.length; i++) {
-    const w = wallets[i];
-    if (!nfd.find((n) => n.key === w)) {
-      const token = tokens[i]?.[0] ?? {};
-      nfd.push({ 
-        key: w, 
-        replacementValue: w?.slice(0, 8) + '...' + w?.slice(-8),
-        avatar: token.metadata?.image ?? '/blank_avatar_small.png'
-      });
-    }
-    else {
-      const n = nfd.find((n) => n.key === w);
-      if (n && !n.avatar) {
-        const token = tokens[i]?.[0] ?? {};
-        n.avatar = token.metadata?.image ?? '/blank_avatar_small.png';
-      }
-    }
-  }
-
   return {
-    server_data: { collectionId: cid, messages: data, nfds: nfd },
+    server_data: { collectionId: cid, messages: data, nfds: [] },
   }
 }
 
