@@ -62,9 +62,12 @@ export const load: PageServerLoad = async ({ params, cookies, url }) => {
   const nfd: AggregatedNFD[] = await getNFD(wallets);
 
   // if wallets key is not in nfd, add it with default value and avatar. use token image if available
-  for (const w of wallets) {
+  const tokenPromises = wallets.map((w) => getTokens({ owner: w, limit: 1 }));
+  const tokens = await Promise.all(tokenPromises);
+  for (let i = 0; i < wallets.length; i++) {
+    const w = wallets[i];
     if (!nfd.find((n) => n.key === w)) {
-      const token = (await getTokens({ owner: w, limit: 1 }))?.[0] ?? {};
+      const token = tokens[i]?.[0] ?? {};
       nfd.push({ 
         key: w, 
         replacementValue: w?.slice(0, 8) + '...' + w?.slice(-8),
@@ -74,7 +77,7 @@ export const load: PageServerLoad = async ({ params, cookies, url }) => {
     else {
       const n = nfd.find((n) => n.key === w);
       if (n && !n.avatar) {
-        const token = (await getTokens({ owner: w, limit: 1 }))?.[0] ?? {};
+        const token = tokens[i]?.[0] ?? {};
         n.avatar = token.metadata?.image ?? '/blank_avatar_small.png';
       }
     }
