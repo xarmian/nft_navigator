@@ -192,6 +192,11 @@
                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-2 hover:text-blue-500 cursor-pointer" title={new Date(message.timestamp).toLocaleString()}>
                         {timeSince(message.timestamp)}
                     </div>
+                    {#if showCollectionName}
+                        <div class='block sm:hidden text-xs text-blue-500 dark:text-blue-300'>
+                            <a href="/lounge/{message.collectionId}">{collectionName}</a>
+                        </div>
+                    {/if}
                     <div class="place-self-start text-md flex space-x-2 mt-4 z-10">
                         <Reactions canReact={canComment} message={message}></Reactions>
                     </div>
@@ -201,7 +206,7 @@
                         {message.private ? 'Private' : 'Public'}
                     </div>
                     {#if showCollectionName}
-                        <div class='place-self-end text-xs text-blue-500 dark:text-blue-300'>
+                        <div class='hidden sm:block place-self-end text-xs text-blue-500 dark:text-blue-300'>
                             <a href="/lounge/{message.collectionId}">{collectionName}</a>
                         </div>
                     {/if}

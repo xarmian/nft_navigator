@@ -128,7 +128,7 @@
             </div>
             <div class="flex flex-row flex-wrap md:justify-end w-full md:mx-12" style="margin-top:-3rem; margin-bottom:1.5rem;">
                 {#each tokens.slice(0,5) as token}
-                    <div class="transform scale-50 w-36 h-40">
+                    <div class="transform scale-50 w-36 h-40 mx-1">
                         <TokenCard token={token} />
                     </div>
                 {/each}

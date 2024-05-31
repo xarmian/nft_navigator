@@ -369,21 +369,15 @@
             <span class="text-xs text-gray-500 dark:text-gray-400">Groups</span>
         </button>
         <button class="flex w-full flex-col items-center py-4 focus:outline-none {mobilePage == 'chat' && showChat == true ? 'bg-gray-200 dark:bg-gray-900' : ''}" on:click={() => {mobilePage = 'chat'; showChat = true;}}>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-            </svg>
+            <i class="fa-regular fa-comments h-6 w-6 text-gray-500 dark:text-gray-400"></i>
             <span class="text-xs text-gray-500 dark:text-gray-400">Chat</span>
         </button>
         <button class="flex w-full flex-col items-center py-4 focus:outline-none {mobilePage == 'chat' && showMembers == true ? 'bg-gray-200 dark:bg-gray-900' : ''}" on:click={() => {mobilePage = 'chat'; showMembers = true;}}>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-            </svg>
+            <i class="fas fa-users h-6 w-6 text-gray-500 dark:text-gray-400"></i>
             <span class="text-xs text-gray-500 dark:text-gray-400">Members</span>
         </button>
         <button class="flex w-full flex-col items-center py-4 focus:outline-none {mobilePage == 'chat' && showCollection == true ? 'bg-gray-200 dark:bg-gray-900' : ''}" on:click={() => {mobilePage = 'chat'; showCollection = true;}}>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-            </svg>
+            <i class="fas fa-layer-group h-6 w-6 text-gray-500 dark:text-gray-400"></i>
             <span class="text-xs text-gray-500 dark:text-gray-400">Collection</span>
         </button>
     </div>
