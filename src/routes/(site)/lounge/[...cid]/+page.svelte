@@ -20,6 +20,7 @@
 	import NftGamesButton from "$lib/component/ui/NFTGamesButton.svelte";
 	import FanIcon from "$lib/component/ui/icons/FanIcon.svelte";
 	import { getImageUrl } from '$lib/utils/functions';
+    
     export let data: PageData;
 
     let wallet: WalletConnectionResult | null = null;
@@ -36,12 +37,14 @@
     let tokens: Token[] = [];
     let isLoading = false;
     let showChat = true;
+    let showMembers = false;
+    let showCollection = false;
     let collectionObject = allCollections.find(c => c.contractId === Number(data.params.cid[data.params.cid.length - 1]));
     let displayCountMessages = 5;
     let displayCountCollection = 10;
+    let mobilePage = "chat";
     $: hasValidToken = false;
     
-
     $: selectedCollection = data.server_data.collectionId;
     $: {
         messages = data.server_data.messages;
@@ -162,6 +165,7 @@
         isLoading = true;
         await goto(`/lounge/${contractId}`, { invalidateAll: true });
         isLoading = false;
+        mobilePage = 'chat';
     };
 
     const loadPage = async () => {
@@ -172,9 +176,9 @@
 </script>
 
 <div class="flex flex-row mainview bg-opacity-50 text-black dark:text-gray-200">
-    <div class="flex flex-col space-y-4 min-w-48 w-48 overflow-x-hidden overflow-y-auto text-nowrap p-3 border-r-2 border-slate-200 dark:border-slate-600">
+    <div class="{mobilePage == 'groups' ? 'flex' : 'hidden'} md:flex flex-col space-y-4 min-w-48 md:w-48 overflow-x-hidden overflow-y-auto text-nowrap p-3 border-r-2 border-slate-200 dark:border-slate-600 mb-[4.5rem] md:mb-0">
         <div class="flex flex-col">
-            <div class="flex flex-col ml-3 text-sm">
+            <div class="flex flex-col ml-3 md:text-sm">
                 <div on:click={() => loadCollection('all')} class:text-blue-500={selectedCollection == 'all'} class="cursor-pointer text-ellipsis">
                     # Public Feed
                  </div>
@@ -187,7 +191,7 @@
             <div class="text-sm font-bold bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200 p-1 rounded-md shadow-md">
                 My Groups
             </div>
-            <div class="flex flex-col ml-3 text-sm">
+            <div class="flex flex-col ml-3 md:text-sm">
                 {#each userCollections as collection, i}
                     <div on:click={() => loadCollection(String(collection.contractId))} class:text-blue-500={selectedCollection == String(collection.contractId)} class="cursor-pointer text-ellipsis">
                         # {collection.highforgeData?.title ?? collection.contractId}
@@ -199,7 +203,7 @@
             <div class="text-sm font-bold bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200 p-1 rounded-md shadow-md">
                 Other Groups
             </div>
-            <div class="flex flex-col ml-3 text-sm">
+            <div class="flex flex-col ml-3 md:text-sm">
                 {#each nonUserCollections as collection, i}
                     <div on:click={() => loadCollection(String(collection.contractId))} class:text-blue-500={selectedCollection == String(collection.contractId)} class="cursor-pointer text-ellipsis">
                         # {collection.highforgeData?.title ?? collection.contractId}
@@ -208,8 +212,11 @@
             </div>
         </div>
     </div>
-    <div class="flex flex-col flex-grow h-full mt-1" >
-        <Tabs contentClass="h-full" divider={false}>
+    <div class="{mobilePage != 'groups' ? 'flex' : 'hidden'} md:flex flex-col flex-grow h-full mt-1" >
+        <div class="md:hidden text-lg font-bold text-gray-800 dark:text-gray-200 p-1 rounded-md shadow-md">
+            {selectedCollection == 'all' ? 'Public Feed' : selectedCollection == 'myfeed' ? 'My Feed' : allCollections.find(c => c.contractId === Number(selectedCollection))?.highforgeData?.title ?? selectedCollection}
+        </div>
+        <Tabs defaultClass="hidden md:flex flex-wrap space-x-2 rtl:space-x-reverse" contentClass="h-full" divider={false}>
             {#if selectedCollection !== 'all' && selectedCollection !== 'myfeed'}
                 <TabItem title={allCollections.find(c => c.contractId === Number(selectedCollection))?.highforgeData?.title ?? selectedCollection} defaultClass="text-xl" inactiveClasses="p-4 text-gray-700 dark:text-gray-200" disabled>
                 </TabItem>
@@ -219,7 +226,7 @@
             {/if}
             <TabItem title="Chat" bind:open={showChat} defaultClass={!selectedCollection || selectedCollection === 'all' || selectedCollection === 'myfeed' ? 'hidden' : ''} activeClasses="p-4 text-primary-600 bg-gray-100 rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
                 <div class="flex flex-col relative h-full -mt-1">
-                    <div class="absolute -top-12 right-2 flex flex-row">
+                    <div class="absolute -top-9 md:-top-12 right-2 flex flex-row">
                         {#if selectedCollection && selectedCollection !== 'all'}
                             <div class="flex flex-row">
                                 <ButtonGroup>
@@ -246,7 +253,7 @@
                         {/if}
                     </div>
                     {#if selectedCollection}
-                        <div class="flex flex-col py-4 mx-1 {selectedCollection == 'all' || selectedCollection == 'myfeed' ? 'mb-[4.5rem]' : 'mb-16'} overflow-auto relative border-t-2 border-slate-200 dark:border-slate-400">
+                        <div class="flex flex-col py-2 md:py-3 md:space-y-3 mx-1 {selectedCollection == 'all' || selectedCollection == 'myfeed' ? 'mb-[4.5rem]' : 'mb-[6.75rem] md:mb-16'} overflow-auto relative border-t-2 border-slate-200 dark:border-slate-400">
                             {#if !hasValidToken}
                                 <div class="text-sm bg-yellow-300 text-black dark:bg-yellow-600 dark:text-white border border-yellow-900 p-2 rounded-lg mb-1">
                                     <i class="fas fa-exclamation-triangle mr-2"></i>
@@ -261,7 +268,7 @@
                                     <div class="text-sm text-gray-500 dark:text-gray-400">Click your wallet address and then select the "Auth" option next to the wallet.</div>
                                 </div>
                             {/if}
-                            <div class="flex-grow h-full m-1 w-full md:w-3/4 place-self-center">
+                            <div class="flex-grow h-full m-1 w-full md:w-3/4 place-self-center space-y-2 md:space-y-3">
                                 {#each messages as message, i}
                                     <Message nfds={data.server_data.nfds} {message} canComment={hasValidToken && (canViewPrivate || userCollections.find((c) => String(c.contractId) == message.collectionId) != undefined)} collectionName={allCollections.find(c => c.contractId === Number(message.collectionId))?.highforgeData?.title} showCollectionName={selectedCollection === 'all' || selectedCollection === 'myfeed'}></Message>
                                 {/each}
@@ -290,7 +297,7 @@
                 </div>
             </TabItem>
             {#if selectedCollection && selectedCollection !== 'all' && selectedCollection !== 'myfeed'}
-                <TabItem defaultClass="" activeClasses="p-4 text-primary-600 bg-gray-100 rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
+                <TabItem bind:open={showMembers} defaultClass="" activeClasses="p-4 text-primary-600 bg-gray-100 rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
                     <svelte:fragment slot="title">
                         Members
                         <Indicator size="xl" color="indigo" class="text-sm text-white" border>{[...new Set(tokens.map(token => token.owner))].length}</Indicator>
@@ -303,7 +310,7 @@
                     </div>
                 </TabItem>
                 {#if selectedCollection}
-                    <TabItem defaultClass="" activeClasses="p-4 text-primary-600 bg-gray-100 rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
+                    <TabItem bind:open={showCollection} defaultClass="" activeClasses="p-4 text-primary-600 bg-gray-100 rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
                         <svelte:fragment slot="title">
                             Collection
                             <Indicator size="xl" color="indigo" class="text-xs text-white" border>{tokens.length}</Indicator>
@@ -353,6 +360,34 @@
         <i class="fas fa-spinner fa-spin text-9xl"></i>
     </div>
 {/if}
+<div class="fixed md:hidden bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border border-t-slate-500 shadow-md z-50">
+    <div class="flex justify-around">
+        <button class="flex w-full flex-col items-center py-4 focus:outline-none {mobilePage === 'groups' ? 'bg-gray-200 dark:bg-gray-900' : ''}" on:click={() => mobilePage = 'groups'}>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+            <span class="text-xs text-gray-500 dark:text-gray-400">Groups</span>
+        </button>
+        <button class="flex w-full flex-col items-center py-4 focus:outline-none {mobilePage == 'chat' && showChat == true ? 'bg-gray-200 dark:bg-gray-900' : ''}" on:click={() => {mobilePage = 'chat'; showChat = true;}}>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+            </svg>
+            <span class="text-xs text-gray-500 dark:text-gray-400">Chat</span>
+        </button>
+        <button class="flex w-full flex-col items-center py-4 focus:outline-none {mobilePage == 'chat' && showMembers == true ? 'bg-gray-200 dark:bg-gray-900' : ''}" on:click={() => {mobilePage = 'chat'; showMembers = true;}}>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            <span class="text-xs text-gray-500 dark:text-gray-400">Members</span>
+        </button>
+        <button class="flex w-full flex-col items-center py-4 focus:outline-none {mobilePage == 'chat' && showCollection == true ? 'bg-gray-200 dark:bg-gray-900' : ''}" on:click={() => {mobilePage = 'chat'; showCollection = true;}}>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            <span class="text-xs text-gray-500 dark:text-gray-400">Collection</span>
+        </button>
+    </div>
+</div>
 
 <style>
 .loading-icon {

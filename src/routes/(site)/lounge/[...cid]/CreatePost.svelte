@@ -108,7 +108,7 @@
     };
 </script>
 
-<form on:submit={handleSubmit} class="p-2 py-5 mb-4 mx-1 w-full sm:w-3/4 place-self-center flex flex-col bg-gray-50 dark:bg-gray-800 rounded-xl shadow relative border dark:border-slate-700">
+<form on:submit={handleSubmit} class="p-2 py-5 mx-1 w-full sm:w-3/4 place-self-center flex flex-col bg-gray-50 dark:bg-gray-800 rounded-xl shadow relative border dark:border-slate-700">
     <div class="flex items-center">
         <div class="flex flex-col justify-between">
             <div class="relative text-xl mr-2 cursor-pointer" on:click|stopPropagation={() => showEmojiPicker = !showEmojiPicker}>
@@ -152,7 +152,7 @@
         </div>
     </div>
     {#if showAddPoll}
-        <div class="flex flex-col m-4 p-2 border border-gray-500 rounded-lg relative space-y-2">
+        <div class="flex flex-col mt-2 sm:m-4 p-2 border border-gray-500 rounded-lg relative space-y-2">
             <div class="text-lg">Add Poll</div>
             <button class="absolute top-2 right-2 p-1 border border-gray-500 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full w-8 h-8" on:click|preventDefault|stopPropagation={() => showAddPoll = false}>
                 <i class="fas fa-times"></i>
@@ -170,11 +170,11 @@
             <hr class="border-gray-300 dark:border-gray-600" />
             <div class="flex flex-col space-y-2">
                 <div class="flex space-x-2 items-center">
-                    <label for="end-time" class="text-sm w-32 text-end">End Time:</label>
+                    <label for="end-time" class="text-sm w-28 text-end">End Time:</label>
                     <input type="datetime-local" id="end-time" class="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg" bind:value={poll_endTime} />
                 </div>
                 <div class="flex items-center space-x-2">
-                    <label for="vote-weight" class="text-sm w-32 text-end">Vote Weight:</label>
+                    <label for="vote-weight" class="text-sm w-28 text-end">Vote Weight:</label>
                     <select class="bg-gray-100 dark:bg-gray-700 rounded-lg" bind:value={poll_voteWeight}>
                         <option value="wallet">1 Vote per Wallet</option>
                         <!--<option value="token">1 Vote per NFT Token</option>-->

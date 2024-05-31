@@ -135,7 +135,7 @@
     };
 </script>
 {#if message}
-    <div class="flex flex-col p-6 mb-4 bg-gray-50 dark:bg-gray-800 rounded-xl shadow dark:border-slate-700 border">
+    <div class="flex flex-col p-6 bg-gray-50 dark:bg-gray-800 rounded-xl shadow dark:border-slate-700 border">
         <div class="flex flex-row items-start">
             <div on:click={() => goto(`/portfolio/${message.walletId}`)} class="cursor-pointer flex-shrink-0 w-12 h-12 bg-gray-500 rounded-full overflow-hidden"><img src={getImageUrl(nfds.find(nfd => nfd.key === message.walletId)?.avatar ?? '/blank_avatar_small.png',240)}/></div>
             <div class="ml-4 flex flex-row w-full justify-between">
@@ -143,18 +143,18 @@
                     <a on:click={() => goto(`/portfolio/${message.walletId}`)} class="text-sm font-bold text-blue-500 dark:text-blue-300 cursor-pointer">
                         {nfds.find(nfd => nfd.key === message.walletId)?.replacementValue ?? (message.walletId.slice(0, 8) + '...' + message.walletId.slice(-8))}
                     </a>
-                    <div class="text-sm text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-line markdown">
+                    <div class="text-sm text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-line markdown max-w-48 md:max-w-full">
                         <Markdown source={message.message} />
                     </div>
                     {#if poll}
                         <div class="flex flex-col mt-2 space-y-2">
-                            <table class="mt-2 w-full text-left">
+                            <table class="mt-2 w-full text-left sm:text-sm">
                                 {#each Object.entries(poll.options) as [index, option]}
-                                    <tr class="{parseInt(index) === pollWinner ? 'bg-yellow-100 text-black' : ''}">
+                                    <div class="{parseInt(index) === pollWinner ? 'bg-yellow-100 text-black' : ''} sm:table-row">
                                         <td>{parseInt(index) + 1}.</td>
-                                        <td>
-                                            <button class="bg-gray-200 text-black px-4 py-2 text-start no-underline inline-block
-                                                text-sm m-1 rounded-full transition-colors duration-200 cursor-not-allowed w-full
+                                        <td class="sm:w-full">
+                                            <button class="bg-gray-200 text-black px-2 sm:px-4 py-1 sm:py-2 text-start no-underline inline-block
+                                                text-xs sm:text-sm m-1 rounded-full transition-colors duration-200 cursor-not-allowed w-full
                                                 {canVote && pollWinner === undefined ? 'cursor-pointer hover:bg-green-500 hover:text-white' : ''}
                                                 {poll.voted !== undefined && poll.voted === parseInt(index) ? 'bg-yellow-400' : ''}" on:click={() => handleVote(index)}
                                                 >
@@ -162,26 +162,26 @@
                                             </button>
                                         </td>
                                         {#if poll.votes}
-                                            <td>
-                                                <div class="w-40 bg-gray-200 rounded-full overflow-hidden ml-3">
+                                            <div class="sm:table-cell align-middle inline-block">
+                                                <div class="w-20 sm:w-40 bg-gray-200 rounded-full overflow-hidden ml-3">
                                                     <div class="bg-green-500 rounded-full h-4" style={`width: ${Math.max((poll.votes?.[parseInt(index)]??0) / totalVotes * 100, 3)}%`}></div>
                                                 </div>
-                                            </td>
-                                            <td>
+                                            </div>
+                                            <div class="sm:table-cell align-middle inline-block">
                                                 <div class="text-xs text-gray-500 dark:text-gray-400={parseInt(index) !== pollWinner} ml-2">
                                                     {poll.votes?.[parseInt(index)] ?? 0} vote{poll.votes?.[parseInt(index)] === 1 ? '' : 's'}
                                                 </div>
-                                            </td>
-                                            <td>
+                                            </div>
+                                            <div class="sm:table-cell align-middle inline-block">
                                                 {#if poll.voted === parseInt(index)}
                                                     <div class="text-xs text-gray-500 dark:text-gray-400 ml-2 flex place-items-end items-center">
                                                         <i class="fas fa-check text-blue-800 text-lg"></i>
                                                         Your Vote
                                                     </div>
                                                 {/if}
-                                            </td>
+                                            </div>
                                         {/if}
-                                    </tr>
+                                    </div>
                                 {/each}
                             </table>
                             <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">

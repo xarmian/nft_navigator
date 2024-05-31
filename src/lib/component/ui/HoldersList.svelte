@@ -107,8 +107,8 @@
         </div>
     {/if}
     {#each paginatedHolders as tokens}
-        <div class="flex flex-row space-y-4 justify-start bg-slate-200 dark:bg-slate-700 rounded-xl m-2 p-4">
-            <div class="flex flex-row space-x-4 items-start">
+        <div class="flex flex-col md:flex-row space-y-4 justify-start bg-slate-200 dark:bg-slate-700 rounded-xl m-2 p-4">
+            <div class="flex flex-row space-x-4 items-start pb-6 md:pb-0">
                 {#if tokens[0].ownerAvatar}
                     <img src={tokens[0].ownerAvatar} class="h-24 w-24 rounded-full" />
                 {/if}
@@ -126,7 +126,7 @@
                     </div>
                 </div>
             </div>
-            <div class="flex flex-row space-x-4 flex-wrap justify-end w-full mx-12" style="margin-top:-3rem; margin-bottom:1.5rem;">
+            <div class="flex flex-row flex-wrap md:justify-end w-full md:mx-12" style="margin-top:-3rem; margin-bottom:1.5rem;">
                 {#each tokens.slice(0,5) as token}
                     <div class="transform scale-50 w-36 h-40">
                         <TokenCard token={token} />
