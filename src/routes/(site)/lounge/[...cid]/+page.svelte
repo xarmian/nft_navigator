@@ -360,7 +360,7 @@
         <i class="fas fa-spinner fa-spin text-9xl"></i>
     </div>
 {/if}
-<div class="fixed md:hidden bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border border-t-slate-500 shadow-md z-50">
+<div class="fixed md:hidden bottom-0 -left-1 right-0 bg-white dark:bg-gray-800 border border-t-slate-500 shadow-md z-50">
     <div class="flex justify-around">
         <button class="flex w-full flex-col items-center py-4 focus:outline-none {mobilePage === 'groups' ? 'bg-gray-200 dark:bg-gray-900' : ''}" on:click={() => mobilePage = 'groups'}>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
