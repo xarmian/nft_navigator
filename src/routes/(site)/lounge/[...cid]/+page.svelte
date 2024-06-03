@@ -176,7 +176,7 @@
 </script>
 
 <div class="flex flex-row mainview bg-opacity-50 text-black dark:text-gray-200">
-    <div class="{mobilePage == 'groups' ? 'flex' : 'hidden'} md:flex flex-col space-y-4 min-w-48 md:w-48 overflow-x-hidden overflow-y-auto text-nowrap p-3 border-r-2 border-slate-200 dark:border-slate-600 mb-[4.5rem] md:mb-0">
+    <div class="{mobilePage == 'groups' ? 'flex' : 'hidden'} md:flex flex-col space-y-4 min-w-48 md:w-48 overflow-x-hidden overflow-y-auto text-nowrap p-3 border-r-2 border-slate-200 dark:border-slate-600 bg-gray-100 dark:bg-gray-900 mb-[4.5rem] md:mb-0">
         <div class="flex flex-col">
             <div class="flex flex-col ml-3 md:text-sm">
                 <div on:click={() => loadCollection('all')} class:text-blue-500={selectedCollection == 'all'} class="cursor-pointer text-ellipsis">
@@ -212,11 +212,11 @@
             </div>
         </div>
     </div>
-    <div class="{mobilePage != 'groups' ? 'flex' : 'hidden'} md:flex flex-col flex-grow h-full mt-1" >
+    <div class="{mobilePage != 'groups' ? 'flex' : 'hidden'} md:flex flex-col flex-grow h-full" >
         <div class="md:hidden text-lg font-bold text-gray-800 dark:text-gray-200 p-1 rounded-md shadow-md">
             {selectedCollection == 'all' ? 'Public Feed' : selectedCollection == 'myfeed' ? 'My Feed' : allCollections.find(c => c.contractId === Number(selectedCollection))?.highforgeData?.title ?? selectedCollection}
         </div>
-        <Tabs defaultClass="hidden md:flex flex-wrap space-x-2 rtl:space-x-reverse" contentClass="h-full" divider={false}>
+        <Tabs defaultClass="hidden md:flex flex-wrap space-x-2 rtl:space-x-reverse bg-gray-100 dark:bg-gray-900" contentClass="h-full" divider={false}>
             {#if selectedCollection !== 'all' && selectedCollection !== 'myfeed'}
                 <TabItem title={allCollections.find(c => c.contractId === Number(selectedCollection))?.highforgeData?.title ?? selectedCollection} defaultClass="text-xl" inactiveClasses="p-4 text-gray-700 dark:text-gray-200" disabled>
                 </TabItem>
@@ -224,7 +224,7 @@
                 <TabItem title={selectedCollection === 'all' ? 'All Feeds' : 'My Feed'} defaultClass="text-2xl" inactiveClasses="p-4 text-gray-700 dark:text-gray-200" disabled>
                 </TabItem>
             {/if}
-            <TabItem title="Chat" bind:open={showChat} defaultClass={!selectedCollection || selectedCollection === 'all' || selectedCollection === 'myfeed' ? 'hidden' : ''} activeClasses="p-4 text-primary-600 bg-gray-100 rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
+            <TabItem title="Chat" bind:open={showChat} defaultClass={!selectedCollection || selectedCollection === 'all' || selectedCollection === 'myfeed' ? 'hidden' : ''} activeClasses="p-4 text-primary-600 bg-white rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
                 <div class="flex flex-col relative h-full -mt-1">
                     <div class="absolute -top-9 md:-top-12 right-2 flex flex-row">
                         {#if selectedCollection && selectedCollection !== 'all'}
@@ -297,7 +297,7 @@
                 </div>
             </TabItem>
             {#if selectedCollection && selectedCollection !== 'all' && selectedCollection !== 'myfeed'}
-                <TabItem bind:open={showMembers} defaultClass="" activeClasses="p-4 text-primary-600 bg-gray-100 rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
+                <TabItem bind:open={showMembers} defaultClass="" activeClasses="p-4 text-primary-600 bg-white rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
                     <svelte:fragment slot="title">
                         Members
                         <Indicator size="xl" color="indigo" class="text-sm text-white" border>{[...new Set(tokens.map(token => token.owner))].length}</Indicator>
@@ -310,7 +310,7 @@
                     </div>
                 </TabItem>
                 {#if selectedCollection}
-                    <TabItem bind:open={showCollection} defaultClass="" activeClasses="p-4 text-primary-600 bg-gray-100 rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
+                    <TabItem bind:open={showCollection} defaultClass="" activeClasses="p-4 text-primary-600 bg-white rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
                         <svelte:fragment slot="title">
                             Collection
                             <Indicator size="xl" color="indigo" class="text-xs text-white" border>{tokens.length}</Indicator>

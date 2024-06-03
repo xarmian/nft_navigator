@@ -2,24 +2,24 @@
 	import { invalidateAll } from '$app/navigation';
 	import type { NMessage, NComment } from '$lib/data/types';
 
-    export let reactions = ['👍','👎','😂','😢','🔥'];
+    export let reactions = ['👍','👎','😂','😢','🔥','❤️'];
     export let canReact = true;
     export let message: NMessage | null = null;
     export let comment: NComment | null = null;
 
-    let counts: number[] | undefined;
+    let counts: { [key: number]: string } | undefined = {};
     let myReactions: number[] = [];
 
     $: {
         myReactions = [];
         if (comment) {
-            counts = comment.reactions;
+            counts = comment.reactions_json;
             comment.mcr?.forEach((mcr) => {
                 myReactions = myReactions.concat(mcr.reaction);
             });
         }
         else if (message) {
-            counts = message.reactions;
+            counts = message.reactions_json;
             message.mr?.forEach((mr) => {
                 if (!mr.comments_id) myReactions = myReactions.concat(mr.reaction);
             });
@@ -75,7 +75,7 @@
             : 'cursor-default border-gray-100 dark:border-gray-700'}"
      class:!bg-yellow-800={myReactions.indexOf(i) !== -1}>
         <div>{reaction}</div>
-        {#if counts && (counts[i]??0) > 0}
+        {#if counts && (Number(counts[i]??0)) > 0}
             <div class="text-xs">{counts[i]}</div>
         {/if}
     </button>

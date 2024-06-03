@@ -148,6 +148,7 @@ export type NMessage = {
     nfd?: any;
     comments?: NComment[];
     reactions?: number[];
+    reactions_json?: { [key: number]: string } | undefined;
     mr?: NReaction[];
     poll?: IPoll;
 };
@@ -159,6 +160,7 @@ export type NComment = {
     timestamp: string;
     nfd?: any;
     reactions?: number[];
+    reactions_json?: { [key: number]: string } | undefined;
     mcr?: NReaction[];
 };
 

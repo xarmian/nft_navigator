@@ -264,7 +264,7 @@ export const saveAction = async (action: PAction) => {
 }
 
 export const postReaction = async (p_message_id: number, p_comment_id: number | null, p_wallet_id: string, p_reaction: number) => {
-    const { data, error } = await supabasePrivateClient.rpc('handle_reaction', { p_message_id, p_comment_id, p_wallet_id, p_reaction });
+    const { data, error } = await supabasePrivateClient.rpc('handle_reaction_json', { p_message_id, p_comment_id, p_wallet_id, p_reaction });
 
     if (error) {
         console.error('postReaction', error);

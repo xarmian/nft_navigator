@@ -5,7 +5,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     const headers = event.request.headers;
 
     // Attempt to get the IP address from various headers
-    const xForwardedFor = headers.get('x-forwarded-for');
+    const xForwardedFor = headers.get('X-Forwarded-For');
     const remoteAddr = headers.get('remoteAddr');
     const ipAddress = xForwardedFor || remoteAddr || event.getClientAddress();
 
