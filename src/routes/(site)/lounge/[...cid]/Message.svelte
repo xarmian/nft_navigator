@@ -148,11 +148,11 @@
                     </div>
                     {#if poll}
                         <div class="flex flex-col mt-2 space-y-2">
-                            <table class="mt-2 w-full text-left sm:text-sm">
+                            <div class="sm:table mt-2 w-full text-left sm:text-sm">
                                 {#each Object.entries(poll.options) as [index, option]}
-                                    <div class="{parseInt(index) === pollWinner ? 'bg-yellow-100 text-black' : ''} sm:table-row">
-                                        <td>{parseInt(index) + 1}.</td>
-                                        <td class="sm:w-full">
+                                    <div class="{parseInt(index) === pollWinner ? 'bg-yellow-100 text-black' : ''} sm:table-row rounded-xl p-4 px-6">
+                                        <div class="inline-block sm:table-cell align-middle sm:p-4 sm:px-6 sm:rounded-l-xl">{parseInt(index) + 1}.</div>
+                                        <div class="inline-block sm:table-cell align-middle w-11/12 sm:w-full">
                                             <button class="bg-gray-200 text-black px-2 sm:px-4 py-1 sm:py-2 text-start no-underline inline-block
                                                 text-xs sm:text-sm m-1 rounded-full transition-colors duration-200 cursor-not-allowed w-full
                                                 {canVote && pollWinner === undefined ? 'cursor-pointer hover:bg-green-500 hover:text-white' : ''}
@@ -160,7 +160,7 @@
                                                 >
                                                 {option}
                                             </button>
-                                        </td>
+                                        </div>
                                         {#if poll.votes}
                                             <div class="sm:table-cell align-middle inline-block">
                                                 <div class="w-20 sm:w-40 bg-gray-200 rounded-full overflow-hidden ml-3">
@@ -172,7 +172,7 @@
                                                     {poll.votes?.[parseInt(index)] ?? 0} vote{poll.votes?.[parseInt(index)] === 1 ? '' : 's'}
                                                 </div>
                                             </div>
-                                            <div class="sm:table-cell align-middle inline-block">
+                                            <div class="sm:table-cell align-middle inline-block sm:p-4 sm:px-6 sm:rounded-r-xl">
                                                 {#if poll.voted === parseInt(index)}
                                                     <div class="text-xs text-gray-500 dark:text-gray-400 ml-2 flex place-items-end items-center">
                                                         <i class="fas fa-check text-blue-800 text-lg"></i>
@@ -183,7 +183,7 @@
                                         {/if}
                                     </div>
                                 {/each}
-                            </table>
+                            </div>
                             <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">
                                 Total Votes: {totalVotes} | {pollWinner !== undefined ? 'Ended' : 'Ends'}: {new Date(poll.endTime).toLocaleString()} | {poll.publicVoting ? 'Public' : 'Private'} Poll
                             </div>
