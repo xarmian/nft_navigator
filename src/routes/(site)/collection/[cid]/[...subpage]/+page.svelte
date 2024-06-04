@@ -13,6 +13,7 @@
 	import { goto } from '$app/navigation';
 	import PixelPursuitButton from '$lib/component/ui/PixelPursuitButton.svelte';
 	import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
+	import LoungeButton from '$lib/component/ui/LoungeButton.svelte';
 
     //const forsale = $page.url.searchParams.get('forsale');
 
@@ -127,11 +128,12 @@
                 </div>
             </div>
             <div class="flex flex-col space-y-2 items-stretch justify-center mb-2 z-10 w-24">
+                <LoungeButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-12 text-black"/>
                 <NautilusButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-12"/>
                 <HighforgeButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-12"/>
                 <PixelPursuitButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 text-black dark:text-black px-2 rounded-md cursor-pointer min-h-12"/>
                 {#if collection?.gameData}
-                    <NftGamesButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-12"/>
+                    <!--<NftGamesButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-12"/>-->
                 {/if}
             </div>
         </div>
