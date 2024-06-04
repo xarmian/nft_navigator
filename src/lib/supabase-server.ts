@@ -135,7 +135,7 @@ export const getMessage = async (messageId: number): Promise<PMessage | null> =>
     return data?.[0] ?? null;
 }
 
-export const getMessages = async (collectionId: string[] | string | null, includePrivate: boolean, walletId: string = '', limit: number = 10) => {
+export const getMessages = async (collectionId: string[] | string | null, messageId: string | null, includePrivate: boolean, walletId: string = '', limit: number = 10) => {
     let query = supabasePrivateClient
         .from('messages')
         .select(`
@@ -162,7 +162,11 @@ export const getMessages = async (collectionId: string[] | string | null, includ
         .neq('deleted', true)
         .eq('reactions.wallet_id', walletId)
         .order('timestamp', { ascending: false })
-        .limit(limit);
+        .limit(limit)
+
+    if (messageId) {
+        query = query.eq('id', messageId);
+    }
 
     if (Array.isArray(collectionId)) {
         query = query.in('collectionId', collectionId);

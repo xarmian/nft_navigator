@@ -20,6 +20,7 @@
 	import NftGamesButton from "$lib/component/ui/NFTGamesButton.svelte";
 	import FanIcon from "$lib/component/ui/icons/FanIcon.svelte";
 	import { getImageUrl } from '$lib/utils/functions';
+	import Select from '$lib/component/ui/Select.svelte';
     
     export let data: PageData;
 
@@ -47,6 +48,11 @@
     
     $: selectedCollection = data.server_data.collectionId;
     $: {
+        if (data.server_data.messageId) {
+            showChat = true;
+            selectedView = 'All';
+        }
+
         messages = data.server_data.messages;
         privateCount = messages.filter((message) => message.private).length;
         publicCount = messages.filter((message) => !message.private).length;
@@ -227,10 +233,10 @@
                 <TabItem title={selectedCollection === 'all' ? 'All Feeds' : 'My Feed'} defaultClass="text-2xl" inactiveClasses="p-4 text-gray-700 dark:text-gray-200" disabled>
                 </TabItem>
             {/if}
-            <TabItem title="Chat" bind:open={showChat} defaultClass={!selectedCollection || selectedCollection === 'all' || selectedCollection === 'myfeed' ? 'hidden' : ''} activeClasses="p-4 text-primary-600 bg-white rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
+            <TabItem title="Chat" bind:open={showChat} defaultClass={!selectedCollection || selectedCollection === 'all' || selectedCollection === 'myfeed' || data.server_data.messageId ? 'hidden' : ''} activeClasses="p-4 text-primary-600 bg-white rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
                 <div class="flex flex-col relative h-full -mt-1">
                     <div class="absolute -top-9 md:-top-12 right-2 flex flex-row">
-                        {#if selectedCollection && selectedCollection !== 'all'}
+                        {#if selectedCollection && selectedCollection !== 'all' && !data.server_data.messageId}
                             <div class="flex flex-row">
                                 <ButtonGroup>
                                     <Button checked={selectedView == 'Public'} on:click={() => changeView('Public')}>Public ({publicCount})</Button>
@@ -257,13 +263,18 @@
                     </div>
                     {#if selectedCollection}
                         <div class="flex flex-col py-2 md:py-3 md:space-y-3 mx-1 {selectedCollection == 'all' || selectedCollection == 'myfeed' ? 'mb-[4.5rem]' : 'mb-[6.75rem] md:mb-16'} overflow-auto relative border-t-2 border-slate-200 dark:border-slate-400">
-                            {#if !hasValidToken}
+                            {#if data.server_data.messageId != null}
+                                <button class="absolute top-2 left-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-full p-2 px-4 hover:bg-gray-100 hover:dark:bg-gray-900 shadow-md" on:click={() => goto(`/lounge/${selectedCollection}`)}>
+                                    <i class="fas fa-arrow-left"></i>
+                                </button>
+                            {/if}
+                            {#if !hasValidToken && !data.server_data.messageId}
                                 <div class="text-sm bg-yellow-300 text-black dark:bg-yellow-600 dark:text-white border border-yellow-900 p-2 rounded-lg mb-1">
                                     <i class="fas fa-exclamation-triangle mr-2"></i>
                                     You must <a href="https://wind-bolt-806.notion.site/Quest-2-Authenticate-your-Wallet-bd8a312141e0403688953625e14106df" class="text-blue-600 hover:text-blue-500 dark:text-blue-400 hover:dark:text-blue-300 underline cursor-pointer" target="_blank">authenticate your wallet</a> to post messages, react, or view private channels.
                                 </div>
                             {/if}
-                            {#if canViewPrivate && hasValidToken && selectedCollection !== 'all' && selectedCollection !== 'myfeed'}
+                            {#if !data.server_data.messageId && canViewPrivate && hasValidToken && selectedCollection !== 'all' && selectedCollection !== 'myfeed'}
                                 <CreatePost onPost={onPost} bind:postPrivacy={postPrivacy}></CreatePost>
                             {:else if selectedView == 'Private' && canViewPrivate && !hasValidToken}
                                 <div class="text-2xl font-bold text-gray-800 dark:text-gray-200 flex flex-col place-items-center m-2">
@@ -273,10 +284,17 @@
                             {/if}
                             <div class="flex-grow h-full m-1 w-full md:w-3/4 place-self-center space-y-2 md:space-y-3">
                                 {#each messages as message, i}
-                                    <Message nfds={data.server_data.nfds} {message} canComment={hasValidToken && (canViewPrivate || userCollections.find((c) => String(c.contractId) == message.collectionId) != undefined)} collectionName={allCollections.find(c => c.contractId === Number(message.collectionId))?.highforgeData?.title} showCollectionName={selectedCollection === 'all' || selectedCollection === 'myfeed'}></Message>
+                                    <Message singleMessageView={data.server_data.messageId} nfds={data.server_data.nfds} {message} canComment={hasValidToken && (canViewPrivate || userCollections.find((c) => String(c.contractId) == message.collectionId) != undefined)} collectionName={allCollections.find(c => c.contractId === Number(message.collectionId))?.highforgeData?.title} showCollectionName={selectedCollection === 'all' || selectedCollection === 'myfeed'}></Message>
                                 {/each}
                                 {#if messages.length == 0 && (selectedView == 'Public' || (selectedView == 'Private' && hasValidToken))}
-                                    <div class="text-2xl font-bold text-gray-800 dark:text-gray-200 flex flex-col place-items-center">This channel is empty! Be the change you want to see in the world.</div>
+                                    {#if data.server_data.messageId}
+                                        <div class="text-xl font-bold text-gray-800 dark:text-gray-200 flex flex-col place-items-center">
+                                            <div>This message is Private or does not exist.</div>
+                                            <div>Please authenticate to view private messages.</div>
+                                        </div>
+                                    {:else}
+                                        <div class="text-2xl font-bold text-gray-800 dark:text-gray-200 flex flex-col place-items-center">This channel is empty! Be the change you want to see in the world.</div>
+                                    {/if}
                                 {/if}
                             </div>
                             {#if messages.length > displayCountMessages}

@@ -10,6 +10,7 @@
     import type { IPoll, NMessage } from "$lib/data/types";
     import Markdown from 'svelte-markdown';
     import { getImageUrl } from '$lib/utils/functions';
+    import { supabaseImageUrl } from '$lib/data/constants';
 
     export let message: NMessage;
     export let collectionName = '';
@@ -17,6 +18,7 @@
     export let canComment = false;
     export let showComments = false;
     export let nfds: AggregatedNFD[] = [];
+    export let singleMessageView = false;
 
     $: poll = message.poll;
     $: canVote = (poll && poll.voted === undefined && (!poll.endTime || new Date(poll.endTime) > new Date()) && (canComment || poll.publicVoting));
@@ -135,24 +137,24 @@
     };
 </script>
 {#if message}
-    <div class="flex flex-col p-6 bg-gray-50 dark:bg-gray-800 rounded-xl shadow dark:border-slate-700 border">
-        <div class="flex flex-row items-start">
-            <div on:click={() => goto(`/portfolio/${message.walletId}`)} class="cursor-pointer flex-shrink-0 w-12 h-12 bg-gray-500 rounded-full overflow-hidden"><img src={getImageUrl(nfds.find(nfd => nfd.key === message.walletId)?.avatar ?? '/blank_avatar_small.png',240)}/></div>
+    <div class="flex flex-col pb-6 px-6 bg-gray-50 dark:bg-gray-800 rounded-xl shadow dark:border-slate-700 border">
+        <div class="flex flex-row items-start pt-6" class:cursor-pointer={!singleMessageView} on:click={() => goto(`/lounge/${message.collectionId}/${message.id}`, { replaceState: (!singleMessageView ? false : true) })}>
+            <div on:click|stopPropagation={() => goto(`/portfolio/${message.walletId}`)} class="cursor-pointer flex-shrink-0 w-12 h-12 bg-gray-500 rounded-full overflow-hidden"><img src={getImageUrl(nfds.find(nfd => nfd.key === message.walletId)?.avatar ?? '/blank_avatar_small.png',240)}/></div>
             <div class="ml-4 flex flex-row w-full justify-between">
                 <div class="flex flex-col">
-                    <a on:click={() => goto(`/portfolio/${message.walletId}`)} class="text-sm font-bold text-blue-500 dark:text-blue-300 cursor-pointer">
+                    <a on:click|stopPropagation={() => goto(`/portfolio/${message.walletId}`)} class="text-sm font-bold text-blue-500 dark:text-blue-300 cursor-pointer w-min">
                         {nfds.find(nfd => nfd.key === message.walletId)?.replacementValue ?? (message.walletId.slice(0, 8) + '...' + message.walletId.slice(-8))}
                     </a>
-                    <div class="text-sm text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-line markdown max-w-48 md:max-w-full">
+                    <div class="text-sm text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-line markdown max-w-48 md:max-w-full cursor-auto" on:click|stopPropagation>
                         <Markdown source={message.message} />
                         {#if message.images}
                             {#each message.images as image}
-                                <img src="https://tluxmnhfapdevlghsxnr.supabase.co/storage/v1/object/public/messages-images/{image}" class="w-full mt-2 rounded-lg max-h-64 max-w-64"/>
+                                <img src="{supabaseImageUrl}/{image}" class="w-full mt-2 rounded-lg max-h-64 max-w-64"/>
                             {/each}
                         {/if}
                     </div>
                     {#if poll}
-                        <div class="flex flex-col mt-2 space-y-2">
+                        <div class="flex flex-col mt-2 space-y-2 cursor-auto" on:click|stopPropagation>
                             <div class="sm:table mt-2 w-full text-left sm:text-sm">
                                 {#each Object.entries(poll.options) as [index, option]}
                                     <div class="{parseInt(index) === pollWinner ? 'bg-yellow-100 text-black' : ''} sm:table-row rounded-xl p-4 px-6">
@@ -202,7 +204,7 @@
                             <a href="/lounge/{message.collectionId}">{collectionName}</a>
                         </div>
                     {/if}
-                    <div class="place-self-start text-md flex space-x-2 mt-4 z-10">
+                    <div class="place-self-start text-md flex space-x-2 mt-4 z-10" on:click|stopPropagation>
                         <Reactions canReact={canComment} message={message}></Reactions>
                     </div>
                 </div>

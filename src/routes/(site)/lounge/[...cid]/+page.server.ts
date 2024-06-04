@@ -3,12 +3,16 @@ import { getMessages, postMessage, postComment, getMessage, saveAction, postReac
 import { verifyToken } from 'avm-wallet-svelte';
 import { getTokens } from '$lib/utils/indexer';
 import { error } from '@sveltejs/kit';
-import type { IPoll } from '$lib/data/types';
+import type { IPoll, NMessage } from '$lib/data/types';
 import { v4 as uuidv4 } from 'uuid';
 
 export const load: PageServerLoad = async ({ params, cookies, url }) => {
-  const { cid } = params;
+  const { cid: route } = params;
   const page = url.searchParams.get('page') ?? 1;
+
+  const routeParts = route.split('/');  
+  const cid = routeParts[0];
+  const messageId = routeParts[1] ?? null;
 
   if (cid === 'undefined' || cid === undefined) return {
     server_data: { collectionId: cid, messages: [], nfds: [] },
@@ -31,20 +35,20 @@ export const load: PageServerLoad = async ({ params, cookies, url }) => {
   if (cid == 'all') {
     //const collectionIds = (await getTokens({ owner: walletId })).map((t) => String(t.contractId));
     //data = (await getPublicFeed([], true, limit, Number(page))).concat(await getPrivateFeed(collectionIds, true));
-    data = await getMessages(null, false, walletId, limit);
+    data = await getMessages(null, null, false, walletId, limit);
     //console.log(data);
   }
   else if (cid === 'myfeed') {
     const collectionIds = (await getTokens({ owner: walletId })).map((t) => String(t.contractId));
     //data = (await getPublicFeed(collectionIds, true, limit, Number(page))).concat(await getPrivateFeed(collectionIds, true));
-    data = await getMessages(collectionIds, true, walletId, limit);
+    data = await getMessages(collectionIds, null, true, walletId, limit);
   }
   else {
     // validate user can access collection
     const ownsToken = (await getTokens({ owner: walletId, contractId: cid })).length > 0;
 
     // fetch messages from supabase
-    data = (cid ? await getMessages(cid, (isValid && ownsToken), walletId, limit) : []);
+    data = (cid ? await getMessages(cid, messageId, (isValid && ownsToken), walletId, limit) : []);
 
     /*if (data.length === 0) {
       data.push({
@@ -58,7 +62,7 @@ export const load: PageServerLoad = async ({ params, cookies, url }) => {
   }
 
   return {
-    server_data: { collectionId: cid, messages: data, nfds: [] },
+    server_data: { collectionId: cid, messageId, messages: data as NMessage[], nfds: [] },
   }
 }
 

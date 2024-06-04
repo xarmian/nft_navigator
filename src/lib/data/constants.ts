@@ -1,1 +1,2 @@
 export const zeroAddress = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ';
+export const supabaseImageUrl = 'https://tluxmnhfapdevlghsxnr.supabase.co/storage/v1/object/public/messages-images';

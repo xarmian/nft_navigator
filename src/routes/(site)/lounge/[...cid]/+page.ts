@@ -1,8 +1,9 @@
-import type { Collection } from '$lib/data/types';
+import type { Collection, NMessage } from '$lib/data/types';
 import { getNFD, type AggregatedNFD } from '$lib/utils/nfd';
 import { getCollection, getTokens } from '$lib/utils/indexer';
 import type { LayoutServerLoad } from '../../../$types';
 import { nfdStore } from '../../../../stores/collection';
+import { supabaseImageUrl } from '$lib/data/constants';
 
 export const load = (async ({ data, params, fetch }) => {
     const { cid } = params;
@@ -25,7 +26,7 @@ export const load = (async ({ data, params, fetch }) => {
 	};
 
     // get a list of unique wallets from data.messages.walletId and data.messages.comments.walletId and then get their NFD data
-    const wallets: string[] = Array.from(new Set(data.server_data.messages.map((m) => m.walletId).concat(data.server_data.messages.flatMap((m) => m.comments?.map((c: { walletId: string; }) => c.walletId)))));
+    const wallets: string[] = Array.from(new Set(data.server_data.messages.map((m: NMessage) => m.walletId).concat(data.server_data.messages.flatMap((m) => m.comments?.map((c: { walletId: string; }) => c.walletId)))));
     const nfd: AggregatedNFD[] = await getNFD(wallets);
 
     const tokenPromises = wallets.map((w) => {
@@ -57,6 +58,22 @@ export const load = (async ({ data, params, fetch }) => {
         }
     }
     data.server_data.nfds = nfd;
+
+    if (data.server_data.messageId && data.server_data.messages.length == 1) {
+        const msg = data.server_data.messages[0] as NMessage;
+        
+        if (msg.message.length > 0) pageMetaTags.description = data.server_data.messages[0].message;
+        
+        const unfd = nfd.find((n) => n.key === msg.walletId);
+        if (unfd) {
+            pageMetaTags.title = unfd.replacementValue + ' - Voi Lounge';
+            if (unfd.avatar) pageMetaTags.imageUrl = unfd.avatar;
+        }
+        
+        if (msg.images && msg.images.length > 0) {
+            pageMetaTags.imageUrl = supabaseImageUrl + '/' + msg.images[0];
+        }
+    }
 
 	return {
         ...data,
