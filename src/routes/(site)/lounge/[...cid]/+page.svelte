@@ -264,7 +264,7 @@
                                 </div>
                             {/if}
                             {#if canViewPrivate && hasValidToken && selectedCollection !== 'all' && selectedCollection !== 'myfeed'}
-                                <CreatePost onPost={onPost} postPrivacy={postPrivacy}></CreatePost>
+                                <CreatePost onPost={onPost} bind:postPrivacy={postPrivacy}></CreatePost>
                             {:else if selectedView == 'Private' && canViewPrivate && !hasValidToken}
                                 <div class="text-2xl font-bold text-gray-800 dark:text-gray-200 flex flex-col place-items-center m-2">
                                     <div>Want to Post in or view the Private channel? Authenticate your wallet!</div>
