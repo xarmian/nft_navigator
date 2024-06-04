@@ -3,6 +3,7 @@ import type { IPoll } from '$lib/data/types';
 import { createClient } from '@supabase/supabase-js';
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public';
 import { PRIVATE_SUPABASE_ROLE_KEY } from '$env/static/private';
+import sharp from 'sharp';
 
 const supabaseUrl = PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = PUBLIC_SUPABASE_ANON_KEY;
@@ -32,6 +33,7 @@ interface PMessage {
     mr?: PReaction[];
     poll?: IPoll;
     poll_responses?: { response: string, response_time: string, wallet_id: string }[];
+    images: string[]; // uuids of images in storage
 }
 
 interface PAction {
@@ -179,12 +181,12 @@ export const getMessages = async (collectionId: string[] | string | null, includ
         console.error('getMessages', messagesError);
     }
 
-    messagesData?.forEach((message: PMessage) => {
-        if (message.poll && message.poll_responses && (message.poll_responses?.length??0) > 0)  {
+    for (const message of messagesData ?? []) {
+        if (message.poll && message.poll_responses && (message.poll_responses?.length ?? 0) > 0) {
             // aggregate poll responses and add to message.poll.votes object
             const pollResponses = message.poll_responses;
             const pollVotes: Record<number, number> = {};
-            pollResponses.forEach((response) => {
+            for (const response of pollResponses) {
                 if (pollVotes[Number(response.response)]) {
                     pollVotes[Number(response.response)]++;
                 } else {
@@ -194,12 +196,12 @@ export const getMessages = async (collectionId: string[] | string | null, includ
                 if (response.wallet_id === walletId && message.poll) {
                     message.poll.voted = response.response;
                 }
-            });
+            }
 
             message.poll.votes = pollVotes;
         }
         delete message.poll_responses;
-    });
+    }
 
     return messagesData ?? [];
 }
@@ -234,13 +236,16 @@ export const getUserData = async (userId: string) => {
 
 // postMessage
 export const postMessage = async (message: PMessage) => {
-    const { data, error } = await supabasePrivateClient.from('messages').insert(message);
+    const { data, error } = await supabasePrivateClient.from('messages').insert(message).select();
 
     if (error) {
-        console.error('postMessage',error);
+        console.error('Error inserting message:', error);
+    } else if (data) {
+        const insertedId = data[0].id;
+        return insertedId;
     }
 
-    return data;
+    return null;
 }
 
 export const postComment = async ( comment: PComment) => {
@@ -282,6 +287,36 @@ export const postPollVote = async (p_message_id: number, p_wallet_id: string, p_
     }
 
     return true;
+}
+
+export async function storeMessageImage(key: string, messageId: string, idx: number, bucket: string, file: File, maxWidth: number, maxHeight: number): Promise<void> {
+    // Convert the File object to a Buffer
+    const buffer = await file.arrayBuffer();
+
+    const metadata = {
+        messageId: messageId,
+        index: String(idx),
+        contentType: file.type,
+        originalFileName: file.name,
+        originalFileUrl: file instanceof File ? URL.createObjectURL(file) : '',  // Generates a URL for local preview
+    };
+
+    // Resize the image
+    const resizedBuffer = await sharp(Buffer.from(buffer))
+        .resize(maxWidth, maxHeight, {
+            fit: 'inside',
+            withoutEnlargement: true
+        })
+        .toBuffer();
+
+    // Convert the Buffer to a File object
+    const resizedFile = new File([resizedBuffer], file.name, { type: file.type });
+
+    // Upload the resized image
+    const { error } = await supabasePrivateClient.storage.from(bucket).upload(key, resizedFile, { contentType: file.type, metadata: metadata } as FileOptions);
+    if (error) {
+        console.error('Error uploading file:', error);
+    }
 }
 
 export async function storeFile(key: string, bucket: string, file: File): Promise<void> {

@@ -151,6 +151,7 @@ export type NMessage = {
     reactions_json?: { [key: number]: string } | undefined;
     mr?: NReaction[];
     poll?: IPoll;
+    images?: string[];
 };
 
 export type NComment = {

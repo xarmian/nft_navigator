@@ -1,9 +1,10 @@
 import type { PageServerLoad } from './$types';
-import { getMessages, postMessage, postComment, getMessage, saveAction, postReaction, postPollVote } from '$lib/supabase-server';
+import { getMessages, postMessage, postComment, getMessage, saveAction, postReaction, postPollVote, storeMessageImage } from '$lib/supabase-server';
 import { verifyToken } from 'avm-wallet-svelte';
 import { getTokens } from '$lib/utils/indexer';
 import { error } from '@sveltejs/kit';
 import type { IPoll } from '$lib/data/types';
+import { v4 as uuidv4 } from 'uuid';
 
 export const load: PageServerLoad = async ({ params, cookies, url }) => {
   const { cid } = params;
@@ -90,16 +91,33 @@ export const actions = {
       }
     }
 
+    const files = formData.getAll('image') as File[];
+    const imageIds = [];
+
+    // generate a uuid for each file
+    for (let i = 0; i < files.length; i++) {
+      const uuid = uuidv4();
+      imageIds.push(uuid);
+    }
+
     const message = {
       collectionId: Number(cid),
       walletId: walletId,
       message: formData.get('message')?.toString() ?? '',
       private: formData.get('privacy') === 'Private',
       poll: postPoll, // JSON
+      images: imageIds,
     };
 
     // post message to supabase
-    await postMessage(message);
+    const messageId = await postMessage(message);
+
+    if (messageId && files.length > 0) {
+      for (const [idx, file] of files.entries()) {
+        // store file in supabase
+        await storeMessageImage(imageIds[idx], messageId, idx, 'messages-images', file, 480, 480);
+      }
+    }
 
     const actionType = (message.private ? 'post_private' : 'post_public')
 

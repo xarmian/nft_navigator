@@ -140,16 +140,19 @@
         if (view != 'All') postPrivacy = view;
     }
 
-    const onPost = async (content: string, poll: IPoll | null): Promise<boolean> => {
+    const onPost = async (content: string, poll: IPoll | null, imageFile: File | null): Promise<boolean> => {
+        const formData = new FormData();
+        formData.append('cid', selectedCollection);
+        formData.append('message', content);
+        formData.append('privacy', postPrivacy);
+        formData.append('poll', poll ? JSON.stringify(poll) : '');
+        if (imageFile) {
+            formData.append('image', imageFile);
+        }
+
         const response = await fetch('?/postMessage', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-                cid: selectedCollection,
-                message: content,
-                privacy: postPrivacy,
-                poll: poll ? JSON.stringify(poll) : '',
-            })
+            body: formData
         });
 
         if (!response.ok) {
@@ -309,43 +312,50 @@
                         </div>
                     </div>
                 </TabItem>
-                {#if selectedCollection}
-                    <TabItem bind:open={showCollection} defaultClass="" activeClasses="p-4 text-primary-600 bg-white rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
-                        <svelte:fragment slot="title">
-                            Collection
-                            <Indicator size="xl" color="indigo" class="text-xs text-white" border>{tokens.length}</Indicator>
-                        </svelte:fragment>
-                        <div class="flex flex-col relative h-full -mt-3">
-                            <div class="flex flex-col my-2 mx-1 mb-12 overflow-auto relative border-t-2 border-slate-200 dark:border-slate-400">
-                                <div class="flex flex-row space-x-3 ml-2 mt-2">
-                                    <a class="p-2 rounded-lg content-evenly text-md bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 flex flex-row" href={`/collection/${selectedCollection}`}>
-                                        <div class="flex flex-col">
-                                            <FanIcon />
-                                            Collection
-                                        </div>
-                                    </a>
-                                    <NautilusButton contractid={selectedCollection} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14 w-20 md:w-24"/>
-                                    <HighforgeButton buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14 w-20 md:w-24"/>
-                                    <PixelPursuitButton contractid={selectedCollection} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 text-black px-2 rounded-md cursor-pointer min-h-14 w-20 md:w-24"/>
-                                    {#if collectionObject?.gameData}
-                                        <NftGamesButton contractid={selectedCollection} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14 w-20 md:w-24"/>
-                                    {/if}
-                                </div>
-
-                                <div class="flex flex-wrap flex-grow justify-center md:justify-start mt-3 md:mt-0">
-                                    {#each tokens.slice(0, displayCountCollection) as token (token.tokenId)}
-                                        <div class="p-1">
-                                            <TokenDetail collection={collectionObject} {token} format="small" />
-                                        </div>
-                                    {/each}
-                                </div>
-                                {#if tokens.length > displayCountCollection}
-                                    <div class="sentinel" use:inview={{ threshold: 1 }} on:inview_enter={showMoreCollection}></div>
+                <TabItem bind:open={showCollection} defaultClass="" activeClasses="p-4 text-primary-600 bg-white rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
+                    <svelte:fragment slot="title">
+                        Collection
+                        <Indicator size="xl" color="indigo" class="text-xs text-white" border>{tokens.length}</Indicator>
+                    </svelte:fragment>
+                    <div class="flex flex-col relative h-full -mt-3">
+                        <div class="flex flex-col my-2 mx-1 mb-12 overflow-auto relative border-t-2 border-slate-200 dark:border-slate-400">
+                            <div class="flex flex-row space-x-3 ml-2 mt-2">
+                                <a class="p-2 rounded-lg content-evenly text-md bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 flex flex-row" href={`/collection/${selectedCollection}`}>
+                                    <div class="flex flex-col">
+                                        <FanIcon />
+                                        Collection
+                                    </div>
+                                </a>
+                                <NautilusButton contractid={selectedCollection} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14 w-20 md:w-24"/>
+                                <HighforgeButton buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14 w-20 md:w-24"/>
+                                <PixelPursuitButton contractid={selectedCollection} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 text-black px-2 rounded-md cursor-pointer min-h-14 w-20 md:w-24"/>
+                                {#if collectionObject?.gameData}
+                                    <NftGamesButton contractid={selectedCollection} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14 w-20 md:w-24"/>
                                 {/if}
                             </div>
+
+                            <div class="flex flex-wrap flex-grow justify-center md:justify-start mt-3 md:mt-0">
+                                {#each tokens.slice(0, displayCountCollection) as token (token.tokenId)}
+                                    <div class="p-1">
+                                        <TokenDetail collection={collectionObject} {token} format="small" />
+                                    </div>
+                                {/each}
+                            </div>
+                            {#if tokens.length > displayCountCollection}
+                                <div class="sentinel" use:inview={{ threshold: 1 }} on:inview_enter={showMoreCollection}></div>
+                            {/if}
                         </div>
+                    </div>
                 </TabItem>
-                {/if}
+                <TabItem defaultClass="hidden" activeClasses="p-4 text-primary-600 bg-white rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
+                    <svelte:fragment slot="title">
+                        <i class="fas fa-gear">
+                    </svelte:fragment>
+                    <div class="flex flex-col relative h-full -mt-3">
+                        <div class="flex flex-col my-2 mx-1 mb-12 overflow-auto relative border-t-2 border-slate-200 dark:border-slate-400">
+                        </div>
+                    </div>
+                </TabItem>
             {/if}
         </Tabs>
     </div>

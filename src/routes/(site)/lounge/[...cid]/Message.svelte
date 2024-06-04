@@ -145,6 +145,11 @@
                     </a>
                     <div class="text-sm text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-line markdown max-w-48 md:max-w-full">
                         <Markdown source={message.message} />
+                        {#if message.images}
+                            {#each message.images as image}
+                                <img src="https://tluxmnhfapdevlghsxnr.supabase.co/storage/v1/object/public/messages-images/{image}" class="w-full mt-2 rounded-lg max-h-64 max-w-64"/>
+                            {/each}
+                        {/if}
                     </div>
                     {#if poll}
                         <div class="flex flex-col mt-2 space-y-2">

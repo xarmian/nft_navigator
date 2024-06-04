@@ -5,7 +5,7 @@
     import EmojiPicker from "svelte-emoji-picker";
     import type { IPoll } from "$lib/data/types";
 
-    export let onPost: (content: string, poll: null | IPoll) => Promise<boolean>;
+    export let onPost: (content: string, poll: null | IPoll, imageFile: File | null) => Promise<boolean>;
     export let postPrivacy = 'Public';
 
     let showEmojiPicker = false;
@@ -15,6 +15,10 @@
 
     let showAddPoll = false;
     let pollOptions = ['', ''];
+
+    let imageFile: File | null = null;
+    let fileInput: HTMLInputElement;
+    let imageElement: HTMLImageElement;
 
     let getPollEndTime = () => {
         let endTime = new Date();
@@ -36,7 +40,7 @@
         event.preventDefault();
         let poll: IPoll | null = null;
 
-        if (chatInput.trim() === '') {
+        if (chatInput.trim() === '' && !imageFile) {
             alert(`${showAddPoll ? 'Question' : 'Message'} cannot be empty`);
             return;
         }
@@ -65,7 +69,7 @@
             };
         }
 
-        const success = await onPost(chatInput, poll);
+        const success = await onPost(chatInput, poll, imageFile);
 
         if (success) {
             chatInput = '';
@@ -74,6 +78,7 @@
             poll_voteWeight = 'wallet';
             poll_allowPublicVoting = false;
             showAddPoll = false;
+            removeImage();
             invalidateAll();
         }
     };
@@ -106,6 +111,66 @@
             textarea.style.height = `${textarea.scrollHeight}px`;
         }
     };
+
+    function handleDragOver(event: DragEvent) {
+        event.preventDefault();
+    }
+
+    async function handleDrop(event: DragEvent) {
+        event.preventDefault();
+
+        if (event.dataTransfer && event.dataTransfer.items) {
+            for (var i = 0; i < event.dataTransfer.items.length; i++) {
+                if (event.dataTransfer.items[i].kind === 'file') {
+                    imageFile = event.dataTransfer.items[i].getAsFile();
+                    displayImage();
+                    break;
+                }
+            }
+        }
+    }
+
+    async function handlePaste(event: ClipboardEvent) {
+        if (event.clipboardData && event.clipboardData.items) {
+            for (var i = 0; i < event.clipboardData.items.length; i++) {
+                if (event.clipboardData.items[i].type.indexOf('image') === 0) {
+                    imageFile = event.clipboardData.items[i].getAsFile();
+                    displayImage();
+                    break;
+                }
+            }
+        }
+    }
+
+    function displayImage() {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            imageElement.src = String(event.target?.result);
+        };
+        if (imageFile) {
+            reader.readAsDataURL(imageFile);
+        }
+    }
+
+    function removeImage() {
+        imageFile = null;
+        if (imageElement && imageElement.src) imageElement.src = '';
+    }
+
+    function handleButtonClick() {
+        setTimeout(() => {
+            showAddMenu = false;
+        },100);
+        fileInput.click();
+    }
+
+    function handleFileChange() {
+        if (fileInput.files && fileInput.files.length > 0) {
+            imageFile = fileInput.files[0];
+            displayImage();
+        }
+    }
+
 </script>
 
 <form on:submit={handleSubmit} class="p-2 py-5 mx-1 w-full sm:w-3/4 place-self-center flex flex-col bg-gray-50 dark:bg-gray-800 rounded-xl shadow relative border dark:border-slate-700">
@@ -122,10 +187,13 @@
             <div class="relative text-xl mr-2 cursor-pointer" on:click|stopPropagation={() => showAddMenu = !showAddMenu}>
                 <i class="fas fa-plus-circle"></i>
                 {#if showAddMenu}
-                    <div class="absolute top-0 left-7 bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-600 border-2 p-2 rounded-lg text-sm whitespace-nowrap">
-                        <ul class="space-y-2">
+                    <div class="absolute top-0 left-7 bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-600 border-2 rounded-lg text-sm whitespace-nowrap">
+                        <ul class="space-y-1">
                             <li>
-                                <button class="w-full text-left" on:click|preventDefault={() => showAddPoll = true}>Add Poll</button>
+                                <button class="w-full text-left hover:bg-gray-200 hover:dark:bg-gray-800 py-1 px-2" on:click|preventDefault={() => showAddPoll = true}>Add Poll</button>
+                            </li>
+                            <li>
+                                <button class="w-full text-left hover:bg-gray-200 hover:dark:bg-gray-800 py-1 px-2" on:click|preventDefault={handleButtonClick}>Add Image</button>
                             </li>
                         </ul>
                     </div>
@@ -139,6 +207,9 @@
             placeholder="Type a {showAddPoll ? 'question' : 'message'}..."
             bind:value={chatInput}
             on:input={adjustTextareaHeight}
+            on:dragover={handleDragOver}
+            on:drop={handleDrop}
+            on:paste={handlePaste}
         ></textarea>
         <div class="flex flex-col place-items-start space-y-1">
             <select name="privacy" class="text-xs bg-gray-100 dark:bg-gray-700 rounded-lg" bind:value={postPrivacy}>
@@ -150,7 +221,16 @@
                 Post
             </button>
         </div>
+        <input bind:this={fileInput} type="file" id="fileInput" name="fileInput" accept="image/*" class="hidden" on:change={handleFileChange} />
     </div>
+    {#if imageFile}
+        <div class="group relative flex self-center h-64 w-64 bg-black">
+            <img bind:this={imageElement} class="mt-2 h-64 max-w-64 object-contain" />
+            <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <i class="cursor-pointer rounded-full fas fa-times text-xl bg-gray-200 bg-opacity-60 hover:bg-opacity-70 p-2 text-black" on:click={removeImage}></i>
+            </div>
+        </div>
+    {/if}
     {#if showAddPoll}
         <div class="flex flex-col mt-2 sm:m-4 p-2 border border-gray-500 rounded-lg relative space-y-2">
             <div class="text-lg">Add Poll</div>
