@@ -32,7 +32,7 @@ export interface Transfer {
 export interface Collection {
 	gameData: IHighforgeProject | null;
     highforgeData: IHighforgeProject | null;
-	firstToken: RawToken;
+	firstToken: RawToken | null;
     contractId: number;
     totalSupply: number;
     burnedSupply: number;

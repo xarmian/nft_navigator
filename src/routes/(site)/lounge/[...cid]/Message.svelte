@@ -11,6 +11,7 @@
     import Markdown from 'svelte-markdown';
     import { getImageUrl } from '$lib/utils/functions';
     import { supabaseImageUrl } from '$lib/data/constants';
+    import ExternalLink from '$lib/component/ExternalLink.svelte';
 
     export let message: NMessage;
     export let collectionName = '';
@@ -137,8 +138,8 @@
     };
 </script>
 {#if message}
-    <div class="flex flex-col pb-6 px-6 bg-gray-50 dark:bg-gray-800 rounded-xl shadow dark:border-slate-700 border">
-        <div class="flex flex-row items-start pt-6" class:cursor-pointer={!singleMessageView} on:click={() => goto(`/lounge/${message.collectionId}/${message.id}`, { replaceState: (!singleMessageView ? false : true) })}>
+    <div class="flex flex-col pb-6 px-4 bg-gray-50 dark:bg-gray-800 rounded-xl shadow dark:border-slate-700 border">
+        <div class="flex flex-row items-start pt-4" class:cursor-pointer={!singleMessageView} on:click={() => goto(`/lounge/${message.collectionId}/${message.id}`, { replaceState: (!singleMessageView ? false : true) })}>
             <div on:click|stopPropagation={() => goto(`/portfolio/${message.walletId}`)} class="cursor-pointer flex-shrink-0 w-12 h-12 bg-gray-500 rounded-full overflow-hidden"><img src={getImageUrl(nfds.find(nfd => nfd.key === message.walletId)?.avatar ?? '/blank_avatar_small.png',240)}/></div>
             <div class="ml-4 flex flex-row w-full justify-between">
                 <div class="flex flex-col">
@@ -146,7 +147,7 @@
                         {nfds.find(nfd => nfd.key === message.walletId)?.replacementValue ?? (message.walletId.slice(0, 8) + '...' + message.walletId.slice(-8))}
                     </a>
                     <div class="text-sm text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-line markdown max-w-48 md:max-w-full cursor-auto" on:click|stopPropagation>
-                        <Markdown source={message.message} />
+                        <Markdown source={message.message} renderers={{ link: ExternalLink }} />
                         {#if message.images}
                             {#each message.images as image}
                                 <img src="{supabaseImageUrl}/{image}" class="w-full mt-2 rounded-lg max-h-64 max-w-64"/>
@@ -209,7 +210,7 @@
                     </div>
                 </div>
                 <div class="flex flex-col space-y-4">
-                    <div class={`place-self-end text-xs px-2 py-1 rounded-lg mt-2 ${message.private ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}>
+                    <div class={`place-self-end text-xs px-2 py-1 rounded-lg ${message.private ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}>
                         {message.private ? 'Private' : 'Public'}
                     </div>
                     {#if showCollectionName}
@@ -230,7 +231,7 @@
                                 <a on:click={() => goto(`/portfolio/${comment.walletId}`)} class="text-sm font-bold text-blue-500 dark:text-blue-300 cursor-pointer">
                                     {nfds.find(nfd => nfd.key === comment.walletId)?.replacementValue ?? (comment.walletId.slice(0, 8) + '...' + comment.walletId.slice(-8))}
                                 </a>
-                                <div class="text-sm text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-line markdown"><Markdown source={comment.comment} /></div>
+                                <div class="text-sm text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-line markdown"><Markdown source={comment.comment} renderers={{ link: ExternalLink }} /></div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400 mt-2 hover:text-blue-500 cursor-pointer" title={new Date(comment.timestamp).toLocaleString()}>
                                     {timeSince(comment.timestamp)}
                                 </div>
