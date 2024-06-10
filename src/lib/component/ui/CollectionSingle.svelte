@@ -10,7 +10,21 @@
 
     $: metadata = JSON.parse(token?.metadata??'{}');
 
+    let isMintable = false;
     let flipped = false;
+
+    $: if (collection.globalState) {
+        const launchStart = Number(collection.globalState.find((gs) => gs.key === 'launchStart')?.value);
+        const launchEnd = Number(collection.globalState.find((gs) => gs.key === 'launchEnd')?.value);
+        const totalMinted = Number(collection.globalState.find((gs) => gs.key === 'totalMinted')?.value);
+        const maxSupply = Number(collection.globalState.find((gs) => gs.key === 'maxSupply')?.value);
+
+        const currentTime = Math.floor(Date.now() / 1000);
+        isMintable = (launchStart === 0 || currentTime >= launchStart) && (launchEnd === 0 || currentTime <= launchEnd) && totalMinted < maxSupply;
+    }
+    else {
+        isMintable = false;
+    }
 
     function flip(node: any, {
         delay = 0,
@@ -26,7 +40,7 @@
         };
     }
 
-    const data = [
+    $: data = [
         {
             "icon": "fas fa-id-card",
             "name": "ID",
@@ -104,6 +118,11 @@
                         {/if}
                     </div>
                 </div>
+                {#if isMintable}
+                    <a class="absolute top-0 left-0 bg-green-500 text-white p-1 text-xs" target="_blank" href="https://highforge.io/project/{collection.contractId}">
+                        Mintable
+                    </a>
+                {/if}
             </a>
         </div>
     </div>
