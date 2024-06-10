@@ -72,7 +72,7 @@
 
 </script>
 <p class="">Complete quests to earn Voi during the <a target="_blank" class="text-blue-500 hover:text-blue-400" href="https://medium.com/@voifoundation/phase-2-of-the-incentivised-testnet-bf32d880e8f4">Voiage to Mainnet!</a></p>
-<p>Looking for more Quest? <a class="text-blue-500 hover:text-blue-400" href="https://voirewards.com/phase2" target="_blank">Visit Voirewards.com/phase2</a> and check back here regularly.</p>
+<p>Looking for more Quest? <a class="text-blue-500 hover:text-blue-400" href="https://quests.voirewards.com" target="_blank">Visit Voirewards.com/phase2</a> and check back here regularly.</p>
 <br/>
 <div class="flex flex-col md:flex-row shadow-2xl rounded-xl bg-opacity-0 bg-black dark:bg-white dark:bg-opacity-10 my-2">
     <div class="w-full overflow-hidden rounded-lg shadow-xs">

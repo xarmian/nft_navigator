@@ -12,12 +12,14 @@
 
     let isMintable = false;
     let flipped = false;
+    let totalMinted = 0;
+    let maxSupply = 0;
 
     $: if (collection.globalState) {
         const launchStart = Number(collection.globalState.find((gs) => gs.key === 'launchStart')?.value);
         const launchEnd = Number(collection.globalState.find((gs) => gs.key === 'launchEnd')?.value);
-        const totalMinted = Number(collection.globalState.find((gs) => gs.key === 'totalMinted')?.value);
-        const maxSupply = Number(collection.globalState.find((gs) => gs.key === 'maxSupply')?.value);
+        totalMinted = Number(collection.globalState.find((gs) => gs.key === 'totalMinted')?.value);
+        maxSupply = Number(collection.globalState.find((gs) => gs.key === 'maxSupply')?.value);
 
         const currentTime = Math.floor(Date.now() / 1000);
         isMintable = (launchStart === 0 || currentTime >= launchStart) && (launchEnd === 0 || currentTime <= launchEnd) && totalMinted < maxSupply;
@@ -99,7 +101,11 @@
                 <div class="side back bg-gray-200 dark:bg-gray-900 relative rounded-lg flex flex-col">
                     <div class="image-container relative overflow-hidden flex justify-center bg-gray-10 dark:bg-black">
                         <img src={getImageUrl(metadata.image,240)} alt={metadata.name} title={metadata.name.replace(/[1#]/g, '')} class="max-h-60 h-60 max-w-60 object-contain object-center"/>
-                    </div>
+                        {#if isMintable}
+                            <div class="absolute bottom-0 left-0 bg-black h-2 w-full"></div>
+                            <div class="absolute bottom-0 left-0 bg-red-500 h-2" style="width: {(totalMinted / maxSupply) * 100}%"></div>
+                        {/if}
+                   </div>
                     <div class='p-1 flex flex-col flex-grow'>
                         <div class="flex flex-col mb-1">
                             <div class="text-sm font-bold">{collection.highforgeData?.title ?? metadata.name.replace(/[1#]/g, '')}</div>
