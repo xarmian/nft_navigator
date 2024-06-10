@@ -119,8 +119,11 @@
                     </div>
                 </div>
                 {#if isMintable}
-                    <a class="absolute top-0 left-0 bg-green-500 text-white p-1 text-xs" target="_blank" href="https://highforge.io/project/{collection.contractId}">
-                        Mintable
+                    <a class="badge top-right" target="_blank" href="https://highforge.io/project/{collection.contractId}">
+                        <div>Mintable</div>
+                        {#if collection.globalState?.find((m) => m.key === 'price')?.value !== undefined}
+                            <div>{(Number(collection.globalState?.find((m) => m.key === 'price')?.value) / Math.pow(10,6)).toLocaleString()} Voi</div>
+                        {/if}
                     </a>
                 {/if}
             </a>
@@ -161,5 +164,49 @@
     height: 100%;
     width: 100%;
     overflow: hidden;
+}
+
+.badge {
+    margin: 0;
+    padding: 0;
+    color: white;
+    padding: 1px 10px;
+    font-size: 12px;
+    font-family: Arial, Helvetica, sans-serif;
+    text-align: center;
+    line-height: normal;
+    text-transform: uppercase;
+    background: green;
+}
+
+.badge::before, .badge::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    margin: 0 -1px;
+    width: 100%;
+    height: 100%;
+    background: inherit;
+    min-width: 55px
+}
+
+.badge::before {
+    right: 100%
+}
+
+.badge::after {
+    left: 100%
+}
+
+.top-right {
+    position: absolute;
+    top: 0;
+    right: 0;
+    -ms-transform: translateX(30%) translateY(0%) rotate(45deg);
+    -webkit-transform: translateX(30%) translateY(0%) rotate(45deg);
+    transform: translateX(30%) translateY(0%) rotate(45deg);
+    -ms-transform-origin: top left;
+    -webkit-transform-origin: top left;
+    transform-origin: top left;
 }
 </style>
