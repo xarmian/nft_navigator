@@ -8,7 +8,7 @@
 
     const buttonClick = () => {
         if (contractid) {
-            window.open(`https://highforge.io/project/contractid/${contractid}`, '_blank');
+            window.open(`https://highforge.io/project/${contractid}`, '_blank');
         } else {
             window.open(`https://highforge.io`, '_blank');
         }

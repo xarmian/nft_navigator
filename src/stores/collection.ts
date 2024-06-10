@@ -15,6 +15,7 @@ export const filters = writable({
     voiGames: false,
     forSale: false,
     currency: '*',
+    mintable: false,
 });
 
 export const collectionSort = writable({

@@ -41,6 +41,7 @@ export interface Collection {
     uniqueOwners?: number | undefined;
     popularity?: number;
     creator: string;
+    globalState?: Array<{ key: string; value: string }>;
 }
 
 export interface IPoll {

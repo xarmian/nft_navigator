@@ -8,7 +8,7 @@
     export let viewType: string = 'row';
     $: token = collection.firstToken;
 
-    $: metadata = JSON.parse(token.metadata??'{}');
+    $: metadata = JSON.parse(token?.metadata??'{}');
 
     let flipped = false;
 
@@ -35,7 +35,7 @@
         {
             "icon": "fas fa-cubes",
             "name": "Tokens",
-            "value": collection.totalSupply-collection.burnedSupply,
+            "value": collection.totalSupply-collection.burnedSupply + (collection.globalState?.find(gs => gs.key === 'maxSupply')?.value ? ' / ' + collection.globalState?.find(gs => gs.key === 'maxSupply')?.value : ''),
         },
         {
             "icon": "fas fa-user",

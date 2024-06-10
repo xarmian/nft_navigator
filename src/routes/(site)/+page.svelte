@@ -30,8 +30,19 @@
 
     $: {
         if (isMounted) {
-            if ($filters.voiGames) {
-                filterCollections = collections.filter((c: Collection) => c.gameData);
+            if ($filters.mintable) {
+                filterCollections = collections.filter((c: Collection) => {
+                    if (c.globalState) {
+                        const launchStart = Number(c.globalState.find((gs) => gs.key === 'launchStart')?.value);
+                        const launchEnd = Number(c.globalState.find((gs) => gs.key === 'launchEnd')?.value);
+                        const totalMinted = Number(c.globalState.find((gs) => gs.key === 'totalMinted')?.value);
+                        const maxSupply = Number(c.globalState.find((gs) => gs.key === 'maxSupply')?.value);
+
+                        const currentTime = Math.floor(Date.now() / 1000);
+                        return (launchStart === 0 || currentTime >= launchStart) && (launchEnd === 0 || currentTime <= launchEnd) && totalMinted < maxSupply;
+                    }
+                    return false;
+                });
             } else {
                 filterCollections = collections;
             }
@@ -93,7 +104,7 @@
             {/if}
         </div>
         <div class='flex flex-row'>
-            <Switch bind:checked={$filters.voiGames} label="Voi Games"></Switch>
+            <Switch bind:checked={$filters.mintable} label="Mintable"></Switch>
             <Switch bind:checked={$userPreferences.cleanGridView}>
                 <i class="fas fa-th"></i>
             </Switch>
