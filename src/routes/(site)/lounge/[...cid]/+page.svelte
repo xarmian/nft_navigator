@@ -106,6 +106,30 @@
         allCollections = allCollections.sort((a: any, b: any) => {
             return a.highforgeData?.title.localeCompare(b.highforgeData?.title??'ZZZ');
         });
+
+        /*// prepend allCollections with a 'Voi Members' collection
+        allCollections.unshift({
+            contractId: 0,
+            highforgeData: {
+                applicationID: 0,
+                description: 'Voi Members',
+                title: 'Voi Members',
+                coverImageURL: 'https://cdn.highforge.com/voi/voi-members.jpg',
+                earlyAccessDateTime: '2022-01-01T00:00:00Z',
+                indexerState: {},
+                lastNFTSoldAt: '2022-01-01T00:00:00Z',
+                mintTotal: 0,
+                nsfw: false,
+                publicLaunchDateTime: '2022-01-01T00:00:00Z',
+            },
+            gameData: null,
+            firstToken: null,
+            totalSupply: 0,
+            burnedSupply: 0,
+            mintRound: 0,
+            tokens: [],
+            creator: '',
+        });*/
     });
 
     onDestroy(() => {

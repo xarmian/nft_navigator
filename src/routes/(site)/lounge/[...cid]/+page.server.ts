@@ -43,6 +43,9 @@ export const load: PageServerLoad = async ({ params, cookies, url }) => {
     //data = (await getPublicFeed(collectionIds, true, limit, Number(page))).concat(await getPrivateFeed(collectionIds, true));
     data = await getMessages(collectionIds, null, true, walletId, limit);
   }
+  else if (cid === '0') {
+    //data = await getMessages(cid, messageId, true, walletId, limit);
+  }
   else {
     // validate user can access collection
     const ownsToken = (await getTokens({ owner: walletId, contractId: cid })).length > 0;
@@ -247,11 +250,17 @@ export const actions = {
       error(400, { message: 'Poll has ended. Please try again.' });
     }
     
-    // validate user can access collection
-    const ownsToken = (walletId && cid) ? (await getTokens({ owner: walletId, contractId: cid })).length > 0 : false;
-
-    if (!isValid || !ownsToken || !walletId) {
+    if (!isValid || !walletId) {
       error(401, { message: 'Invalid authorization token. Please re-authenticate and try again.' });
+    }
+
+    if ((message?.poll?.publicVoting??false) === false) {
+      // validate user can access collection
+      const ownsToken = (walletId && cid) ? (await getTokens({ owner: walletId, contractId: cid })).length > 0 : false;
+
+      if (!ownsToken) {
+        error(401, { message: 'This poll does not allow public voting, and the selected wallet does not own a token in the collection.' });
+      }
     }
 
     // post poll vote to supabase
