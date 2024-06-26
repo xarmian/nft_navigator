@@ -345,7 +345,7 @@
                 <TabItem bind:open={showMembers} defaultClass="" activeClasses="p-4 text-primary-600 bg-white rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
                     <svelte:fragment slot="title">
                         Members
-                        <Indicator size="xl" color="indigo" class="text-sm text-white" border>{[...new Set(tokens.map(token => token.owner))].length}</Indicator>
+                        <Indicator size="xl" color="indigo" class="text-sm text-white" border>{allCollections.find(c => c.contractId === Number(selectedCollection))?.uniqueOwners ?? ''}</Indicator>
                     </svelte:fragment>
 
                     <div class="flex flex-col relative h-full -mt-3">
