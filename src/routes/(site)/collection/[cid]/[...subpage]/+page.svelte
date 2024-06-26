@@ -48,6 +48,15 @@
                 return token.metadata.properties[key] === value;
             });
         });
+        
+        // if displayTab == 'ranking' then sort tokens by rank
+        if (displayTab === 'ranking') {
+            filteredTokens.sort((a: Token, b: Token) => {
+                if (a.rank === undefined) return 1;
+                if (b.rank === undefined) return -1;
+                return (a?.rank??0) - (b?.rank??0);
+            });
+        }
     }
 
     function onForSaleChange() {
@@ -75,6 +84,7 @@
 
     const tabs = [ 
         {id: 'tokens', name: 'Tokens'}, 
+        {id: 'ranking', name: 'Ranking'},
         {id: 'transactions', name: 'Transactions'},
         {id: 'collectors', name: 'Collectors'}, 
         {id: 'burned', name: 'Burned Tokens'},
@@ -148,7 +158,7 @@
     </div>
 </div>
 <div class="flex pb-16">
-    {#if displayTab == 'tokens' || displayTab == 'burned'}
+    {#if displayTab == 'tokens' || displayTab == 'burned' || displayTab == 'ranking'}
         <div class="p-4 hidden md:block">
             <div class="relative self-start">
                 <input type="text" placeholder="Search" bind:value={searchText} bind:this={inputElement} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600 w-full pr-10"/>

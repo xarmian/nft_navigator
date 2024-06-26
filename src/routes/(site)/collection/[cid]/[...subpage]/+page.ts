@@ -132,6 +132,9 @@ export const load = (async ({ params, fetch }) => {
 	else if (subpage === 'burned') {
 		title = `Burned Tokens | ${title}`;
 	}
+	else if (subpage === 'ranking') {
+		title = `Ranking | ${title}`;
+	}
 
 	const pageMetaTags = {
         title: title,
