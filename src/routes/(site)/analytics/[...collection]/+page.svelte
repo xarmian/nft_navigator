@@ -8,6 +8,7 @@
     import SalesChart from '$lib/component/ui/SalesChart.svelte';
     import { userPreferences, recentSearch } from '../../../../stores/collection';
     import { onDestroy, onMount } from 'svelte';
+    import { indexerBaseURL } from '$lib/utils/indexer';
 
     import { TabItem, Tabs } from 'flowbite-svelte';
     import { format } from 'date-fns';
@@ -62,7 +63,7 @@
 
     async function getData(contractId: number | undefined, startTime: Date, endTime: Date) {
         if (!startTime || !endTime) return;
-        let salesURL = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/sales?min-time=${Math.floor(startTime.getTime() / 1000)}`;
+        let salesURL = `${indexerBaseURL}/mp/sales?min-time=${Math.floor(startTime.getTime() / 1000)}`;
         if (contractId) {
             salesURL += `&collectionId=${contractId}`;
         }
@@ -114,7 +115,7 @@
         // calculate total sales
         totalSales = s.length;
 
-        let listURL = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/listings?min-time=${Math.floor(startTime.getTime() / 1000)}`;
+        let listURL = `${indexerBaseURL}/mp/listings?min-time=${Math.floor(startTime.getTime() / 1000)}`;
         if (contractId) {
             listURL += `&collectionId=${contractId}`;
         }

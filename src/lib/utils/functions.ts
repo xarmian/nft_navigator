@@ -28,7 +28,7 @@ export function getImageUrl(rawUrl: string, width?: number) {
 }
 
 export function getTokenImageUrl(token: Token, width?: number) {
-    if (width && token.metadataURI.includes('prod.cdn.highforge.io')) {
+    if (width && token && token.metadataURI && token.metadataURI.includes('prod.cdn.highforge.io')) {
         return `https://prod.cdn.highforge.io/i/${encodeURIComponent(token.metadataURI)}?w=${width}`;
     }
     else {

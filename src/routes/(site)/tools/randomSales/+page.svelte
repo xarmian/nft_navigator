@@ -5,6 +5,7 @@
     import { algodIndexer, algodClient } from '$lib/utils/algod';
 	import { copy } from 'svelte-copy';
 	import { toast } from '@zerodevx/svelte-toast';
+    import { indexerBaseURL } from '$lib/utils/indexer';
 
     let sales: Sale[] = [];
     let sellers: any[] = [];
@@ -30,7 +31,7 @@
             end.setUTCHours(23, 59, 59, 999);
 
             // fetch sales between start and end unix timestamps
-            const url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/sales/?min-time=${start.getTime() / 1000}&max-time=${end.getTime() / 1000}`;
+            const url = `${indexerBaseURL}/mp/sales/?min-time=${start.getTime() / 1000}&max-time=${end.getTime() / 1000}`;
             const response = fetch(url);
             const data = await response.then((response) => response.json());
             sales = data.sales;

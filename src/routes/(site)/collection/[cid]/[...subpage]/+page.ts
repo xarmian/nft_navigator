@@ -5,6 +5,7 @@ import { getCurrency } from '$lib/utils/currency';
 import { userPreferences, recentSearch } from '../../../../../stores/collection';
 import { get } from 'svelte/store';
 import algosdk from 'algosdk';
+import { indexerBaseURL } from '$lib/utils/indexer';
 
 export const load = (async ({ params, fetch }) => {
 	const contractId = params.cid;
@@ -31,7 +32,7 @@ export const load = (async ({ params, fetch }) => {
 		}
 
 		tokens = (await getTokens({ contractId, fetch })).sort((a: Token, b: Token) => a.tokenId - b.tokenId);
-		collectionName = tokens[0].metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
+		collectionName = tokens[0]?.metadata?.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
 
 		collection = (await getCollection({ contractId: Number(contractId), fetch }));
 
@@ -42,7 +43,7 @@ export const load = (async ({ params, fetch }) => {
 		}
 		
 		// get marketplace data for collection
-		const marketUrl = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/listings/?collectionId=${contractId}&active=true`;
+		const marketUrl = `${indexerBaseURL}/mp/listings/?collectionId=${contractId}&active=true`;
 		try {
 			const marketData = await fetch(marketUrl).then((response) => response.json());
 			if (marketData.listings.length > 0) {
@@ -90,7 +91,7 @@ export const load = (async ({ params, fetch }) => {
 		// populate/clear filters
 		const combinedProperties = {} as { [key: string]: { [key: string]: number } };
 		tokens.forEach(token => {
-			Object.entries(token.metadata.properties).forEach(([key, value]) => {
+			Object.entries(token.metadata?.properties ?? {}).forEach(([key, value]) => {
 				if (combinedProperties[key]) {
 					if (combinedProperties[key][value]) {
 						combinedProperties[key][value]++;

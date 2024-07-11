@@ -5,7 +5,8 @@ import voiGames from '$lib/data/voiGames.json';
 import { getCurrency } from './currency';
 import { getNFD } from './nfd';
 
-const indexerBaseURL = "https://arc72-idx.nftnavigator.xyz/nft-indexer/v1";
+export const indexerBaseURL = "https://arc72-idx.nftnavigator.xyz/nft-indexer/v1";
+//export const indexerBaseURL = "http://localhost:3000/nft-indexer/v1";
 
 interface ITokenResponse {
     tokens: IToken[];
@@ -110,7 +111,13 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
         const response = await params.fetch(url);
         const data: ITokenResponse = await response.json();
         let tokens: Token[] = data.tokens.map((token: IToken) => {
-            const metadata: Metadata = JSON.parse(token.metadata?.toString() ?? "{}");
+            let metadata = null;
+            try {
+                metadata = JSON.parse(token.metadata);
+            } catch (e) {
+                //console.error(e);
+            }
+
             return {
                 contractId: token.contractId,
                 tokenId: token.tokenId,
@@ -124,7 +131,7 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
                 marketData: null,
                 salesData: null,
                 rank: null,
-                traits: Object.entries(metadata.properties).map(([key, value]) => key + ': ' + value),
+                traits: (metadata) ? Object.entries(metadata.properties).map(([key, value]) => key + ': ' + value) : [],
                 isBurned: token.isBurned,
             };
         });
@@ -198,8 +205,10 @@ export const getCollections = async (params: getCollectionsParams): Promise<Coll
         c.forEach((c: Collection) => {
             hfprojects.forEach((p: IHighforgeProject) => {
                 if (c.contractId === p.applicationID) {
-                    const metadata = JSON.parse(c.firstToken.metadata);
-                    c.firstToken.metadata = JSON.stringify({ ...metadata, image: p.coverImageURL });
+                    if (c.firstToken) {
+                        const metadata = JSON.parse(c.firstToken.metadata);
+                        c.firstToken.metadata = JSON.stringify({ ...metadata, image: p.coverImageURL });
+                    }
                     c.highforgeData = p;
                 }
             });
@@ -323,11 +332,11 @@ export async function populateTokenRanking(contractId: number, tokens: Token[], 
         const aggregateTraitCount: Record<string, Record<string, number>> = {};
         const totalNFTsInCollection = tokens.length;
         tokens.forEach((token: Token) => {
-            for (const category in token.metadata.properties) {
+            for (const category in token.metadata?.properties) {
                 if (!aggregateTraitCount[category]) {
                     aggregateTraitCount[category] = {};
                 }
-                const traitName = token.metadata.properties[category];
+                const traitName = token.metadata?.properties[category];
                 if (!aggregateTraitCount[category][traitName]) {
                     aggregateTraitCount[category][traitName] = 0;
                 }
@@ -337,8 +346,13 @@ export async function populateTokenRanking(contractId: number, tokens: Token[], 
 
         const rarityArray: { tokenId: number; rarity: number }[] = [];
         tokens.forEach((token: Token) => {
-            const rarity = calculateRarityScore(aggregateTraitCount, token.metadata.properties, totalNFTsInCollection);
-            rarityArray.push({ tokenId: token.tokenId, rarity });
+            try {
+                const rarity = calculateRarityScore(aggregateTraitCount, token.metadata.properties, totalNFTsInCollection);
+                rarityArray.push({ tokenId: token.tokenId, rarity });
+            }
+            catch(err) {
+                rarityArray.push({ tokenId: token.tokenId, rarity: 0 });
+            }
         });
 
         rarityArray.sort((a, b) => b.rarity - a.rarity);

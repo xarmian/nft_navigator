@@ -4,6 +4,7 @@
     import { copy } from 'svelte-copy';
     import { toast } from '@zerodevx/svelte-toast';
 	import TokenIcon from './TokenIcon.svelte';
+    import { indexerBaseURL } from '$lib/utils/indexer';
     
     export let collectionId: number = 0;
     export let sales: Sale[] = [];
@@ -58,7 +59,7 @@
         itemsPerPage = Math.max(10,Math.floor(window.innerHeight / estimatedRowHeight));
 
         if (sales.length > 0) return;
-        const url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/sales/?collectionId=${collectionId}`;
+        const url = `${indexerBaseURL}/mp/sales/?collectionId=${collectionId}`;
         try {
             const data = await fetch(url).then((response) => response.json());
             console.log(data);

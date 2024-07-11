@@ -3,6 +3,7 @@ import { getNFD } from '$lib/utils/nfd';
 import type { Token } from '$lib/data/types';
 import { getCollections } from '$lib/utils/indexer';
 import type { LayoutServerLoad } from '../../../$types';
+import { indexerBaseURL } from '$lib/utils/indexer';
 
 export const load = (async ({ params, fetch }) => {
 	const walletId: string = params.id??'';
@@ -21,7 +22,7 @@ export const load = (async ({ params, fetch }) => {
 
 		// owned tokens
 		for(const wid of walletIds) {
-			const url = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/tokens?owner=${wid}`;
+			const url = `${indexerBaseURL}/tokens?owner=${wid}`;
 			const data = await fetch(url).then((response: any) => response.json());
 			data.tokens.forEach((token: any) => {
 				tokens.push({
@@ -30,7 +31,7 @@ export const load = (async ({ params, fetch }) => {
 					owner: token.owner,
 					ownerNFD: nfdObj?.replacementValue ?? null,
 					metadataURI: token.metadataURI,
-					metadata: JSON.parse(token.metadata),
+					metadata: JSON.parse(token.metadata ?? '{}'),
 					mintRound: token['mint-round'],
 					approved: token.approved,
 					marketData: undefined,
@@ -41,7 +42,7 @@ export const load = (async ({ params, fetch }) => {
 			});
 
 			// approved tokens
-			const aurl = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/tokens?approved=${wid}`;
+			const aurl = `${indexerBaseURL}/tokens?approved=${wid}`;
 			const adata = await fetch(aurl).then((response: any) => response.json());
 			adata.tokens.forEach((token: any) => {
 				approvals.push({
@@ -50,7 +51,7 @@ export const load = (async ({ params, fetch }) => {
 					owner: token.owner,
 					ownerNFD: walletNFD,
 					metadataURI: token.metadataURI,
-					metadata: JSON.parse(token.metadata),
+					metadata: JSON.parse(token.metadata ?? '{}'),
 					mintRound: token['mint-round'],
 					approved: token.approved,
 					marketData: undefined,

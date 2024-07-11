@@ -10,6 +10,7 @@
 	import { onMount } from 'svelte';
 	import algosdk from 'algosdk';
 	import { getTokenImageUrl } from '$lib/utils/functions';
+    import { indexerBaseURL } from '$lib/utils/indexer';
 
     export let token: Token;
     export let collection: Collection | undefined;
@@ -37,7 +38,7 @@
                 listing = token.marketData;
             }
             else {
-                const marketUrl = `https://arc72-idx.nftnavigator.xyz/nft-indexer/v1/mp/listings/?collectionId=${token.contractId}&tokenId=${token.tokenId}&active=true`;
+                const marketUrl = `${indexerBaseURL}/mp/listings/?collectionId=${token.contractId}&tokenId=${token.tokenId}&active=true`;
                 try {
                     const marketData = await fetch(marketUrl).then((response) => response.json());
                     if (marketData.listings.length > 0) {
@@ -153,11 +154,12 @@
     async function onAfterSend(t: Token) {
         token = t;
     }
+
 </script>
 <div class="shadow-md p-3 rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative overflow-hidden h-full"
     class:hidden={hidden} class:p-3={format !== 'small'}>
     <div class="flex flex-col md:flex-row items-center md:items-start h-full" class:space-x-4={format !== 'small'} class:md:flex-col={format === 'small'}>
-        <a href="/collection/{token.contractId}/token/{token.tokenId}" class="relative overflow-hidden" class:rounded-xl={format !== 'small'} >
+        <a href="/collection/{token.contractId}/token/{token.tokenId}" class="relative overflow-hidden place-self-center" class:rounded-xl={format !== 'small'} >
             <img src={imageUrl} class="{format === 'small' ? 'w-72 h-72' : 'w-96'} object-contain" />
             {#if listing && !listing.sale && !listing.delete}
                 <a href="https://nautilus.sh/#/collection/{token.contractId}/token/{token.tokenId}" on:click|stopPropagation target="_blank" class="absolute top-0 right-0 p-1 text-white rounded-full text-nowrap" title="View on Marketplace">
@@ -248,13 +250,13 @@
                 </div>
             {/if}
             {#if isTokenOwner || isTokenApproved}
-                <div class="justify-self-end flex flex-row space-x-2 {format === 'small' ? 'space-y-0 md:space-x-1 bg-black' : 'm-1 md:space-y-2 md:space-x-0 min-w-48 md:flex-col'}">
-                    <button on:click={sendToken} class="flex flex-row items-center px-4 py-2 bg-blue-500 text-white shadow hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 transition duration-150 ease-in-out w-full" class:rounded={format !== 'small'}>
+                <div class="text-sm justify-self-end flex flex-row space-x-2 {format === 'small' ? 'space-y-0 md:space-x-1 bg-black' : 'm-1 md:space-y-2 md:space-x-0 min-w-48 md:flex-col'}">
+                    <button on:click={sendToken} class="flex flex-row justify-center items-center px-4 py-2 bg-blue-500 text-white shadow hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
                         <i class="fas fa-paper-plane mr-2"></i>
                         Transfer
                     </button>
                     {#if isTokenOwner}
-                        <button on:click={approveToken} class="flex flex-row items-center px-4 py-2 bg-blue-500 text-white shadow hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 transition duration-150 ease-in-out w-full" class:rounded={format !== 'small'}>
+                        <button on:click={approveToken} class="flex flex-row justify-center items-center px-4 py-2 bg-blue-500 text-white shadow hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 transition duration-150 ease-in-out min-h-14 w-full" class:rounded={format !== 'small'}>
                             <i class="fas fa-coins mr-2"></i>
                             {#if token.approved != zeroAddress}
                                 Change
@@ -264,6 +266,10 @@
                             Approval
                         </button>
                     {/if}
+                    <button class="hidden flex-row sm:items-center px-4 py-2 bg-blue-500 text-white shadow hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50 transition duration-150 ease-in-out min-h-14 w-full" class:rounded={format !== 'small'}>
+                        <i class="fas fa-tag mr-2"></i>
+                        List
+                    </button>
                 </div>
             {/if}
         </div>
