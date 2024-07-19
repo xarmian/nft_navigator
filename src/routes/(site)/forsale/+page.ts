@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { PageLoad } from './$types';
 import type { Token, Listing  } from '$lib/data/types';
 import voiGames from '$lib/data/voiGames.json';
 import algosdk from 'algosdk';
@@ -59,4 +58,4 @@ console.log('where');
         voiGames,
         pageMetaTags,
 	};
-}) satisfies PageLoad;
+});

@@ -27,9 +27,13 @@
         }
 
         if (token) {
-            tokenProps = Object.keys(token.metadata.properties).map((key) => {
-                return { trait_type: key, value: token?.metadata.properties[key as keyof typeof token.metadata.properties] };
-            });
+            if (token.metadata) {
+                tokenProps = Object.keys(token.metadata.properties).map((key) => {
+                    if (token && token.metadata) {
+                        return { trait_type: key, value: token?.metadata.properties[key as keyof typeof token.metadata.properties] };
+                    }
+                });
+            }
 
             infourl = (`/collection/${token.contractId}/token/${token.tokenId}`);
             collectionurl = `/collection/${token.contractId}`;
@@ -69,7 +73,7 @@
             <a class="side cursor-pointer" href={infourl}>
                 <Card padding="none">
                     <div class="image-container relative rounded-t-lg overflow-hidden flex justify-center">
-                        <img src={getTokenImageUrl(token,240)} alt={token.metadata.name} title={token.metadata.name} class="h-72 max-h-72 max-w-72 object-contain object-center"/>
+                        <img src={getTokenImageUrl(token,240)} alt={token.metadata?.name} title={token.metadata?.name} class="h-72 max-h-72 max-w-72 object-contain object-center"/>
                         {#if token.rank}
                             <div class="absolute bottom-0 left-0 bg-gray-100 dark:bg-gray-400 text-black dark:text-gray-100 p-1 text-xs">
                                 <i class="fas fa-medal"></i> {token.rank}
@@ -93,7 +97,7 @@
                             {/if}
                         {/if}
                     </div>
-                    <div class="text-center"><TokenName name="{token.metadata.name}" tokenId={token.tokenId}/></div>
+                    <div class="text-center"><TokenName name="{token.metadata?.name??String(token.tokenId)}" tokenId={token.tokenId}/></div>
                 </Card>
             </a>
         {/if}

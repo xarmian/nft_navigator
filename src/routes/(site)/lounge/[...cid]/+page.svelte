@@ -21,6 +21,7 @@
 	import FanIcon from "$lib/component/ui/icons/FanIcon.svelte";
 	import { getImageUrl } from '$lib/utils/functions';
 	import Select from '$lib/component/ui/Select.svelte';
+	import { showConfetti } from '../../../../stores/collection';
     
     export let data: PageData;
 
@@ -92,9 +93,14 @@
         if (wallet) {
             const token = Cookies.get(`avm-wallet-token-${wallet.address}`);
             if (token) {
-                verifyToken(wallet.address, token).then((result) => {
-                    hasValidToken = result;
-                });
+                try {
+                    verifyToken(wallet.address, token).then((result) => {
+                        hasValidToken = result;
+                    });
+                }
+                catch(err) {
+                    console.error(err);
+                }
             }
         }
     });
@@ -190,6 +196,15 @@
             alert(data.error.message);
             return false;
         } else {
+            const data = JSON.parse((await response.json()).data);
+            if (data[data[0]['isFirstAction']]) {
+                showConfetti.set(true);
+                toast.push(`Congratulations! The ${postPrivacy} Post Quest has been Completed!`);
+                setTimeout(() => {
+                    showConfetti.set(false)
+                }, 10000);
+            }
+
             return true;
         }
     };
@@ -357,7 +372,7 @@
                 <TabItem bind:open={showCollection} defaultClass="" activeClasses="p-4 text-primary-600 bg-white rounded-t-lg dark:bg-slate-700 dark:text-primary-400">
                     <svelte:fragment slot="title">
                         Collection
-                        <Indicator size="xl" color="indigo" class="text-xs text-white" border>{tokens.length}</Indicator>
+                        <Indicator size="xl" color="indigo" class="text-xs text-white" border>{tokens.filter(t => !t.isBurned).length}</Indicator>
                     </svelte:fragment>
                     <div class="flex flex-col relative h-full -mt-3">
                         <div class="flex flex-col my-2 mx-1 mb-12 overflow-auto relative border-t-2 border-slate-200 dark:border-slate-400">

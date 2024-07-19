@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import type { NMessage, NComment } from '$lib/data/types';
+	import { toast } from '@zerodevx/svelte-toast';
+	import { showConfetti } from '../../../../stores/collection';
 
     export let reactions = ['👍','👎','😂','😢','🔥','❤️'];
     export let canReact = true;
@@ -62,7 +64,18 @@
             const data = await response.json();
             alert(data.error.message);
         } else {
-            invalidateAll();
+            const data = JSON.parse((await response.json()).data);
+            if (data[data[0]['isFirstAction']]) {
+                showConfetti.set(true);
+                toast.push(`Congratulations! The React to a Post Quest has been Completed!`);
+                setTimeout(() => {
+                    invalidateAll();
+                    showConfetti.set(false)
+                }, 10000);
+            }
+            else {
+                invalidateAll();
+            }
         }
     };
 </script>

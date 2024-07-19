@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { SvelteToast } from '@zerodevx/svelte-toast';
+	import { SvelteToast, toast } from '@zerodevx/svelte-toast';
 	import { DarkMode } from 'flowbite-svelte';
 	import Icon from '$lib/assets/android-chrome-192x192.png';
 	import { Web3Wallet, selectedWallet, setOnAddHandler, setOnAuthHandler } from 'avm-wallet-svelte';
@@ -9,6 +9,8 @@
 	import { algodClient, algodIndexer } from '$lib/utils/algod';
 	import Cookies from 'js-cookie';
 	import { invalidateAll } from '$app/navigation';
+	import { Confetti } from 'svelte-confetti';
+	import { showConfetti } from '../../stores/collection';
 
 	let showMenu = false;
 	let currentPath = '';
@@ -53,12 +55,20 @@
 		if (!response.ok) {
 			console.error('Failed to send wallet data to backend', await response.text());
 		}
+		else {
+			const data = await response.json();
+			if (data.isFirstAction) {
+				showConfetti.set(true);
+				toast.push('Congratulations! The Connect Wallet Quest has been Completed!');
+				setTimeout(() => showConfetti.set(false), 10000);
+			}
+		}
 	});
 
-	setOnAuthHandler((wallet) => {
+	setOnAuthHandler(async (wallet) => {
 		console.log('Wallet authenticated', wallet);
 
-		const response = fetch('/api/quests', {
+		const response = await fetch('/api/quests', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -68,7 +78,24 @@
 				wallet: wallet,
 			}),
 		});
-		invalidateAll();
+
+		if (!response.ok) {
+			console.error('Failed to send wallet data to backend', await response.text());
+		}
+		else {
+			const data = await response.json();
+			if (data.isFirstAction) {
+				showConfetti.set(true);
+				toast.push('Congratulations! The Authenticate Wallet Quest has been Completed!');
+				setTimeout(() => {
+					invalidateAll();
+					showConfetti.set(false)
+				}, 10000);
+			}
+			else {
+				invalidateAll();
+			}
+		}
 	});
 
 	onMount(() => {
@@ -159,6 +186,20 @@
 		<slot />
 	</main>
 	<SvelteToast {options} />
+	{#if $showConfetti}
+		<div style="
+		position: fixed;
+		top: -50px;
+		left: 0;
+		height: 100vh;
+		width: 100vw;
+		display: flex;
+		justify-content: center;
+		overflow: hidden;
+		pointer-events: none;">
+			<Confetti x={[-5, 5]} y={[0, 0.1]} delay={[0, 2000]} amount={400} fallDistance="100vh" />
+		</div>
+	{/if}
 <!--	<Footer footerType="logo">
 		<div class="sm:flex sm:items-center sm:justify-between">
 		  <FooterLinkGroup ulClass="flex flex-wrap items-center mb-6 text-sm text-gray-500 sm:mb-0 dark:text-gray-400">

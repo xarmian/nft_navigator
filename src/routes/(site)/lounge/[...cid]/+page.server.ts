@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getMessages, postMessage, postComment, getMessage, saveAction, postReaction, postPollVote, storeMessageImage } from '$lib/supabase-server';
+import { getMessages, postMessage, postComment, getMessage, saveAction, postReaction, postPollVote, storeMessageImage, getAction } from '$lib/supabase-server';
 import { verifyToken } from 'avm-wallet-svelte';
 import { getTokens } from '$lib/utils/indexer';
 import { error } from '@sveltejs/kit';
@@ -28,7 +28,12 @@ export const load: PageServerLoad = async ({ params, cookies, url }) => {
   const token = cookies.get(`avm-wallet-token-${walletId}`);
 
   // validate user's wallet token
-  const isValid = (walletId && token) ? await verifyToken(walletId,token) : false;
+  let isValid = false;
+  try {
+    isValid = (walletId && token) ? await verifyToken(walletId,token) : false;
+  } catch (e) {
+    console.log(e);
+  }
 
   let data = [];
 
@@ -135,9 +140,11 @@ export const actions = {
       ip: locals.ipAddress,
     }
 
+    const isFirstAction = ((await getAction(actionType, walletId)??[]).length === 0);
+
     await saveAction(action);
 
-    return { success: true };
+    return { success: true, isFirstAction };
   },
   postComment: async ({ request, cookies, locals }) => {
     const formData = await request.formData();
@@ -181,9 +188,11 @@ export const actions = {
       ip: locals.ipAddress,
     }
 
+    const isFirstAction = ((await getAction('post_comment', walletId)??[]).length === 0);
+
     await saveAction(action);
 
-    return { success: true };
+    return { success: true, isFirstAction };
   },
   postReaction: async ({ request, cookies, locals }) => {
     const formData = await request.formData();
@@ -224,7 +233,9 @@ export const actions = {
 
     await saveAction(action);
 
-    return { success: true };
+    const isFirstAction = ((await getAction('post_reaction', walletId)??[]).length) === 0;
+
+    return { success: true, isFirstAction };
   },
   postPollVote: async ({ request, cookies, locals }) => {
     const formData = await request.formData();
@@ -274,9 +285,11 @@ export const actions = {
         ip: locals.ipAddress,
       }
 
+      const isFirstAction = ((await getAction('post_poll_vote', walletId)??[]).length == 0);
+
       await saveAction(action);
 
-      return { success: true };
+      return { success: true, isFirstAction };
     }
     else {
       error(401, { message: 'Error posting poll vote. Please try again.' });

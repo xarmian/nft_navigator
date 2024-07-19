@@ -1,4 +1,3 @@
-import type { PageLoad } from '../$types';
 import type { Token, Collection, Listing } from '$lib/data/types';
 import { getCollection, getTokens, populateTokenRanking } from '$lib/utils/indexer';
 import { getCurrency } from '$lib/utils/currency';
@@ -156,4 +155,4 @@ export const load = (async ({ params, fetch }) => {
 		subpage,
 		//isVoiGames: isVoiGames ? true : false,
 	};
-}) satisfies PageLoad;
+});

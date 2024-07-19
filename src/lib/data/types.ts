@@ -6,7 +6,7 @@ export interface Token {
     contractId: number;
     tokenId: number;
     mintRound: number;
-    metadata: Metadata;
+    metadata?: Metadata;
     metadataURI: string;
     approved: string;
 	marketData?: Listing | null | undefined;

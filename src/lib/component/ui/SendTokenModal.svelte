@@ -11,6 +11,8 @@
 	import { zeroAddress } from '$lib/data/constants';
     import { getNFD } from '$lib/utils/nfd';
 	import { Breadcrumb, BreadcrumbItem } from 'flowbite-svelte';
+	import { showConfetti } from '../../../stores/collection';
+	import { toast } from '@zerodevx/svelte-toast';
 
     export let showModal: boolean;
     export let token: Token;
@@ -33,13 +35,13 @@
     
     let transferTo = '';
     let transferToNFD = '';
-    let tokenName = reformatTokenName(token.metadata?.name, token.tokenId);
+    let tokenName = reformatTokenName(token.metadata?.name??'', token.tokenId);
 
     let selectedVoiBalance: number;
     let selectedNFTCount: number;
     let sendingError: string = '';
     let transactionId: string = '';
-    $: imageUrl = (token && token.metadataURI) ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(token.metadataURI)}?w=240` : token?.metadata.image;
+    $: imageUrl = (token && token.metadataURI) ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(token.metadataURI)}?w=240` : token?.metadata?.image;
 
     $: if (transferTo && transferTo.length > 0) {
         updateBalances();
@@ -152,6 +154,21 @@
                         }
                     }),
                 });
+
+                if (!response.ok) {
+                    console.error('Failed to send wallet data to backend', await response.text());
+                }
+                else {
+                    const data = await response.json();
+                    if (data.isFirstAction) {
+                        showConfetti.set(true);
+                        toast.push(`Congratulations! The ${type === 'send' ? 'Transfer' : 'Approve'} Token Quest has been Completed!`);
+                        setTimeout(() => {
+                            showConfetti.set(false)
+                        }, 10000);
+                    }
+                }
+                
             }
             catch(err: any) {
                 console.log(err);

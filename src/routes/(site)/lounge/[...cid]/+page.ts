@@ -26,7 +26,7 @@ export const load = (async ({ data, params, fetch }) => {
 	};
 
     // get a list of unique wallets from data.messages.walletId and data.messages.comments.walletId and then get their NFD data
-    const wallets: string[] = Array.from(new Set(data.server_data.messages.map((m: NMessage) => m.walletId).concat(data.server_data.messages.flatMap((m) => m.comments?.map((c: { walletId: string; }) => c.walletId)))));
+    const wallets: string[] = Array.from(new Set(data.server_data.messages.map((m: NMessage) => m.walletId).concat(data.server_data.messages.flatMap((m: NMessage) => m.comments?.map((c: { walletId: string; }) => c.walletId)))));
     const nfd: AggregatedNFD[] = await getNFD(wallets);
 
     const tokenPromises = wallets.map((w) => {

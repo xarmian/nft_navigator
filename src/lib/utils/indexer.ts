@@ -1,12 +1,13 @@
-import type { Transfer, Token, Collection, Metadata, Sale, IHighforgeProject } from '$lib/data/types';
+import type { Transfer, Token, Collection, Sale, IHighforgeProject } from '$lib/data/types';
 import { collectionStore, tokenStore } from '../../stores/collection';
 import { get } from 'svelte/store';
 import voiGames from '$lib/data/voiGames.json';
 import { getCurrency } from './currency';
 import { getNFD } from './nfd';
 
-export const indexerBaseURL = "https://arc72-idx.nftnavigator.xyz/nft-indexer/v1";
+//export const indexerBaseURL = "https://arc72-idx.nftnavigator.xyz/nft-indexer/v1";
 //export const indexerBaseURL = "http://localhost:3000/nft-indexer/v1";
+export const indexerBaseURL = "https://arc72-idx-backup.nftnavigator.xyz/nft-indexer/v1";
 
 interface ITokenResponse {
     tokens: IToken[];
@@ -347,6 +348,7 @@ export async function populateTokenRanking(contractId: number, tokens: Token[], 
         const rarityArray: { tokenId: number; rarity: number }[] = [];
         tokens.forEach((token: Token) => {
             try {
+                if (!token.metadata) throw new Error('No metadata');
                 const rarity = calculateRarityScore(aggregateTraitCount, token.metadata.properties, totalNFTsInCollection);
                 rarityArray.push({ tokenId: token.tokenId, rarity });
             }

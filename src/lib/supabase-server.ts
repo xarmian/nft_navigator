@@ -1,4 +1,4 @@
-// src/lib/supabaseClient.ts
+// src/lib/supabase-server.ts
 import type { IPoll } from '$lib/data/types';
 import { createClient } from '@supabase/supabase-js';
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public';
@@ -43,6 +43,11 @@ interface PAction {
     description: string;
 }
 
+interface PActionCount {
+    address: string;
+    unique_actions: number;
+}
+
 interface PComment {
     id?: number;
     parent_message_id: number;
@@ -73,6 +78,25 @@ interface PGroupProfile {
 type FileOptions = {
     contentType?: string;
     metadata?: Record<string, string>;
+};
+
+/*interface PLeaderboard {
+    wallet: string;
+    last_modified: Date;
+    total: number;
+    network: number;
+    nftnavigator: number;
+    nautilus: number;
+    humble: number;
+    kibisis: number;
+    nomadex: number;
+    highforge: number;
+    algoleagues: number;
+}*/
+
+interface NomadexApiData {
+    address: string;
+    actions: Array<Record<string, string>>;
 };
 
 export const getMessagesSim = async () => {
@@ -272,6 +296,16 @@ export const saveAction = async (action: PAction) => {
     return data;
 }
 
+export const getAction = async (action: string, address: string) => {
+    const { data, error } = await supabasePrivateClient.from('actions').select('*').eq('action', action).eq('address', address);
+
+    if (error) {
+        console.error('getAction',error);
+    }
+
+    return data;
+}
+
 export const postReaction = async (p_message_id: number, p_comment_id: number | null, p_wallet_id: string, p_reaction: number) => {
     const { data, error } = await supabasePrivateClient.rpc('handle_reaction_json', { p_message_id, p_comment_id, p_wallet_id, p_reaction });
 
@@ -405,4 +439,214 @@ export async function updateProfile(groupProfile: PGroupProfile) {
     }
 
     return data;
+}
+
+// a function that uses the data from getAllUniqueActionCounts and updates or inserts the accounts into the leaderboard table
+// the leaderboard table uses PLeaderboard as its schema, and the data is an array of wallets and their nftnavigator action acounts. only update the columns:
+// - last_modified, total, nftnavigator. calculate `total` from all of the columns except `wallet`, `last_modified`, and `total`
+// this function is called by a cron job
+export async function updateNFTNavigatorLeaderboard() {
+    async function getAllUniqueActionCounts() {
+        const { data, error } = await supabasePublicClient.rpc('get_unique_action_counts');
+    
+        if (error) {
+            console.error('Failed to fetch quests', error);
+            return;
+        }
+    
+        return data as PActionCount[];
+    }
+    
+    const project = 'nftnavigator';
+    const accounts = await getAllUniqueActionCounts();
+    if (!accounts) return;
+
+    for (const account of accounts) {
+        const { error } = await supabasePrivateClient
+            .rpc('update_leaderboard', {
+                p_wallet: account.address,
+                p_project: project,
+                p_points: account.unique_actions
+            })
+  
+        if (error) {
+            console.error('Error:', error)
+        } else {
+            //console.log('Success:', data)
+        }
+    }
+}
+
+export async function updateNomadexLeaderboard() {
+    function parseCSV(csvData: string): Array<Record<string, string>> {
+        const lines = csvData.split('\n');
+        const result: Array<Record<string, string>> = [];
+        const headers = lines[0].split(',');
+    
+        for (let i = 1; i < lines.length; i++) {
+            const obj: Record<string, string> = {};
+            const currentline = lines[i].split(',');
+    
+            for (let j = 0; j < headers.length; j++) {
+                obj[headers[j]] = currentline[j];
+            }
+    
+            result.push(obj);
+        }
+    
+        return result;
+    }
+    
+    const project = 'nomadex';
+
+    const url = `https://api.nomadex.app/actions.csv`;
+    const response = await fetch(url);
+    const csvData = await response.text();
+    const parsedData = parseCSV(csvData);
+   
+    // get a lit of unique addresses, and for each address get a list of unique actions
+    // create an array of objects that look like:
+    /* { address: 'wallet address', actions: [ { 'action1': timestamp}, {'action2': timestamp}, {'action3': timestamp} ] } */
+    const data: NomadexApiData[] = [];
+
+    for (const row of parsedData) {
+        const wallet = row.address;
+        const action = row.action;
+        const timestamp = row.timestamp;
+
+        const account = data.find((account) => account.address === wallet);
+        if (account) {
+            const actionExists = account.actions.find((a) => a[action]);
+            if (!actionExists) {
+                account.actions.push({ [action]: timestamp });
+            }
+            else if (action === 'swap') {
+                const uniqueDates = new Set();
+                account.actions.forEach((entry) => {
+                    if (entry[action] === undefined) return;
+                    const date = new Date(Number(entry[action])).toISOString().split('T')[0];
+                    uniqueDates.add(date);
+                });
+                const currentDate = new Date(Number(timestamp)).toISOString().split('T')[0];
+                if (!uniqueDates.has(currentDate)) {
+                    console.log(currentDate);
+                    console.log(uniqueDates);
+                    account.actions.push({ [action]: timestamp });
+                }
+            }
+        }
+        else {
+            data.push({ address: wallet, actions: [{ [action]: timestamp }] });
+        }
+    }
+
+    // for each account, update the leaderboard
+    for (const account of data) {
+        const { error } = await supabasePrivateClient
+            .rpc('update_leaderboard', {
+                p_wallet: account.address,
+                p_project: project,
+                p_points: account.actions.length
+            })
+  
+        if (error) {
+            console.error('Error:', error)
+        }
+    }
+
+    return;
+}
+
+export async function updateNodeLeaderboard() {
+    const url = `https://api.voirewards.com/proposers/index_p2.php`;
+
+    await fetch(url, { cache: 'no-store' });
+    const response = await fetch(url);
+    const data = await response.json();
+
+    // data.data contains an array of objects that look like:
+    // { proposer: string, block_count: number, nodes: [], points: number }
+    // for each object in data.data, update the leaderboard
+    for (const node of data.data) {
+        if (node.points === 0) continue;
+        const { error } = await supabasePrivateClient
+            .rpc('update_leaderboard', {
+                p_wallet: node.proposer,
+                p_project: 'network',
+                p_points: Math.ceil(node.points)
+            })
+  
+        if (error) {
+            console.error('Error:', error)
+        }
+    }
+}
+
+export async function updateNautilusLeaderboard() {
+    const url = `https://quest.nautilus.sh/score`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    // data contains an array of objects that look like:
+    // { address: string, points: number }
+    // for each object in data, update the leaderboard
+    for (const account of data.scores) {
+        const { error } = await supabasePrivateClient
+            .rpc('update_leaderboard', {
+                p_wallet: account.address,
+                p_project: 'nautilus',
+                p_points: account.score
+            })
+  
+        if (error) {
+            console.error('Error:', error)
+        }
+    }
+}
+
+export async function updateHumbleLeaderboard() {
+    const url = `https://humble-quest.nautilus.sh/score`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    // data contains an array of objects that look like:
+    // { address: string, points: number }
+    // for each object in data, update the leaderboard
+    for (const account of data.scores) {
+        const { error } = await supabasePrivateClient
+            .rpc('update_leaderboard', {
+                p_wallet: account.address,
+                p_project: 'humble',
+                p_points: account.score
+            })
+  
+        if (error) {
+            console.error('Error:', error)
+        }
+    }
+}
+
+export async function updateMechaswapLeaderboard() {
+    const url = `https://mechaswap-quest.nautilus.sh/score`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    // data contains an array of objects that look like:
+    // { address: string, points: number }
+    // for each object in data, update the leaderboard
+    for (const account of data.scores) {
+        const { error } = await supabasePrivateClient
+            .rpc('update_leaderboard', {
+                p_wallet: account.address,
+                p_project: 'mechaswap',
+                p_points: account.score
+            })
+  
+        if (error) {
+            console.error('Error:', error)
+        }
+    }
 }

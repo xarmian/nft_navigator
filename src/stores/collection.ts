@@ -37,4 +37,6 @@ export const userPreferences = writable({
     analyticsEnd: undefined as Date | undefined,
 });
 
+export const showConfetti = writable(false);
+
 // Path: src/stores/collection.ts

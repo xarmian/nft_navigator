@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { saveAction } from '$lib/supabase-server';
+import { saveAction, getAction } from '$lib/supabase-server';
 import { verifyToken } from 'avm-wallet-svelte';
 import type { RequestHandler } from '@sveltejs/kit';
 
@@ -12,6 +12,7 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
 	const body: { action: string; wallets?: Wallet[], wallet?: Wallet, detail?: { from: string, to: string, token: string, transactionId: string } } = await request.json();
 
     const ipAddress = locals.ipAddress;
+    let isFirstAction = false;
 
     if (body.action == 'connect_wallet' && body.wallets) {
         const wallets = body.wallets
@@ -23,6 +24,8 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
                 description: `Connected ${wallet.app}, Total connected = ${wallets.length}`,
                 ip: ipAddress,
             }
+            
+            isFirstAction = ((await getAction(body.action, wallet.address)??[]).length) === 0;
             await saveAction(action);
         }
     }
@@ -44,6 +47,7 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
             description: `Authenticated wallet ${wallet.app}`,
             ip: ipAddress,
         }
+        isFirstAction = ((await getAction(body.action, body.wallet.address)??[]).length) === 0 || true;
         await saveAction(action);
     }
     else if (body.action == 'token_approve' && body.detail) {
@@ -54,6 +58,7 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
             description: `Approved token ${detail.token} to ${detail.to}, txId: ${detail.transactionId}`,
             ip: ipAddress,
         }
+        isFirstAction = ((await getAction(body.action, detail.from)??[]).length) === 0;
         await saveAction(action);
     }
     else if (body.action == 'token_transfer' && body.detail) {
@@ -64,8 +69,9 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
             description: `Transferred token ${detail.token} to ${detail.to}, txId: ${detail.transactionId}`,
             ip: ipAddress,
         }
+        isFirstAction = ((await getAction(body.action, detail.from)??[]).length) === 0;
         await saveAction(action);
     }
   
-	return json({ 'success':'true' }, { status: 200 });
+	return json({ 'success':'true', 'isFirstAction': isFirstAction }, { status: 200 });
 }

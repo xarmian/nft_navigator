@@ -12,6 +12,8 @@
     import { getImageUrl } from '$lib/utils/functions';
     import { supabaseImageUrl } from '$lib/data/constants';
     import ExternalLink from '$lib/component/ExternalLink.svelte';
+	import { showConfetti } from '../../../../stores/collection';
+	import { toast } from '@zerodevx/svelte-toast';
 
     export let message: NMessage;
     export let collectionName = '';
@@ -133,7 +135,18 @@
             const data = await response.json();
             alert(data.error.message);
         } else {
-            invalidateAll();
+            const data = JSON.parse((await response.json()).data);
+            if (data[data[0]['isFirstAction']]) {
+                showConfetti.set(true);
+                toast.push(`Congratulations! The React to a Post Quest has been Completed!`);
+                setTimeout(() => {
+                    invalidateAll();
+                    showConfetti.set(false)
+                }, 10000);
+            }
+            else {
+                invalidateAll();
+            }
         }
     };
 </script>

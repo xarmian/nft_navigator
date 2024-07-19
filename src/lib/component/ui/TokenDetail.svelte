@@ -75,8 +75,8 @@
                 isTokenApproved = token.approved === $selectedWallet.address ? true : false;
             }
 
-            if (token.metadata.royalties) {
-                const decodedRoyalties = atob(token.metadata.royalties);
+            if (token.metadata?.royalties) {
+                const decodedRoyalties = atob(token.metadata?.royalties);
 
                 // Convert the binary string to an array of bytes
                 const bytes = new Uint8Array(decodedRoyalties.length);
@@ -90,10 +90,14 @@
 
             // map token.metadata.properties object of the form {"BACKGROUND":"Aquamarine","BODY":"Red","ON BODY":"Scar"}
             // to an array of objects of the form {trait_type: "BACKGROUND", value: "Aquamarine"}
-            tokenProps = Object.keys(token.metadata.properties).map((key) => {
-                const colors = propColor(token.metadata.properties[key as keyof typeof token.metadata.properties]);
-                return { trait_type: key, value: token.metadata.properties[key as keyof typeof token.metadata.properties], fgcolor: colors[1], bgcolor: colors[0]};
-            });
+            if (token.metadata) {
+                tokenProps = Object.keys(token.metadata.properties).map((key) => {
+                    if (token.metadata) {
+                        const colors = propColor(token.metadata.properties[key as keyof typeof token.metadata.properties]);
+                        return { trait_type: key, value: token.metadata.properties[key as keyof typeof token.metadata.properties], fgcolor: colors[1], bgcolor: colors[0]};
+                    }
+                });
+            }
 
             formattedOwner = token.ownerNFD ? token.ownerNFD as string : token.owner.length > 16
                     ? `${token.owner.slice(0, 8)}...${token.owner.slice(-8)}`
@@ -107,7 +111,7 @@
 
     let collectionName = '';
     $: {
-        collectionName = collection?.highforgeData?.title ?? token?.metadata.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
+        collectionName = collection?.highforgeData?.title ?? token?.metadata?.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
         collectionName = collectionName.substring(0, 28) + (collectionName.length > 28 ? '...' : '');
     }
 
@@ -159,27 +163,39 @@
 <div class="shadow-md p-3 rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative overflow-hidden h-full"
     class:hidden={hidden} class:p-3={format !== 'small'}>
     <div class="flex flex-col md:flex-row items-center md:items-start h-full" class:space-x-4={format !== 'small'} class:md:flex-col={format === 'small'}>
-        <a href="/collection/{token.contractId}/token/{token.tokenId}" class="relative overflow-hidden place-self-center" class:rounded-xl={format !== 'small'} >
-            <img src={imageUrl} class="{format === 'small' ? 'w-72 h-72' : 'w-96'} object-contain" />
-            {#if listing && !listing.sale && !listing.delete}
-                <a href="https://nautilus.sh/#/collection/{token.contractId}/token/{token.tokenId}" on:click|stopPropagation target="_blank" class="absolute top-0 right-0 p-1 text-white rounded-full text-nowrap" title="View on Marketplace">
-                    {#if currency}
-                        <div class="badge top-right"><div>For Sale</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}</div></div>
-                    {:else}
-                        <div class="badge top-right"><div>For Sale</div><div class="text-xxs">See Marketplace</div></div>
-                    {/if}
-                </a>
-            {/if}
-            {#if showOwnerIcon && token.owner == $selectedWallet?.address}
-                <div class="absolute top-0 left-0 p-1 text-green-500 text-3xl" title='Owned by You'>
-                    <i class="fas fa-user"></i>
+        {#if token.isBurned}
+            <div class="relative overflow-hidden place-self-center bg-white dark:bg-gray-900" class:rounded-xl={format !== 'small'}>
+                <div class="{format === 'small' ? 'w-72 h-72' : 'w-96'} flex items-center justify-center">
+                <div class="absolute transform -rotate-45 pointer-events-none">
+                    <div class="text-6xl font-bold uppercase text-red-500 dark:text-red-300 opacity-50 border-8 border-red-500 dark:border-red-300 px-4 py-2 rounded-xl">
+                    Burned
+                    </div>
                 </div>
-            {/if}
-        </a>
+                </div>
+            </div>
+        {:else}
+            <a href="/collection/{token.contractId}/token/{token.tokenId}" class="relative overflow-hidden place-self-center" class:rounded-xl={format !== 'small'} >
+                <img src={imageUrl} class="{format === 'small' ? 'w-72 h-72' : 'w-96'} object-contain" />
+                {#if listing && !listing.sale && !listing.delete}
+                    <a href="https://nautilus.sh/#/collection/{token.contractId}/token/{token.tokenId}" on:click|stopPropagation target="_blank" class="absolute top-0 right-0 p-1 text-white rounded-full text-nowrap" title="View on Marketplace">
+                        {#if currency}
+                            <div class="badge top-right"><div>For Sale</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}</div></div>
+                        {:else}
+                            <div class="badge top-right"><div>For Sale</div><div class="text-xxs">See Marketplace</div></div>
+                        {/if}
+                    </a>
+                {/if}
+                {#if showOwnerIcon && token.owner == $selectedWallet?.address}
+                    <div class="absolute top-0 left-0 p-1 text-green-500 text-3xl" title='Owned by You'>
+                        <i class="fas fa-user"></i>
+                    </div>
+                {/if}
+            </a>
+        {/if}
         <div class="flex justify-between w-full flex-col md:flex-row" class:flex-grow={format === 'small'} class:md:flex-col={format === 'small'}>
             {#if format !== 'small'}
                 <div class="text-left flex-grow">
-                    <div class="text-2xl font-bold mb-2 text-purple-900 dark:text-purple-100"><a href="/collection/{token.contractId}/token/{token.tokenId}"><TokenName name={token.metadata.name} tokenId={token.tokenId}></TokenName></a></div>
+                    <div class="text-2xl font-bold mb-2 text-purple-900 dark:text-purple-100"><a href="/collection/{token.contractId}/token/{token.tokenId}"><TokenName name={token.metadata?.name??String(token.tokenId)} tokenId={token.tokenId}></TokenName></a></div>
                     <div class="mb-2">
                         {token.metadata?.description??''}
                     </div>
@@ -218,7 +234,7 @@
                 <div class="side back bg-gray-200 dark:bg-gray-900 relative flex flex-col p-1 h-full">
                     <div class='p-1 flex flex-col flex-grow h-full'>
                         <div class="flex flex-col mb-1 text-sm">
-                            <div class="text-sm font-bold"><TokenName name={token.metadata.name} tokenId={token.tokenId}></TokenName></div>
+                            <div class="text-sm font-bold"><TokenName name={token.metadata?.name??String(token.tokenId)} tokenId={token.tokenId}></TokenName></div>
                             <div class="flex justify-between">
                                 <div>Collection</div>
                                 <a href="/collection/{token.contractId}" class=" text-gray-600 dark:text-gray-300">{collectionName}</a>
