@@ -288,7 +288,7 @@ export const getSales = async (params: { contractId?: string, tokenId?: string, 
     let url = `${indexerBaseURL}/mp/sales`;
     const paramsArray = [];
     if (contractId) {
-        paramsArray.push(['contractId', contractId]);
+        paramsArray.push(['collectionId', contractId]);
     }
     if (tokenId) {
         paramsArray.push(['tokenId', tokenId]);

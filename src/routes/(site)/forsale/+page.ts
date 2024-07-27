@@ -47,7 +47,7 @@ export const load = (async ({ fetch }) => {
             });
         }
     });
-console.log('where');
+
     const pageMetaTags = {
         title: 'For Sale | NFT Navigator',
         description: 'NFT Tokens for Sale',

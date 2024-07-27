@@ -3,7 +3,7 @@
 
     export let tokenid: string | undefined = undefined;
     export let contractid: string | undefined = undefined;
-    export let address: string | undefined = undefined;
+    //export let address: string | undefined = undefined;
     export let buttonClass = 'flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 p-2 rounded-md cursor-pointer';
 
     const openLounge = () => {
