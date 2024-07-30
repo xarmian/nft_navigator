@@ -30,9 +30,11 @@ export const getWalletBalance = async (address: string, assetId: number): Promis
 }
 
 // get currency from store if available, otherwise pull from blockchain
-export const getCurrency = async (assetId: number): Promise<Currency | null> => {
+export const getCurrency = async (assetId: number, forMarket: boolean = false): Promise<Currency | null> => {
     switch (assetId) {
         case 0:
+        case 34099056:
+            if (assetId === 34099056 && forMarket) break;
             return {
                 assetId: 0,
                 name: 'Voi',

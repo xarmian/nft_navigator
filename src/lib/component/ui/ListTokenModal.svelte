@@ -1,27 +1,26 @@
 <script lang="ts">
-	import type { Token } from '$lib/data/types';
+	import type { Currency, Listing, Metadata, Token } from '$lib/data/types';
     import Modal from './Modal.svelte';
     import { reformatTokenName, getTokens } from "$lib/utils/indexer";
-    import WalletSearch from '../WalletSearch.svelte';
-    import { arc72 as Contract } from 'ulujs';
+    import { mp } from 'ulujs';
     import { algodClient, algodIndexer } from '$lib/utils/algod';
     import { selectedWallet, signAndSendTransactions } from 'avm-wallet-svelte';
     import algosdk from 'algosdk';
-	import { getWalletBalance } from '$lib/utils/currency';
-	import { zeroAddress } from '$lib/data/constants';
-    import { getNFD } from '$lib/utils/nfd';
+	import { getWalletBalance, getCurrency } from '$lib/utils/currency';
 	import { Breadcrumb, BreadcrumbItem } from 'flowbite-svelte';
 	import { showConfetti } from '../../../stores/collection';
 	import { toast } from '@zerodevx/svelte-toast';
+	import type { NFTIndexerListingI, NFTIndexerTokenI } from 'ulujs/types/mp';
 	import { invalidateAll } from '$app/navigation';
 
     export let showModal: boolean;
     export let token: Token;
     export let fromAddr: string;
-    export let type: string = 'send'; // send or approve or revoke
 
     export let onClose: () => void = () => {};
     export let onAfterSend: (t: Token) => void = () => {};
+
+    const ctcInfoMp206 = 29117863;
 
     enum SendingView {
         Presend = "presend",
@@ -33,70 +32,70 @@
     }
 
     let sendingView: SendingView = SendingView.Presend;
-    
-    let transferTo = '';
-    let transferToNFD = '';
     let tokenName = reformatTokenName(token.metadata?.name??'', token.tokenId);
 
-    let selectedVoiBalance: number;
-    let selectedNFTCount: number;
+    let walletBalance: number;
     let sendingError: string = '';
     let transactionId: string = '';
-    $: imageUrl = (token && token.metadataURI) ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(token.metadataURI)}?w=240` : token?.metadata?.image;
 
-    $: if (transferTo && transferTo.length > 0) {
-        updateBalances();
+    let salePrice: number | null = null;
 
-        // get nfd for transferTo address
-        transferToNFD = '';
-        getNFD([transferTo]).then((nfd) => {
-            if (nfd && nfd.length > 0) transferToNFD = nfd[0].replacementValue;
-        });
-    }
-    else {
-        transferToNFD = '';
-    }
-    
-    if (type === 'revoke') {
-        revokeApproval();
-    }
+    $: imageUrl = (token && token.metadataURI) ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(token.metadataURI)}?w=240` : token?.metadata?.image ?? '';
 
-    async function updateBalances() {
-        selectedVoiBalance = await getWalletBalance(transferTo, 0) / Math.pow(10, 6);
-        
-        const tokens = await getTokens({
-            owner: transferTo
-        });
-        selectedNFTCount = tokens.length;
-    }
+    let listingCurrency: Currency | null = null;
 
-    function revokeApproval() {
-        transferTo = zeroAddress;
-        sendToken();
-    }
-
-    async function sendToken() {
-        console.log('send token to', transferTo);
-        if (transferTo.length === 0) return;
-
-        const opts = {
-            acc: {
-                addr: fromAddr,
-                sk: new Uint8Array(0),
-            },
-            formatBytes: false,
-            simulate: true,
+    getCurrency(0).then((currency) => {
+        listingCurrency = currency;
+        if ($selectedWallet && listingCurrency) {
+            getWalletBalance($selectedWallet.address, listingCurrency?.assetId).then((balance) => {
+                walletBalance = balance;
+            });
         }
+    });
 
+    selectedWallet.subscribe(async (wallet) => {
+        if (wallet && listingCurrency) {
+            
+        }
+    });
+
+    async function listToken() {
         sendingView = SendingView.Sending;
-        const contract = new Contract(token.contractId, algodClient, algodIndexer, opts);
-        let resp;
-        if (type == 'send') {
-            resp = await contract.arc72_transferFrom(token.owner, transferTo, BigInt(token.tokenId), true, true);
-        }
-        else {
-            resp = await contract.arc72_approve(transferTo, Number(token.tokenId), true, true);
-        }
+
+
+        const TOKEN_WVOI2 = 34099056;
+        
+        // multiply salePrice by 10^(listingCurrency.decimals) and represent as string
+        const salePriceAU = ((salePrice??0) * Math.pow(10, (listingCurrency?.decimals??0))).toString();
+
+        // copy token (Token) to NFTIndexerTokenI
+        const t: NFTIndexerTokenI = {
+            contractId: token.contractId, // number
+            tokenId: token.tokenId, // number
+            owner: token.owner, // string
+            metadata: JSON.stringify(token.metadata??'{}'),
+            metadataURI: token.metadataURI, // string
+            "mint-round": token.mintRound, // number
+            approved: token.approved, // string
+        };
+        console.log(t);
+
+        const resp = await mp.list(
+            fromAddr, // string
+            t, // NFTIndexerTokenI
+            salePriceAU, // string (AU) (ex "10000000000")
+            listingCurrency?.assetId, // ARC200IndexerToken
+            {
+                algodClient, 
+                indexerClient: algodIndexer,  
+                paymentTokenId: TOKEN_WVOI2, // number
+                wrappedNetworkTokenId: TOKEN_WVOI2, // number 
+                mpContractId: ctcInfoMp206, // number 
+                extraTxns: [], // extra transaction to include before listing txn (optional)
+                enforceRoyalties: false, // include royalty payout in listing (optional, default=false) 
+                skipEnsure: true, // skip ensure (optional, default=false)
+            }
+        );
 
         if (resp && resp.success) {
             const txnsForSigning = resp.txns;
@@ -116,35 +115,21 @@
                 sendingView = status ? SendingView.Waiting : SendingView.Error;
                 let t = null;
 
-                if (type == 'send') {
-                    let owner = token.owner;
-                    let newOwner = owner;
-                    let i = 0;
-                    while (owner === newOwner && i < 10) {
-                        await new Promise(r => setTimeout(r, 1000));
-                        t = await getTokens({contractId: token.contractId, tokenId: token.tokenId, invalidate: true});
-                        token = t[0];
-                        newOwner = t[0].owner;
-                        i++;
-                    }
-                }
-                else {
-                    let approved = token.approved;
-                    let newApproved = approved;
-                    let i = 0;
-                    while (approved === newApproved && i < 10) {
-                        await new Promise(r => setTimeout(r, 1000));
-                        t = await getTokens({contractId: token.contractId, tokenId: token.tokenId, invalidate: true});
-                        token = t[0];
-                        newApproved = t[0].approved;
-                        i++;
-                    }
+                let approved = token.approved;
+                let newApproved = token.approved;
+                let i = 0;
+                while (approved === newApproved && i < 30) {
+                    await new Promise(r => setTimeout(r, 1000));
+                    t = await getTokens({contractId: token.contractId, tokenId: token.tokenId, invalidate: true});
+                    token = t[0];
+                    newApproved = t[0].approved;
+                    i++;
                 }
 
                 sendingView = SendingView.Sent;
 
                 // submit POST to /api/quests to record action
-                const response = await fetch('/api/quests', {
+                /*const response = await fetch('/api/quests', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -172,7 +157,8 @@
                             showConfetti.set(false)
                         }, 10000);
                     }
-                }
+                }*/
+
                 invalidateAll();
                 
             }
@@ -189,10 +175,14 @@
     }
 
     function reset() {
-        transferTo = '';
-        transferToNFD = '';
         sendingError = '';
-        sendingView = SendingView.Presend;
+        sendingView = SendingView.Confirm;
+    }
+
+    function close() {
+        showModal = false;
+        sendingError = '';
+        sendingView = SendingView.Confirm;
     }
 
     function afterClose() {
@@ -204,9 +194,8 @@
         onClose();
     }
 </script>
-<Modal title="{type == 'send' ? 'Transfer NFT Token' : 'Change NFT Token Approval'}" bind:showModal onClose={afterClose} showTopCloseButton={true} showBottomCloseButton={false}>
+<Modal title="List NFT For Sale" bind:showModal onClose={afterClose} showTopCloseButton={true} showBottomCloseButton={false}>
     <Breadcrumb separator=">" class="w-full">
-        <BreadcrumbItem><span class={sendingView === SendingView.Presend ? 'font-bold underline text-orange-500' : ''}>Select Wallet</span></BreadcrumbItem>
         <BreadcrumbItem><span class={sendingView === SendingView.Confirm ? 'font-bold underline text-orange-500' : ''}>Confirm</span></BreadcrumbItem>
         <BreadcrumbItem><span class={sendingView === SendingView.Sending || sendingView === SendingView.Waiting ? 'font-bold underline text-orange-500' : ''}>Sign</span></BreadcrumbItem>
         <BreadcrumbItem><span class={sendingView === SendingView.Sent ? 'font-bold underline text-orange-500' : ''}>Complete</span></BreadcrumbItem>
@@ -220,59 +209,38 @@
                     <div class="text-sm text-gray-400">{token.contractId}</div>
                 </div>
                 <div class="flex flex-col items-center mt-4">
-                    {#if type == 'approve'}
-                        <div class="text-xs mb-2 text-gray-400 max-w-96">An approved spender can transfer a token on your behalf. This is often used when listing a token on a marketplace.</div>
-                        <div class="mb-2">
-                            <div class="text-lg">Current Approved Spender</div>
-                            <div class="text-sm text-gray-400">{token.approved == zeroAddress ? 'None' : `${token.approved.slice(0, 8)}...${token.approved.slice(-8)}`}</div>
-                        </div>
-                    {/if}
-                    <div class="text-xl font-bold">{type == 'send' ? 'Send to' : 'Change Approved Spender to'}</div>
-                    <WalletSearch onSubmit={(v) => transferTo = v} loadPreviousValue={false} showSubmitButton={false} />
+                    <div class="text-xl font-bold">List token for Sale on Nautilus</div>
+                    <input type="number" bind:value={salePrice} placeholder="Enter price in VOI" class="w-64 h-10 dark:bg-gray-900 rounded-md p-2"/>
                 </div>
-                {#if type == 'approve' && token.approved !== zeroAddress}
-                    <div class="flex flex-col items-center mt-4">
-                        <div class="mb-4">or</div>
-                        <button on:click={() => revokeApproval()} class="w-64 h-10 bg-blue-500 text-white rounded-md">Revoke Approval</button>
-                    </div>
-                {/if}
                 <div class="flex flex-row justify-between mt-4 space-x-2">
                     <button on:click={() => showModal = false} class="w-52 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
-                    <button on:click={() => { if (transferTo.length > 0) sendingView = SendingView.Confirm; }} class="w-52 h-10 bg-blue-500 text-white rounded-md {transferTo.length == 0 ? 'bg-gray-400 cursor-default' : ''}">Next</button>
+                    <button on:click={() => { if ((salePrice??0) > 0) sendingView = SendingView.Confirm; }} class="w-52 h-10 bg-blue-500 text-white rounded-md {(salePrice??0) <= 0 ? 'bg-gray-400 cursor-default' : ''}">Next</button>
                 </div>
-            {:else if sendingView === "confirm"}
+            {:else if sendingView === "confirm" && listingCurrency && salePrice}
                 <div class="flex flex-col items-center m-2">
                     <div class="text-lg font-bold">Please confirm the following transaction:</div>
                     <div class="mt-2 flex flex-col items-center">
                         <img src={imageUrl} alt={token.metadata?.name} class="h-20 w-20 object-contain rounded-md"/>
-                        <div class="text-sm text-gray-800 dark:text-gray-200">{type == 'send' ? 'Send' : 'Change Approval for'} {tokenName} to</div>
+                        <div class="text-sm text-gray-800 dark:text-gray-200">Selling {tokenName}</div>
+                        <br/>
+                        <div class="text-lg text-gray-800 dark:text-gray-200">Price: {salePrice} {listingCurrency.unitName}</div>
                     </div>
-                </div>
-                <div class="flex flex-col items-center mt-2">
-                    <div class="text-sm text-gray-400">{transferTo}</div>
-                    {#if transferToNFD.length > 0}
-                        <div class="text-sm text-gray-400">{transferToNFD}</div>
-                    {/if}
                 </div>
                 <div class="flex flex-row justify-center">
                     <div class="m-1 p-3">
-                        <div class="text-sm font-bold">Voi Balance</div>
-                        <div class="text-sm text-gray-400">{selectedVoiBalance??''}</div>
-                    </div>
-                    <div class="m-1 p-3">
-                        <div class="text-sm font-bold"># NFTs</div>
-                        <div class="text-sm text-gray-400">{selectedNFTCount??''}</div>
+                        <div class="text-sm font-bold">Your {listingCurrency?.unitName} Balance:</div>
+                        <div class="text-sm text-gray-400">{(walletBalance / Math.pow(10,listingCurrency.decimals))??0}</div>
                     </div>
                 </div>
-                {#if selectedVoiBalance == 0}
+                {#if walletBalance == 0}
                     <div class="flex flex-col items-center">
                         <div class="text-xl font-bold text-red-500">Warning!</div>
                         <div class="text-sm text-gray-400">The selected address has no Voi. Please verify before sending.</div>
                     </div>
                 {/if}
                 <div class="flex flex-row justify-between mt-4 space-x-2">
-                    <button on:click={reset} class="w-52 h-10 bg-blue-500 text-white rounded-md">Back</button>
-                    <button on:click={sendToken} class="w-52 h-10 bg-blue-500 text-white rounded-md">Submit</button>
+                    <button on:click={close} class="w-52 h-10 bg-blue-500 text-white rounded-md">Close</button>
+                    <button on:click={listToken} class="w-52 h-10 bg-blue-500 text-white rounded-md">Submit</button>
                 </div>
             {:else if sendingView === "sending"}
                 <div class="flex flex-col items-center m-2 h-full place-content-center">
@@ -304,39 +272,27 @@
                 </div>
             {:else if sendingView === "sent"}
                 <div class="flex flex-col items-center m-2">
-                    <div class="text-xl font-bold">{type == 'send' ? 'Token Sent' : 'Token Approval Changed'}</div>
+                    <div class="text-xl font-bold">Token Listing Complete</div>
                     <div class="mt-2 text-gray-400">
-                        {#if type == 'send'}
-                            The token has been sent to {transferTo}
-                        {:else}
-                            {#if transferTo === zeroAddress}
-                                Token approval has been revoked.
-                            {:else}
-                                Token approval has been changed to {transferTo}
-                            {/if}
-                        {/if}
+                        The token listing is complete
                     </div>
                     <div class="mt-2 text-gray-400 flex flex-col">
                         <div class="font-bold">Transaction ID</div>
                         <a href={"https://voi.observer/explorer/transaction/" + transactionId} target="_blank" class="text-xs underline text-blue-500 hover:text-blue-600">{transactionId}</a>
                     </div>
                     <div class="flex flex-row items-center mt-4 space-x-4">
-                        <button on:click={() => showModal = false} class="w-64 h-10 bg-blue-500 text-white rounded-md">Close</button>
+                        <button on:click={close} class="w-64 h-10 bg-blue-500 text-white rounded-md">Close</button>
                     </div>
                 </div>
             {:else if sendingView === "error"}
                 <div class="flex flex-col items-center m-2">
-                    <div class="text-xl font-bold">Error Sending Token</div>
-                    <div class="mt-2 text-gray-400">There was an error sending the token.</div>
+                    <div class="text-xl font-bold">Error Listing Token</div>
+                    <div class="mt-2 text-gray-400">There was an error purchasing the token.</div>
                     <div class="max-w-96">
                         <div class="mt-2 text-gray-400">{sendingError}</div>
                     </div>
                     <div class="flex flex-col items-center mt-4">
-                        {#if type == 'revoke'}
-                            <button on:click={revokeApproval} class="w-64 h-10 bg-blue-500 text-white rounded-md">Try Again</button>
-                        {:else}
-                            <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Start Over</button>
-                        {/if}
+                        <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Start Over</button>
                     </div>
                 </div>
             {/if}
