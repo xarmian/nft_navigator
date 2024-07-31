@@ -215,7 +215,7 @@
 <div class="shadow-md p-3 rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative overflow-hidden h-full"
     class:hidden={hidden} class:p-3={format !== 'small'}>
     {#if isTokenOwner || isTokenApproved || (listing && !listing.sale && !listing.delete && $selectedWallet)}
-        <div class="absolute top-2 right-2 cursor-pointer z-10" on:click|stopPropagation|preventDefault={toggleMenu}>
+        <div class="absolute top-1 right-1 cursor-pointer z-10" on:click|stopPropagation|preventDefault={toggleMenu}>
         <div class="rounded-full w-10 h-10 bg-gray-200 dark:bg-gray-800 p-2 text-center border border-gray-500 hover:border-gray-300 dark:hover:bg-gray-700 shadow-md hover:shadow-lg transition duration-200 ease-in-out">
             <i class="fas fa-ellipsis-v text-xl text-gray-500 dark:text-gray-300"></i>
         </div>
@@ -455,9 +455,9 @@
         position: absolute;
         top: 0;
         right: 0;
-        -ms-transform: translateX(30%) translateY(0%) rotate(45deg);
-        -webkit-transform: translateX(30%) translateY(0%) rotate(45deg);
-        transform: translateX(30%) translateY(0%) rotate(45deg);
+        -ms-transform: translateX(20%) translateY(20%) rotate(45deg);
+        -webkit-transform: translateX(20%) translateY(20%) rotate(45deg);
+        transform: translateX(20%) translateY(20%) rotate(45deg);
         -ms-transform-origin: top left;
         -webkit-transform-origin: top left;
         transform-origin: top left;
