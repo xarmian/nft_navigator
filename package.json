@@ -38,7 +38,6 @@
 		"tailwindcss": "^3.4.1",
 		"tslib": "^2.6.2",
 		"typescript": "^5.3.3",
-		"ulujs": "^0.10.11",
 		"vite": "^5.1.4"
 	},
 	"type": "module",
@@ -65,6 +64,7 @@
 		"svelte-markdown": "^0.4.1",
 		"svelte-preprocess": "^5.1.3",
 		"svelte-routing": "^2.12.0",
-		"uuidv4": "^6.2.13"
+		"uuidv4": "^6.2.13",
+		"ulujs": "^0.10.16"
 	}
 }
