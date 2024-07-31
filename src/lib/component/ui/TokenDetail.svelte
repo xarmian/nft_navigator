@@ -7,7 +7,7 @@
 	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { getCurrency } from '$lib/utils/currency';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import algosdk from 'algosdk';
 	import { getTokenImageUrl } from '$lib/utils/functions';
     import { indexerBaseURL } from '$lib/utils/indexer';
@@ -33,9 +33,36 @@
     let tokenProps: any[] = [];
     let formattedApproved = '';
     let hidden = false;
+    let showMenu = false;
+    let menuRef: HTMLElement | null = null;
+
     $: imageUrl = (token) ? getTokenImageUrl(token,((format == 'small') ? 240 : 480)) : '';
 
     $: currency = null as Currency | null;
+
+    function toggleMenu() {
+        showMenu = !showMenu;
+
+        if (showMenu) {
+            document.addEventListener('click', handleClickOutside);
+        } else {
+            document.removeEventListener('click', handleClickOutside);
+        }
+
+        return false;
+    }
+
+    function handleClickOutside(event: MouseEvent) {
+        const target = event.target as Node;
+        if (menuRef && !menuRef.contains(target)) {
+            showMenu = false;
+            document.removeEventListener('click', handleClickOutside);
+        }
+    }
+
+    onDestroy(() => {
+        document.removeEventListener('click', handleClickOutside);
+    });
 
     async function getMarketData() {
         //if (listing == null) {
@@ -182,6 +209,77 @@
 </script>
 <div class="shadow-md p-3 rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative overflow-hidden h-full"
     class:hidden={hidden} class:p-3={format !== 'small'}>
+    <div class="absolute top-2 right-2 cursor-pointer z-10" on:click|stopPropagation|preventDefault={toggleMenu}>
+      <div class="rounded-full w-10 h-10 bg-gray-200 dark:bg-gray-800 p-2 text-center border border-gray-500 hover:border-gray-300 dark:hover:bg-gray-700 shadow-md hover:shadow-lg transition duration-200 ease-in-out">
+        <i class="fas fa-ellipsis-v text-xl text-gray-500 dark:text-gray-300"></i>
+      </div>
+    </div>
+    {#if showMenu}
+        <div class="absolute top-10 right-2 border border-gray-300 shadow-lg flex flex-col z-10 bg-gray-200 dark:bg-gray-900" bind:this={menuRef}>
+            {#if isTokenOwner || isTokenApproved}
+                <div class="text-sm justify-self-end flex flex-col space-y-2 m-1 {format === 'small' ? '' : 'min-w-48 md:flex-col'}">
+                    <button on:click={sendToken} class="flex flex-row items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800  transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
+                        <i class="fas fa-paper-plane mr-2"></i>
+                        <div class="w-full place-content-center">
+                            Transfer
+                        </div>
+                    </button>
+                    {#if isTokenOwner}
+                        <button on:click={approveToken} class="flex flex-row items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out min-h-14 w-full" class:rounded={format !== 'small'}>
+                            <i class="fas fa-coins mr-2"></i>
+                            <div class="w-full place-content-center">
+                                {#if token.approved != zeroAddress}
+                                    Change
+                                {:else}
+                                    Set
+                                {/if}
+                                Approval
+                            </div>
+                        </button>
+                    {/if}
+                    <button class="hidden flex-row sm:items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out min-h-14 w-full" class:rounded={format !== 'small'}>
+                        <i class="fas fa-tag mr-2"></i>
+                        List
+                    </button>
+                    {#if !listing}
+                        <button on:click={listToken} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
+                            <i class="fas fa-shopping-cart mr-2"></i>
+                            <div class="flex-col">
+                                <div class="flex flex-row place-content-center">
+                                    <div>Sell on</div>
+                                </div>
+                                <div class="flex flex-row">
+                                    <img src={NautilusLogo} class="w-24 ml-1" />
+                                </div>
+                            </div>
+                        </button>
+                    {:else}
+                        <button on:click={cancelListing} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
+                            <i class="fas fa-x mr-2"></i>
+                            <div class="flex-col justify-center w-full">
+                                <div>Cancel</div>
+                                <div>Listing</div>
+                            </div>
+                        </button>
+                    {/if}
+                </div>
+            {:else if listing && !listing.sale && !listing.delete && $selectedWallet}
+                <div class="flex flex-col justify-start items-center">
+                    <button on:click={buyToken} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
+                            <i class="fas fa-shopping-cart mr-2"></i>
+                            <div class="flex-col">
+                                <div class="flex flex-row place-content-center">
+                                    <div>Buy from</div>
+                                </div>
+                                <div class="flex flex-row">
+                                    <img src={NautilusLogo} class="w-24 ml-1" />
+                                </div>
+                            </div>
+                    </button>
+                </div>
+            {/if}
+        </div>
+    {/if}
     <div class="flex flex-col md:flex-row items-center md:items-start h-full" class:space-x-4={format !== 'small'} class:md:flex-col={format === 'small'}>
         {#if token.isBurned}
             <div class="relative overflow-hidden place-self-center bg-white dark:bg-gray-900" class:rounded-xl={format !== 'small'}>
@@ -285,68 +383,6 @@
                     </div>
                 </div>
             {/if}
-            {#if isTokenOwner || isTokenApproved}
-                <div class="text-sm justify-self-end flex flex-row space-x-2 {format === 'small' ? 'space-y-0 md:space-x-1 bg-black' : 'm-1 md:space-y-2 md:space-x-0 min-w-48 md:flex-col'}">
-                    <button on:click={sendToken} class="flex flex-row items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800  transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
-                        <i class="fas fa-paper-plane mr-2"></i>
-                        <div class="w-full place-content-center">
-                            Transfer
-                        </div>
-                    </button>
-                    {#if isTokenOwner}
-                        <button on:click={approveToken} class="flex flex-row items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out min-h-14 w-full" class:rounded={format !== 'small'}>
-                            <i class="fas fa-coins mr-2"></i>
-                            <div class="w-full place-content-center">
-                                {#if token.approved != zeroAddress}
-                                    Change
-                                {:else}
-                                    Set
-                                {/if}
-                                Approval
-                            </div>
-                        </button>
-                    {/if}
-                    <button class="hidden flex-row sm:items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out min-h-14 w-full" class:rounded={format !== 'small'}>
-                        <i class="fas fa-tag mr-2"></i>
-                        List
-                    </button>
-                    {#if !listing}
-                        <button on:click={listToken} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
-                            <i class="fas fa-shopping-cart mr-2"></i>
-                            <div class="flex-col">
-                                <div class="flex flex-row place-content-center">
-                                    <div>Sell on</div>
-                                </div>
-                                <div class="flex flex-row">
-                                    <img src={NautilusLogo} class="w-24 ml-1" />
-                                </div>
-                            </div>
-                        </button>
-                    {:else}
-                        <button on:click={cancelListing} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
-                            <i class="fas fa-x mr-2"></i>
-                            <div class="flex-col justify-center w-full">
-                                <div>Cancel</div>
-                                <div>Listing</div>
-                            </div>
-                        </button>
-                    {/if}
-                </div>
-            {:else if listing && !listing.sale && !listing.delete && $selectedWallet}
-                <div class="flex flex-col justify-start items-center">
-                    <button on:click={buyToken} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
-                            <i class="fas fa-shopping-cart mr-2"></i>
-                            <div class="flex-col">
-                                <div class="flex flex-row place-content-center">
-                                    <div>Buy from</div>
-                                </div>
-                                <div class="flex flex-row">
-                                    <img src={NautilusLogo} class="w-24 ml-1" />
-                                </div>
-                            </div>
-                    </button>
-                </div>
-            {/if}
         </div>
     </div>
     {#if format !== 'small'}
@@ -360,10 +396,10 @@
     {/if}
 </div>
 {#if showSendTokenModal}
-    <SendTokenModal bind:showModal={showSendTokenModal} bind:type={sendTokenModalType} token={token} onAfterSend={onAfterSend} fromAddr={$selectedWallet?.address??''} />
+    <SendTokenModal bind:showModal={showSendTokenModal} bind:type={sendTokenModalType} bind:token={token} onAfterSend={onAfterSend} fromAddr={$selectedWallet?.address??''} />
 {/if}
 {#if showBuyTokenModal && listing}
-    <BuyTokenModal bind:showModal={showBuyTokenModal} token={token} listing={listing} onAfterSend={onAfterSend} fromAddr={$selectedWallet?.address??''} />
+    <BuyTokenModal bind:showModal={showBuyTokenModal} bind:token={token} listing={listing} onAfterSend={onAfterSend} fromAddr={$selectedWallet?.address??''} />
 {/if}
 {#if showListTokenModal}
     <ListTokenModal bind:showModal={showListTokenModal} bind:token={token} onAfterSend={onAfterSend} fromAddr={$selectedWallet?.address??''} />

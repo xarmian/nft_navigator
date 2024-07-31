@@ -123,7 +123,6 @@
                     while (owner === newOwner && i < 10) {
                         await new Promise(r => setTimeout(r, 1000));
                         t = await getTokens({contractId: token.contractId, tokenId: token.tokenId, invalidate: true});
-                        token = t[0];
                         newOwner = t[0].owner;
                         i++;
                     }
@@ -135,12 +134,12 @@
                     while (approved === newApproved && i < 10) {
                         await new Promise(r => setTimeout(r, 1000));
                         t = await getTokens({contractId: token.contractId, tokenId: token.tokenId, invalidate: true});
-                        token = t[0];
                         newApproved = t[0].approved;
                         i++;
                     }
                 }
 
+                if (t && t.length > 0) token = t[0];
                 sendingView = SendingView.Sent;
 
                 // submit POST to /api/quests to record action

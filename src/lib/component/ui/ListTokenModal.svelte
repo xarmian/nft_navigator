@@ -121,11 +121,11 @@
                 while (approved === newApproved && i < 30) {
                     await new Promise(r => setTimeout(r, 1000));
                     t = await getTokens({contractId: token.contractId, tokenId: token.tokenId, invalidate: true});
-                    token = t[0];
                     newApproved = t[0].approved;
                     i++;
                 }
 
+                if (t && t.length > 0) token = t[0];
                 sendingView = SendingView.Sent;
 
                 // submit POST to /api/quests to record action
