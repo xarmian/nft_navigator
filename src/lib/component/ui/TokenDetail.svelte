@@ -35,6 +35,7 @@
     let hidden = false;
     let showMenu = false;
     let menuRef: HTMLElement | null = null;
+	let windowDefined = false;
 
     $: imageUrl = (token) ? getTokenImageUrl(token,((format == 'small') ? 240 : 480)) : '';
 
@@ -44,9 +45,9 @@
         showMenu = !showMenu;
 
         if (showMenu) {
-            document.addEventListener('click', handleClickOutside);
+            if (windowDefined) document.addEventListener('click', handleClickOutside);
         } else {
-            document.removeEventListener('click', handleClickOutside);
+            if (windowDefined) document.removeEventListener('click', handleClickOutside);
         }
 
         return false;
@@ -56,12 +57,16 @@
         const target = event.target as Node;
         if (menuRef && !menuRef.contains(target)) {
             showMenu = false;
-            document.removeEventListener('click', handleClickOutside);
+            if (windowDefined) document.removeEventListener('click', handleClickOutside);
         }
     }
 
+    onMount(() => {
+        windowDefined = typeof window !== 'undefined';
+    })
+
     onDestroy(() => {
-        document.removeEventListener('click', handleClickOutside);
+        if (windowDefined) document.removeEventListener('click', handleClickOutside);
     });
 
     async function getMarketData() {
