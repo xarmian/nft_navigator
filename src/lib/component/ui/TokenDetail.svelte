@@ -248,27 +248,21 @@
                         <i class="fas fa-tag mr-2"></i>
                         List
                     </button>
-                    {#if !listing}
-                        <button on:click={listToken} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
-                            <i class="fas fa-shopping-cart mr-2"></i>
-                            <div class="flex-col">
-                                <div class="flex flex-row place-content-center">
+                    <button on:click={listToken} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
+                        <i class="fas fa-shopping-cart mr-2"></i>
+                        <div class="flex-col">
+                            <div class="flex flex-row place-content-center">
+                                {#if listing}
+                                    <div>Update/Cancel</div>
+                                {:else}
                                     <div>Sell on</div>
-                                </div>
-                                <div class="flex flex-row">
-                                    <img src={NautilusLogo} class="w-24 ml-1" />
-                                </div>
+                                {/if}
                             </div>
-                        </button>
-                    {:else}
-                        <button on:click={cancelListing} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
-                            <i class="fas fa-x mr-2"></i>
-                            <div class="flex-col justify-center w-full">
-                                <div>Cancel</div>
-                                <div>Listing</div>
+                            <div class="flex flex-row">
+                                <img src={NautilusLogo} class="w-24 ml-1" />
                             </div>
-                        </button>
-                    {/if}
+                        </div>
+                    </button>
                 </div>
             {:else if listing && !listing.sale && !listing.delete && $selectedWallet}
                 <div class="flex flex-col justify-start items-center">
@@ -409,7 +403,7 @@
     <BuyTokenModal bind:showModal={showBuyTokenModal} bind:token={token} listing={listing} onAfterSend={onAfterSend} fromAddr={$selectedWallet?.address??''} />
 {/if}
 {#if showListTokenModal}
-    <ListTokenModal bind:showModal={showListTokenModal} bind:token={token} onAfterSend={onAfterSend} fromAddr={$selectedWallet?.address??''} />
+    <ListTokenModal bind:showModal={showListTokenModal} bind:token={token} listing={listing} onAfterSend={onAfterSend} fromAddr={$selectedWallet?.address??''} />
 {/if}
 <style>
     a {
