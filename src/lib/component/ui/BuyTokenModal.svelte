@@ -146,7 +146,7 @@
                 }*/
 
                 invalidateAll();
-                
+                onAfterSend(token);
             }
             catch(err: any) {
                 console.log(err);
