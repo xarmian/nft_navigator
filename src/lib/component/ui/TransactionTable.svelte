@@ -65,7 +65,22 @@
         return addr.length > 16 ? `${addr.slice(0, 8)}...${addr.slice(-8)}` : addr;
     }
 
-    onMount(async () => {
+    onMount(() => {
+        loadData();
+    });
+
+    function refreshTable() {
+        transfers = [];
+        filteredTransfers = [];
+        paginatedTransfers = [];
+        nfdMap = {};
+        showTxModal = false;
+        selectedTx = null;
+        currentPage = 1;
+        loadData();
+    }
+
+    async function loadData() {
         let tokenId: string | undefined = token?.tokenId ? String(token.tokenId) : undefined;
         let contractId: string | undefined = token?.contractId ? String(token.contractId) : undefined;
 
@@ -90,7 +105,7 @@
             acc[n.key] = n.replacementValue;
             return acc;
         }, {}); 
-    });
+    }
 
 </script>
 <div class="flex flex-col md:flex-row shadow-2xl rounded-xl bg-opacity-0 bg-black dark:bg-white dark:bg-opacity-10 my-2">
@@ -121,7 +136,12 @@
                             <div>Sale Price</div>
                             <Switch label="" bind:checked={showOnlySales} title="Toggle only marketplace sales"></Switch> 
                         </th>
-                        <th></th>
+                        <th>
+                            <button class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-14" on:click={refreshTable}>
+                                <i class="fas fa-sync-alt" aria-details="Refresh"></i>
+                                <div class="text-xs">Refresh</div>
+                            </button>
+                        </th>
                     </tr>
                 </thead>
                 <tbody class="bg-white dark:bg-gray-700 divide-y text-left">
@@ -136,7 +156,7 @@
                             <td class="px-4 py-3">
                                 {#if transfer.token}
                                     <TokenIcon token={transfer.token}></TokenIcon>
-                                    <div class="text-xs">{transfer.token.metadata.name}</div>
+                                    <div class="text-xs">{transfer.token.metadata?.name??''}</div>
                                 {:else}
                                     {transfer.tokenId}
                                 {/if}
