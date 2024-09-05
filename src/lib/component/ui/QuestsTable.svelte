@@ -52,23 +52,31 @@
     ]
 
     onMount(async () => {
+        loadData();
+     
+        loading = false;
+    });
+
+    async function loadData() {
         const { data, error } = await supabasePublicClient
             .from('actions')
             .select('*')
             .eq('address', wallet);
 
-            console.log(data);
-
         if (error) {
             console.error('Failed to fetch quests', error);
         }
         else {
-            console.log('Fetched quests', data);
             completedActions = [...new Set(data.map(item => item.action))];
         }
+    }
 
-        loading = false;
-    });
+    // if wallet changes, reload the data
+    $: {
+        if (wallet) {
+            loadData();
+        }
+    }
 
 </script>
 <p class="">Complete quests to earn Voi during the <a target="_blank" class="text-blue-500 hover:text-blue-400" href="https://medium.com/@voifoundation/phase-2-of-the-incentivised-testnet-bf32d880e8f4">Voiage to Mainnet!</a></p>

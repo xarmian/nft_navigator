@@ -69,6 +69,13 @@
         loadData();
     });
 
+    // if owner changes, reload the data
+    $: {
+        if (owner) {
+            loadData();
+        }
+    }
+
     function refreshTable() {
         transfers = [];
         filteredTransfers = [];
@@ -89,7 +96,7 @@
         tokenList = Array.from(new Set(transfers
             .map(t => t.token)
             .filter((t: Token | null | undefined): t is Token => t !== null && t !== undefined)));
-        tokenList = tokenList.filter((t, i) => i === tokenList.findIndex(tt => tt.contractId === t.contractId && tt.tokenId === t.tokenId)).sort((a, b) => a.metadata.name.localeCompare(b.metadata.name));
+        tokenList = tokenList.filter((t, i) => i === tokenList.findIndex(tt => tt.contractId === t.contractId && tt.tokenId === t.tokenId)).sort((a, b) => (a.metadata?.name ?? '').localeCompare(b.metadata?.name ?? ''));
 
         // get NFDs
         let addresses = new Set();
