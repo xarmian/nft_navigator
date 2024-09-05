@@ -88,7 +88,7 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
     }
 
     if (!params.fetch) params.fetch = fetch;
-    
+
     let url = `${indexerBaseURL}/tokens`;
 
     const paramsArray = [];
@@ -119,6 +119,8 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
                 //console.error(e);
             }
 
+            const marketData = null;
+
             return {
                 contractId: token.contractId,
                 tokenId: token.tokenId,
@@ -129,7 +131,7 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
                 metadata: metadata,
                 mintRound: token['mint-round'],
                 approved: token.approved,
-                marketData: null,
+                marketData: marketData,
                 salesData: null,
                 rank: null,
                 traits: (metadata) ? Object.entries(metadata.properties).map(([key, value]) => key + ': ' + value) : [],
@@ -294,7 +296,7 @@ export const getSales = async (params: { contractId?: string, tokenId?: string, 
         paramsArray.push(['tokenId', tokenId]);
     }
     if (user) {
-        paramsArray.push(['buyer', user]);
+        paramsArray.push(['user', user]);
     }
     if (sortBy) {
         paramsArray.push(['sort', sortBy]);
