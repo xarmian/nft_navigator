@@ -116,7 +116,10 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
             try {
                 metadata = JSON.parse(token.metadata);
             } catch (e) {
-                //console.error(e);
+                metadata = {};
+            }
+            if (metadata == null) {
+                metadata = {};
             }
 
             const marketData = null;
@@ -134,7 +137,7 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
                 marketData: marketData,
                 salesData: null,
                 rank: null,
-                traits: (metadata) ? Object.entries(metadata.properties).map(([key, value]) => key + ': ' + value) : [],
+                traits: (metadata && metadata.properties) ? Object.entries(metadata.properties).map(([key, value]) => key + ': ' + value) : [],
                 isBurned: token.isBurned,
             };
         });
@@ -209,8 +212,12 @@ export const getCollections = async (params: getCollectionsParams): Promise<Coll
             hfprojects.forEach((p: IHighforgeProject) => {
                 if (c.contractId === p.applicationID) {
                     if (c.firstToken) {
-                        const metadata = JSON.parse(c.firstToken.metadata);
-                        c.firstToken.metadata = JSON.stringify({ ...metadata, image: p.coverImageURL });
+                        try {
+                            const metadata = JSON.parse(c.firstToken.metadata);
+                            c.firstToken.metadata = JSON.stringify({ ...metadata, image: p.coverImageURL });
+                        } catch (e) {
+                            c.firstToken.metadata = JSON.stringify({ });
+                        }
                     }
                     c.highforgeData = p;
                 }

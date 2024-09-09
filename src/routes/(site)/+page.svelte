@@ -48,7 +48,11 @@
             }
 
             filterCollections = filterCollections.filter((c: Collection) => {
-                return JSON.parse(c.firstToken?.metadata??"{}")?.name?.toLowerCase().includes(textFilter.toLowerCase());
+                try {
+                    return JSON.parse(c.firstToken?.metadata??"{}")?.name?.toLowerCase().includes(textFilter.toLowerCase());
+                } catch (e) {
+                    return {};
+                }
             });
 
             // apply sort.by and sort.direction to filterCollections

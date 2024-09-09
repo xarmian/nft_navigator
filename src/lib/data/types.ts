@@ -1,3 +1,5 @@
+import type { AggregatedNFD } from "$lib/utils/nfd";
+
 // types.ts
 export interface Token {
 	ownerAvatar?: string | null;
@@ -96,6 +98,7 @@ export interface Listing {
     createTimestamp: number;
     sale: null | Sale;
     delete: null | object;
+    source: string | null; // arcpay, nautilus, etc. null will be nautilus for now    
 }
 
 export interface Sale {
@@ -146,7 +149,7 @@ export type NMessage = {
     timestamp: string;
     private: boolean;
     collectionId: string;
-    nfd?: any;
+    nfd?: AggregatedNFD;
     comments?: NComment[];
     reactions?: number[];
     reactions_json?: { [key: number]: string } | undefined;
@@ -160,7 +163,7 @@ export type NComment = {
     walletId: string;
     comment: string;
     timestamp: string;
-    nfd?: any;
+    nfd?: AggregatedNFD;
     reactions?: number[];
     reactions_json?: { [key: number]: string } | undefined;
     mcr?: NReaction[];

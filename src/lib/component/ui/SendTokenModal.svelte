@@ -16,7 +16,8 @@
 	import { invalidateAll } from '$app/navigation';
 
     export let showModal: boolean;
-    export let token: Token;
+    export let token: Token | null = null;
+    export let tokens: Token[] = [];
     export let fromAddr: string;
     export let type: string = 'send'; // send or approve or revoke
 
@@ -33,16 +34,19 @@
     }
 
     let sendingView: SendingView = SendingView.Presend;
+    if (tokens.length == 0 && token) tokens = [token];
     
     let transferTo = '';
     let transferToNFD = '';
-    let tokenName = reformatTokenName(token.metadata?.name??'', token.tokenId);
+    let tokenName = (tokens[0]) ? reformatTokenName(tokens[0].metadata?.name??'', tokens[0].tokenId) : ``;
 
     let selectedVoiBalance: number;
     let selectedNFTCount: number;
     let sendingError: string = '';
     let transactionId: string = '';
-    $: imageUrl = (token && token.metadataURI) ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(token.metadataURI)}?w=240` : token?.metadata?.image;
+    let sentCount = 0;
+    $: imageUrl = (tokens[0] && tokens[0].metadataURI) ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(tokens[0].metadataURI)}?w=240` : tokens[0]?.metadata?.image;
+
 
     $: if (transferTo && transferTo.length > 0) {
         updateBalances();
@@ -89,51 +93,69 @@
         }
 
         sendingView = SendingView.Sending;
-        const contract = new Contract(token.contractId, algodClient, algodIndexer, opts);
-        let resp;
-        if (type == 'send') {
-            resp = await contract.arc72_transferFrom(token.owner, transferTo, BigInt(token.tokenId), true, true);
-        }
-        else {
-            resp = await contract.arc72_approve(transferTo, Number(token.tokenId), true, true);
-        }
 
-        if (resp && resp.success) {
-            const txnsForSigning = resp.txns;
-            const decodedTxns: algosdk.Transaction[] = [];
+        try {
+            for (let i = 0; i < tokens.length; i++) {
+                sentCount++;
+                let resp;
 
-            // base64 decode signed transactions
-            for (let i = 0; i < txnsForSigning.length; i++) {
-                const bytes = Buffer.from(txnsForSigning[i],'base64');
-                let tx = algosdk.decodeUnsignedTransaction(bytes);
-                transactionId = tx.txID();
-                decodedTxns.push(tx);
-            }
-            
-            try {
-                const status = await signAndSendTransactions([decodedTxns]);
-                console.log('signing status', status);
-                sendingView = status ? SendingView.Waiting : SendingView.Error;
-                let t = null;
-
+                const contract = new Contract(tokens[i].contractId, algodClient, algodIndexer, opts);
                 if (type == 'send') {
-                    let owner = token.owner;
+                    resp = await contract.arc72_transferFrom(tokens[i].owner, transferTo, BigInt(tokens[i].tokenId), true, true);
+                }
+                else {
+                    resp = await contract.arc72_approve(transferTo, Number(tokens[i].tokenId), true, true);
+                }
+
+                if (resp && resp.success) {
+                    const decodedTxns: algosdk.Transaction[] = [];
+                    const txnsForSigning = resp.txns;
+
+                    // base64 decode signed transactions
+                    for (let i = 0; i < txnsForSigning.length; i++) {
+                        const bytes = Buffer.from(txnsForSigning[i],'base64');
+                        let tx = algosdk.decodeUnsignedTransaction(bytes);
+                        transactionId = tx.txID();
+                        decodedTxns.push(tx);
+                    }
+
+                    const status = await signAndSendTransactions([decodedTxns]);
+                    sendingView = status ? SendingView.Waiting : SendingView.Error;
+                    if (!status) {
+                        sendingError = 'Failed to sign transaction';
+                        return;
+                    }
+                    console.log('signing status', status);
+                }
+                else {
+                    sendingError = resp.error;
+                    sendingView = SendingView.Error;
+                    return;
+                }
+            }
+
+            let t = null;
+
+            if (tokens.length > 0) {
+                const lastToken = tokens[tokens.length - 1];
+                if (type == 'send') {
+                    let owner = lastToken.owner;
                     let newOwner = owner;
                     let i = 0;
                     while (owner === newOwner && i < 10) {
                         await new Promise(r => setTimeout(r, 1000));
-                        t = await getTokens({contractId: token.contractId, tokenId: token.tokenId, invalidate: true});
+                        t = await getTokens({contractId: lastToken.contractId, tokenId: lastToken.tokenId, invalidate: true});
                         newOwner = t[0].owner;
                         i++;
                     }
                 }
                 else {
-                    let approved = token.approved;
+                    let approved = lastToken.approved;
                     let newApproved = approved;
                     let i = 0;
                     while (approved === newApproved && i < 10) {
                         await new Promise(r => setTimeout(r, 1000));
-                        t = await getTokens({contractId: token.contractId, tokenId: token.tokenId, invalidate: true});
+                        t = await getTokens({contractId: lastToken.contractId, tokenId: lastToken.tokenId, invalidate: true});
                         newApproved = t[0].approved;
                         i++;
                     }
@@ -153,7 +175,7 @@
                         detail: {
                             from: fromAddr,
                             to: transferTo,
-                            token: String(token.contractId)+'-'+String(token.tokenId),
+                            token: String(lastToken.contractId)+'-'+String(lastToken.tokenId),
                             transactionId: transactionId,
                         }
                     }),
@@ -172,17 +194,13 @@
                         }, 10000);
                     }
                 }
-                invalidateAll();
                 
-            }
-            catch(err: any) {
-                console.log(err);
-                sendingError = err.message;
-                sendingView = SendingView.Error;
+                invalidateAll();
             }
         }
-        else {
-            sendingError = resp.error;
+        catch(err) {
+            console.error('error sending token', err);
+            sendingError = (err instanceof Error) ? err.message : 'Unknown error';
             sendingView = SendingView.Error;
         }
     }
@@ -197,8 +215,9 @@
     function afterClose() {
         console.log('afterClose');
         if (sendingView === SendingView.Sent) {
-            onAfterSend(token);
+            onAfterSend(token??tokens[0]);
         }
+        showModal = false;
         reset();
         onClose();
     }
@@ -214,37 +233,54 @@
         <div class="flex flex-col w-full">
             {#if sendingView === "presend"}
                 <div class="flex flex-col items-center m-2">
-                    <img src={imageUrl} alt={token.metadata?.name} class="h-20 w-20 object-contain rounded-md"/>
-                    <div class="text-xl font-bold">{tokenName}</div>
-                    <div class="text-sm text-gray-400">{token.contractId}</div>
+                    {#if tokens.length == 1}
+                        <img src={imageUrl} alt={tokens[0].metadata?.name} class="h-20 w-20 object-contain rounded-md"/>
+                        <div class="text-xl font-bold">{tokenName}</div>
+                    {:else if tokens.length > 1}
+                        <div class="text-xl font-bold">Multiple Tokens ({tokens.length})</div>
+                        <div class="max-h-32 overflow-auto p-1 m-1 border-gray-500 bg-gray-200 dark:bg-gray-700 rounded-lg">
+                            {#each tokens as t}
+                                <div class="text-sm text-gray-800 dark:text-gray-300">{reformatTokenName(t.metadata?.name??'', t.tokenId)}</div>
+                            {/each}
+                        </div>
+                    {/if}
+                    <div class="text-sm text-gray-400">{token?.contractId??''}</div>
                 </div>
                 <div class="flex flex-col items-center mt-4">
                     {#if type == 'approve'}
                         <div class="text-xs mb-2 text-gray-400 max-w-96">An approved spender can transfer a token on your behalf. This is often used when listing a token on a marketplace.</div>
                         <div class="mb-2">
                             <div class="text-lg">Current Approved Spender</div>
-                            <div class="text-sm text-gray-400">{token.approved == zeroAddress ? 'None' : `${token.approved.slice(0, 8)}...${token.approved.slice(-8)}`}</div>
+                            <div class="text-sm text-gray-400">{token?.approved == zeroAddress ? 'None' : `${token?.approved.slice(0, 8)}...${token?.approved.slice(-8)}`}</div>
                         </div>
                     {/if}
                     <div class="text-xl font-bold">{type == 'send' ? 'Send to' : 'Change Approved Spender to'}</div>
                     <WalletSearch onSubmit={(v) => transferTo = v} loadPreviousValue={false} showSubmitButton={false} />
                 </div>
-                {#if type == 'approve' && token.approved !== zeroAddress}
+                {#if type == 'approve' && token?.approved !== zeroAddress}
                     <div class="flex flex-col items-center mt-4">
                         <div class="mb-4">or</div>
                         <button on:click={() => revokeApproval()} class="w-64 h-10 bg-blue-500 text-white rounded-md">Revoke Approval</button>
                     </div>
                 {/if}
                 <div class="flex flex-row justify-between mt-4 space-x-2">
-                    <button on:click={() => showModal = false} class="w-52 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
+                    <button on:click={afterClose} class="w-52 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
                     <button on:click={() => { if (transferTo.length > 0) sendingView = SendingView.Confirm; }} class="w-52 h-10 bg-blue-500 text-white rounded-md {transferTo.length == 0 ? 'bg-gray-400 cursor-default' : ''}">Next</button>
                 </div>
             {:else if sendingView === "confirm"}
                 <div class="flex flex-col items-center m-2">
                     <div class="text-lg font-bold">Please confirm the following transaction:</div>
                     <div class="mt-2 flex flex-col items-center">
-                        <img src={imageUrl} alt={token.metadata?.name} class="h-20 w-20 object-contain rounded-md"/>
-                        <div class="text-sm text-gray-800 dark:text-gray-200">{type == 'send' ? 'Send' : 'Change Approval for'} {tokenName} to</div>
+                        {#if tokens.length == 1}
+                            <img src={imageUrl} alt={tokenName} class="h-20 w-20 object-contain rounded-md"/>
+                            <div class="text-sm text-gray-800 dark:text-gray-200">{type == 'send' ? 'Send' : 'Change Approval for'} {tokenName} to</div>
+                        {:else}
+                            <div class="text-sm text-gray-800 dark:text-gray-200">{type == 'send' ? 'Send' : 'Change Approval for'} Multiple Tokens ({tokens.length})</div>
+                            {#each tokens as t}
+                                <div class="text-sm text-gray-400">{reformatTokenName(t.metadata?.name??'', t.tokenId)}</div>
+                            {/each}
+                            <div>to</div>
+                        {/if}
                     </div>
                 </div>
                 <div class="flex flex-col items-center mt-2">
@@ -283,6 +319,9 @@
                         </svg>
                     </div>
                     <div class="mt-2 text-gray-400">Please sign the transaction in your wallet.</div>
+                    {#if sentCount > 0}
+                        <div class="mt-2 text-gray-400">Sending {sentCount} of {tokens.length} tokens.</div>
+                    {/if}
                     <div class="flex flex-col items-center mt-4">
                         <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
                     </div>
@@ -297,6 +336,9 @@
                         </svg>
                     </div>
                     <div class="mt-2 text-gray-400">Transaction signed, awaiting confirmation.</div>
+                    {#if sentCount > 0}
+                        <div class="mt-2 text-gray-400">Sending {sentCount} of {tokens.length} tokens.</div>
+                    {/if}
                     <div class="flex flex-col items-center mt-4">
                         <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
                     </div>
@@ -320,7 +362,7 @@
                         <a href={"https://voi.observer/explorer/transaction/" + transactionId} target="_blank" class="text-xs underline text-blue-500 hover:text-blue-600">{transactionId}</a>
                     </div>
                     <div class="flex flex-row items-center mt-4 space-x-4">
-                        <button on:click={() => showModal = false} class="w-64 h-10 bg-blue-500 text-white rounded-md">Close</button>
+                        <button on:click={afterClose} class="w-64 h-10 bg-blue-500 text-white rounded-md">Close</button>
                     </div>
                 </div>
             {:else if sendingView === "error"}

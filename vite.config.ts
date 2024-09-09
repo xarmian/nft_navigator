@@ -5,7 +5,7 @@ export default defineConfig({
 	plugins: [sveltekit()],
 	define: { global: "globalThis", },
 	ssr: {
-		noExternal: ['three']
+		noExternal: ['three', 'arcpay-sdk', 'algosdk','@txnlab/use-wallet']
 	},
 	/* optimizeDeps: {
 		include: ['avm-wallet-svelte']

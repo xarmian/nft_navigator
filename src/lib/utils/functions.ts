@@ -19,7 +19,7 @@ export function handleScroll(element: HTMLElement) {
 export function getImageUrl(rawUrl: string, width?: number) {
     if (!width) return rawUrl;
     
-    if (rawUrl.includes('prod.cdn.highforge.io')) {
+    if (rawUrl && rawUrl.includes('prod.cdn.highforge.io')) {
         return `https://prod.cdn.highforge.io/i/${encodeURIComponent(rawUrl)}?w=${width}`;
     }
     else {

@@ -12,6 +12,7 @@
 	import { toast } from '@zerodevx/svelte-toast';
 	import type { NFTIndexerListingI } from 'ulujs/types/mp';
 	import { invalidate, invalidateAll } from '$app/navigation';
+	import { onDestroy } from 'svelte';
 
     const TOKEN_WVOI2 = 34099056;
 
@@ -51,10 +52,14 @@
         });
     }
 
-    selectedWallet.subscribe(async (wallet) => {
+    const unsub = selectedWallet.subscribe(async (wallet) => {
         if (wallet && listing) {
             walletBalance = await getWalletBalance(wallet.address, (listing.currency === TOKEN_WVOI2 ? 0 : listing.currency));
         }
+    });
+
+    onDestroy(() => {
+        unsub();
     });
 
     async function buyToken() {
@@ -78,7 +83,7 @@
 
         const resp = await mp.buy(
             fromAddr,  // Address of buyer
-            listing as NFTIndexerListingI,  // NFTIndexerListing
+            listing as Listing,
             c, // ARC200IndexerToken
             opts,
         );

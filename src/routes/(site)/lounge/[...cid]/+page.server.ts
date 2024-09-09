@@ -8,6 +8,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 export const load: PageServerLoad = async ({ params, cookies, url }) => {
   const { cid: route } = params;
+  
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const page = url.searchParams.get('page') ?? 1;
 
   const routeParts = route.split('/');  

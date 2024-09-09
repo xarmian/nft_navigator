@@ -368,7 +368,7 @@
             {:else if sendingView === "error"}
                 <div class="flex flex-col items-center m-2">
                     <div class="text-xl font-bold">Error Listing Token</div>
-                    <div class="mt-2 text-gray-400">There was an error purchasing the token.</div>
+                    <div class="mt-2 text-gray-400">There was an error listing the token.</div>
                     <div class="max-w-96">
                         <div class="mt-2 text-gray-400">{sendingError}</div>
                     </div>

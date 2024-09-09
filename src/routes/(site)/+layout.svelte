@@ -117,6 +117,7 @@
 
 	const options = {
   	}
+
 	//import { Footer, FooterCopyright, FooterLinkGroup, FooterBrand, FooterLink } from 'flowbite-svelte';
 </script>
 
@@ -150,7 +151,7 @@
 				</div>
 				<div class="hidden lg:flex">
 					<div class="w-42 flex">
-						<Web3Wallet availableWallets={['DeflyWallet','Kibisis','LuteWallet']} showAuthButtons={true} algodClient={algodClient} indexerClient={algodIndexer} walletListClass="bg-gray-100 dark:bg-slate-600 dark:text-gray-200"/>
+						<Web3Wallet availableWallets={['DeflyWallet','Kibisis','LuteWallet']} showAuthButtons={true} algodClient={algodClient} indexerClient={algodIndexer} allowWatchAccounts={true} walletListClass="bg-gray-100 dark:bg-slate-600 dark:text-gray-200"/>
 					</div>
 				</div>
 				<div class="ml-auto relative content-end flex flex-row">
@@ -173,7 +174,7 @@
 								<div on:click|stopPropagation>
 									<CollectionSearch />
 								</div>
-								<Web3Wallet availableWallets={['DeflyWallet','Kibisis','LuteWallet']} showAuthButtons={true} algodClient={algodClient} indexerClient={algodIndexer} walletListClass="bg-gray-100 dark:bg-gray-500"/>
+								<Web3Wallet availableWallets={['DeflyWallet','Kibisis','LuteWallet']} showAuthButtons={true} algodClient={algodClient} indexerClient={algodIndexer} allowWatchAccounts={true} walletListClass="bg-gray-100 dark:bg-gray-500"/>
 							</div>
 						{/if}
 					</div>

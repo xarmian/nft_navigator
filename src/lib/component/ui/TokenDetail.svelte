@@ -10,10 +10,12 @@
 	import { onDestroy, onMount } from 'svelte';
 	import algosdk from 'algosdk';
 	import { getTokenImageUrl } from '$lib/utils/functions';
-    import { indexerBaseURL } from '$lib/utils/indexer';
+    import { getTokens, indexerBaseURL } from '$lib/utils/indexer';
 	import BuyTokenModal from './BuyTokenModal.svelte';
     import ListTokenModal from './ListTokenModal.svelte';
     import NautilusLogo from '$lib/assets/nautilus.svg';
+    import { buyToken as buyTokenArcpay, getListings as getListingsArcpay, listToken as listTokenArcpay } from '$lib/arcpay';
+    import type { Listing as AListing } from '$lib/arcpay';
 
     export let token: Token;
     export let collection: Collection | undefined;
@@ -37,6 +39,7 @@
     let showMenu = false;
     let menuRef: HTMLElement | null = null;
 	let windowDefined = false;
+    let waitingForConfirmationModal = false;
 
     $: imageUrl = (token) ? getTokenImageUrl(token,((format == 'small') ? 240 : 480)) : '';
 
@@ -64,7 +67,9 @@
 
     onMount(() => {
         windowDefined = typeof window !== 'undefined';
-    })
+
+        token = token;
+    });
 
     onDestroy(() => {
         if (windowDefined) document.removeEventListener('click', handleClickOutside);
@@ -76,23 +81,52 @@
                 listing = token.marketData;
             }
             else {
-                const marketUrl = `${indexerBaseURL}/mp/listings/?collectionId=${token.contractId}&tokenId=${token.tokenId}&active=true`;
-                try {
-                    const marketData = await fetch(marketUrl).then((response) => response.json());
-                    if (marketData.listings.length > 0) {
-                        const marketToken = marketData.listings[0];
-                        if (marketToken && !marketToken.sale) {
-                            // check if token owner == marketToken.seller and mpContract id still approved to sell token
-                            if (token.owner === marketToken.seller && token.approved === algosdk.getApplicationAddress(Number(marketToken.mpContractId))) {
-                                listing = marketToken;
-                            }
+                // get arcpay listings
+                const arcpayListings: AListing[] = await getListingsArcpay(token, true);
+                if (arcpayListings.length > 0) {
+                    //listing = arcpayListings[0];
+                    const l: AListing = arcpayListings[0];
+
+                    if (l.status === 'active' || l.status === 'pending') {
+                        let c = await getCurrency(Number(l.currency));
+                        
+                        if (c) {
+                            // map arcpay listing to marketData
+                            listing = {
+                                transactionId: l.id,
+                                mpContractId: l.app_id,
+                                mpListingId: 0,
+                                collectionId: Number(l.asset_id.split('/')[0]),
+                                tokenId: Number(l.asset_id.split('/')[1]),
+                                seller: '',
+                                price: l.sales[0].price * Math.pow(10, c.decimals),
+                                currency: Number(l.currency),
+                                sale: null,
+                                delete: null,
+                                createTimestamp: Math.floor(new Date(l.created_at).getTime() / 1000),
+                                source: 'arcpay',
+                            };
                         }
                     }
                 }
-                catch (e) {
-                    console.error(e);
+                else {
+                    const marketUrl = `${indexerBaseURL}/mp/listings/?collectionId=${token.contractId}&tokenId=${token.tokenId}&active=true`;
+                    try {
+                        const marketData = await fetch(marketUrl).then((response) => response.json());
+                        if (marketData.listings.length > 0) {
+                            const marketToken = marketData.listings[0];
+                            if (marketToken && !marketToken.sale) {
+                                // check if token owner == marketToken.seller and mpContract id still approved to sell token
+                                if (token.owner === marketToken.seller && token.approved === algosdk.getApplicationAddress(Number(marketToken.mpContractId))) {
+                                    listing = marketToken;
+                                }
+                            }
+                        }
+                    }
+                    catch (e) {
+                        console.error(e);
+                    }
                 }
-
             }
         //}
 
@@ -212,6 +246,59 @@
         showListTokenModal = true;
     }
 
+    async function listArcpay() {
+        const txId = await listTokenArcpay(token);
+        waitingForConfirmationModal = true;
+
+        if (txId !== undefined) {
+            let count = 0;
+            const interval = setInterval(async () => {
+                const tokenChk = (await getTokens({ contractId: token.contractId, tokenId: token.tokenId, invalidate: true }))[0];
+                if (tokenChk.approved !== zeroAddress) {
+                    token = tokenChk;
+                    waitingForConfirmationModal = false;
+                    clearInterval(interval);
+                } else {
+                    count++;
+                    if (count === 12) {
+                        token = tokenChk;
+                        waitingForConfirmationModal = false;
+                        clearInterval(interval);
+                    }
+                }
+            }, 2000);
+        }
+    }
+
+    async function buyArcpay(evt: Event) {
+        if (listing && listing.source === 'arcpay') {
+            const txId = await buyTokenArcpay(listing?.transactionId);
+            waitingForConfirmationModal = true;
+
+            if (txId !== undefined) {
+                let count = 0;
+                const interval = setInterval(async () => {
+                    const tokenChk = (await getTokens({ contractId: token.contractId, tokenId: token.tokenId, invalidate: true }))[0];
+                    if (tokenChk.approved === zeroAddress) {
+                        token = tokenChk;
+                        waitingForConfirmationModal = false;
+                        clearInterval(interval);
+                    } else {
+                        count++;
+                        if (count === 12) {
+                            token = tokenChk;
+                            waitingForConfirmationModal = false;
+                            clearInterval(interval);
+                        }
+                    }
+                }, 2000);
+            }
+        }
+
+        evt.preventDefault();
+        return false;
+    }
+
 </script>
 <div class="shadow-md p-3 rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative overflow-hidden h-full"
     class:hidden={hidden} class:p-3={format !== 'small'}>
@@ -249,35 +336,72 @@
                         <i class="fas fa-tag mr-2"></i>
                         List
                     </button>
-                    <button on:click={listToken} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
-                        <i class="fas fa-shopping-cart mr-2"></i>
-                        <div class="flex-col">
-                            <div class="flex flex-row place-content-center">
-                                {#if listing}
-                                    <div>Update/Cancel</div>
-                                {:else}
-                                    <div>Sell on</div>
-                                {/if}
-                            </div>
-                            <div class="flex flex-row">
-                                <img src={NautilusLogo} class="w-24 ml-1" />
-                            </div>
-                        </div>
-                    </button>
-                </div>
-            {:else if listing && !listing.sale && !listing.delete && $selectedWallet}
-                <div class="flex flex-col justify-start items-center">
-                    <button on:click={buyToken} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
+                    {#if !listing || (listing && listing.source === 'arcpay')}
+                        <button on:click={listArcpay} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
                             <i class="fas fa-shopping-cart mr-2"></i>
                             <div class="flex-col">
                                 <div class="flex flex-row place-content-center">
-                                    <div>Buy from</div>
+                                    {#if listing}
+                                        <div>Update Listing</div>
+                                    {:else}
+                                        <div>Sell on NFT Navigator</div>
+                                    {/if}
+                                </div>
+                            </div>
+                        </button>
+                        {#if listing}
+                            <button on:click={cancelListing} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
+                                <i class="fas fa-shopping-cart mr-2"></i>
+                                <div class="flex-col">
+                                    <div class="flex flex-row place-content-center">
+                                        Cancel Listing
+                                    </div>
+                                </div>
+                            </button>
+                        {/if}
+                    {/if}
+                    {#if !listing || (listing && listing.source !== 'arcpay')}
+                        <button on:click={listToken} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
+                            <i class="fas fa-shopping-cart mr-2"></i>
+                            <div class="flex-col">
+                                <div class="flex flex-row place-content-center">
+                                    {#if listing}
+                                        <div>Update/Cancel</div>
+                                    {:else}
+                                        <div>Sell on</div>
+                                    {/if}
                                 </div>
                                 <div class="flex flex-row">
                                     <img src={NautilusLogo} class="w-24 ml-1" />
                                 </div>
                             </div>
-                    </button>
+                        </button>
+                    {/if}
+                </div>
+            {:else if listing && !listing.sale && !listing.delete && $selectedWallet}
+                <div class="flex flex-col justify-start items-center">
+                    {#if listing.source !== 'arcpay'}
+                        <button on:click={buyToken} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
+                                <i class="fas fa-shopping-cart mr-2"></i>
+                                <div class="flex-col">
+                                    <div class="flex flex-row place-content-center">
+                                        <div>Buy from</div>
+                                    </div>
+                                    <div class="flex flex-row">
+                                        <img src={NautilusLogo} class="w-24 ml-1" />
+                                    </div>
+                                </div>
+                        </button>
+                    {:else}
+                        <button on:click={buyArcpay} class="flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
+                            <i class="fas fa-shopping-cart mr-2"></i>
+                            <div class="flex-col">
+                                <div class="flex flex-row place-content-center">
+                                    Buy on NFT Navigator
+                                </div>
+                            </div>
+                        </button>
+                    {/if}
                 </div>
             {/if}
         </div>
@@ -297,13 +421,23 @@
             <a href="/collection/{token.contractId}/token/{token.tokenId}" class="relative overflow-hidden place-self-center" class:rounded-xl={format !== 'small'} >
                 <img src={imageUrl} class="{format === 'small' ? 'w-72 h-72' : 'w-96'} object-contain" />
                 {#if listing && !listing.sale && !listing.delete}
-                    <a href="https://nautilus.sh/#/collection/{token.contractId}/token/{token.tokenId}" on:click|stopPropagation target="_blank" class="absolute top-0 right-0 p-1 text-white rounded-full text-nowrap" title="View on Marketplace">
-                        {#if currency}
-                            <div class="badge top-right"><div>For Sale</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}</div></div>
-                        {:else}
-                            <div class="badge top-right"><div>For Sale</div><div class="text-xxs">See Marketplace</div></div>
-                        {/if}
-                    </a>
+                    {#if listing.source === 'arcpay'}
+                        <button on:click|stopPropagation|preventDefault={buyArcpay} class="absolute top-0 right-0 p-1 text-white rounded-full text-nowrap" title="Buy on NFT Navigator">
+                            {#if currency}
+                                <div class="badge top-right"><div>For Sale</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}</div></div>
+                            {:else}
+                                <div class="badge top-right"><div>For Sale</div><div class="text-xxs">See Marketplace</div></div>
+                            {/if}
+                        </button>
+                    {:else}
+                        <a href="https://nautilus.sh/#/collection/{token.contractId}/token/{token.tokenId}" on:click|stopPropagation target="_blank" class="absolute top-0 right-0 p-1 text-white rounded-full text-nowrap" title="View on Marketplace">
+                            {#if currency}
+                                <div class="badge top-right"><div>For Sale</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}</div></div>
+                            {:else}
+                                <div class="badge top-right"><div>For Sale</div><div class="text-xxs">See Marketplace</div></div>
+                            {/if}
+                        </a>
+                    {/if}
                 {/if}
                 {#if showOwnerIcon && token.owner == $selectedWallet?.address}
                     <div class="absolute top-0 left-0 p-1 text-green-500 text-3xl" title='Owned by You'>
@@ -405,6 +539,16 @@
 {/if}
 {#if showListTokenModal}
     <ListTokenModal bind:showModal={showListTokenModal} bind:token={token} listing={listing} onAfterSend={onAfterSend} fromAddr={$selectedWallet?.address??''} />
+{/if}
+{#if waitingForConfirmationModal}
+    <div class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg">
+            <div class="text-center">
+                <div class="text-2xl font-bold text-red-500">Waiting for Confirmation</div>
+                <div class="text-lg">Please wait while the token information is refreshed.</div>
+            </div>
+        </div>
+    </div>
 {/if}
 <style>
     a {
