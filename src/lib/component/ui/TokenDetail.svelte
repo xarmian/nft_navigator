@@ -162,8 +162,8 @@
 
             // map token.metadata.properties object of the form {"BACKGROUND":"Aquamarine","BODY":"Red","ON BODY":"Scar"}
             // to an array of objects of the form {trait_type: "BACKGROUND", value: "Aquamarine"}
-            if (token.metadata) {
-                tokenProps = Object.keys(token.metadata.properties).map((key) => {
+            if (token.metadata && token.metadata.properties) {
+                tokenProps = Object.keys(token.metadata?.properties).map((key) => {
                     if (token.metadata) {
                         const colors = propColor(token.metadata.properties[key as keyof typeof token.metadata.properties]);
                         return { trait_type: key, value: token.metadata.properties[key as keyof typeof token.metadata.properties], fgcolor: colors[1], bgcolor: colors[0]};
