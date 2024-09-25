@@ -96,7 +96,7 @@
 
 <MetaTags title="Home | NFT Navigator" />
 <div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-bold mb-8 text-center">Discover NFTs on Voi Network</h1>
+    <h1 class="text-4xl font-bold my-8 text-center">Discover NFTs on Voi Network</h1>
 
     <div class="mb-8">
         <SecondaryNavBar />
