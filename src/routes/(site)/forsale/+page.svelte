@@ -107,6 +107,9 @@
     </div>
 </div>
 <div class="pb-16">
+    {#if filterTokens.length == 0}
+        <div class="text-center text-gray-500">No tokens found for sale with the current filters</div>
+    {/if}
     <div class="flex flex-wrap justify-center">
         {#each filterTokens.slice(0, displayCount) as token (String(token.contractId) + '_' + String(token.tokenId))}
             <div class="inline-block m-2">

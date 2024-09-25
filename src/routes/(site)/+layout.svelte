@@ -11,6 +11,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { Confetti } from 'svelte-confetti';
 	import { showConfetti } from '../../stores/collection';
+	import { fly } from 'svelte/transition';
 
 	let showMenu = false;
 	let currentPath = '';
@@ -121,101 +122,80 @@
 	//import { Footer, FooterCopyright, FooterLinkGroup, FooterBrand, FooterLink } from 'flowbite-svelte';
 </script>
 
-<div class="app dark:text-white">
-	<header class="h-20 bg-white dark:bg-gray-950 py-4 px-4 flex flex-col border-b border-b-gray-200 dark:border-b-gray-900 fixed w-full z-50 dark:bg-opacity-70 bg-opacity-80">
-		<div class="flex">
-			<div class="flex-start">
-				<a href="/" class="absolute top-0 left-0 p-4 flex flex-row space-x-2">
-					<img src="{Icon}" class="h-12 rounded-2xl" alt="Logo" />
-					<div class="flex flex-col justify-center">
-						<div class="cursor-pointer text-2xl font-bold content-center font-[fantasy]">NFT Navigator</div>
-						<div class="cursor-pointer text-xs content-center font-sans -m-2">on the <a href="https://voi.network" target="_blank" on:click|stopPropagation class="underline text-blue-500 hover:text-blue-600">Voi</a> Network</div>
-					</div>
-				</a>
-			</div>
-			<div class="lg:flex items-center -space-x-3 flex-grow justify-center p-2 hidden">
-				<a href="/" class="-mt-8 hover:text-blue-500 {currentPath == '' ? 'text-blue-600' : ''}">Home</a>
-				<a href="/forsale" class="mt-4 hover:text-blue-500 {currentPath == 'forsale' ? 'text-blue-600' : ''}">For Sale</a>
-				<a href="/lounge{extensionRouteLounge}" class="-mt-8 hover:text-blue-500 {currentPath == 'lounge' ? 'text-blue-600' : ''}">Lounge</a>
-				<a href="/analytics{extensionRoute}" class="mt-4 hover:text-blue-500 {currentPath == 'analytics' ? 'text-blue-600' : ''}">Analytics</a>
+<div class="app dark:text-white min-h-screen flex flex-col">
+	<div class="fixed w-full">
+		<div class="bg-blue-500 text-white text-center py-2 text-sm font-medium">
+			You are connected to Voi MainNet. Please use caution.
+		</div>
+		<header class="bg-white dark:bg-gray-900 py-4 px-6 flex items-center justify-between w-full z-50 shadow-md">
+			<a href="/" class="flex items-center space-x-3">
+				<img src="{Icon}" class="h-10 rounded-lg" alt="Logo" />
+				<div>
+					<div class="text-xl font-bold font-sans">NFT Navigator</div>
+					<div class="text-xs">on the <a href="https://voi.network" target="_blank" class="underline text-blue-500 hover:text-blue-600">Voi</a> Network</div>
+				</div>
+			</a>
+			<nav class="hidden lg:flex items-center space-x-6">
+				<a href="/" class="nav-link {currentPath == '' ? 'text-blue-500' : ''}">Home</a>
+				<a href="/forsale" class="nav-link {currentPath == 'forsale' ? 'text-blue-500' : ''}">For Sale</a>
+				<a href="/lounge{extensionRouteLounge}" class="nav-link {currentPath == 'lounge' ? 'text-blue-500' : ''}">Lounge</a>
+				<a href="/analytics{extensionRoute}" class="nav-link {currentPath == 'analytics' ? 'text-blue-500' : ''}">Analytics</a>
 				{#if $selectedWallet}
-					<a href="/portfolio/{$selectedWallet?.address}" class="-mt-8 hover:text-blue-500 {currentPath == 'portfolio' ? 'text-blue-600' : ''}">
+					<a href="/portfolio/{$selectedWallet?.address}" class="nav-link {currentPath == 'portfolio' ? 'text-blue-500' : ''}">
 						My Portfolio
 					</a>
 				{/if}
-			</div>
-			<div class="flex-grow p-2 lg:hidden">&nbsp;</div>
-			<div class="absolute top-0 right-0 flex p-4 flex-row space-x-2">
-				<div class="hidden lg:flex">
+			</nav>
+			<div class="flex items-center space-x-4">
+				<div class="hidden lg:block">
 					<CollectionSearch />
 				</div>
-				<div class="hidden lg:flex">
-					<div class="w-42 flex">
-						<Web3Wallet availableWallets={['DeflyWallet','Kibisis','LuteWallet']} showAuthButtons={true} algodClient={algodClient} indexerClient={algodIndexer} allowWatchAccounts={true} walletListClass="bg-gray-100 dark:bg-slate-600 dark:text-gray-200"/>
-					</div>
+				<div class="hidden lg:block">
+					<Web3Wallet availableWallets={['DeflyWallet','Kibisis','LuteWallet']} showAuthButtons={true} algodClient={algodClient} indexerClient={algodIndexer} allowWatchAccounts={true} walletListClass="bg-gray-100 dark:bg-gray-700 dark:text-gray-200"/>
 				</div>
-				<div class="ml-auto relative content-end flex flex-row">
-					<DarkMode />
-					<div class="flex flex-row lg:hidden">
-						<button on:click|stopPropagation={() => showMenu = !showMenu} class="h-10 w-10 rounded-2xl bg-slate-500 flex items-center justify-center mr-2">
-							<i class="fas fa-bars cursor-pointer"></i>
-						</button>
-						{#if showMenu}
-							<div class="absolute w-48 top-full right-0 bg-white dark:bg-gray-600 rounded-lg shadow-lg z-50 text-nowrap" on:click|stopPropagation={() => showMenu = false}>
-								<ul class="flex flex-col divide-y divide-gray-300 dark:divide-gray-500">
-									<a href='/' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer overflow-hidden">Home</a>
-									<a href='/forsale' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">For Sale</a>
-									<a href='/lounge' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">Lounge</a>
-									<a href='/analytics{extensionRoute}' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">Analytics</a>
-									{#if $selectedWallet}
-										<a href='/portfolio/{$selectedWallet?.address}' class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-500 cursor-pointer">My Portfolio</a>
-									{/if}
-								</ul>
-								<div on:click|stopPropagation>
-									<CollectionSearch />
-								</div>
-								<Web3Wallet availableWallets={['DeflyWallet','Kibisis','LuteWallet']} showAuthButtons={true} algodClient={algodClient} indexerClient={algodIndexer} allowWatchAccounts={true} walletListClass="bg-gray-100 dark:bg-gray-500"/>
-							</div>
-						{/if}
-					</div>
-				</div>
+				<DarkMode />
+				<button on:click|stopPropagation={() => showMenu = !showMenu} class="lg:hidden">
+					<i class="fas fa-bars text-2xl"></i>
+				</button>
 			</div>
-		</div>		
-	</header>
-	<div class="w-full h-20"></div>
-	<main>
+		</header>
+	</div>
+	{#if showMenu}
+		<div transition:fly={{ y: -50, duration: 300 }} class="lg:hidden fixed top-20 right-0 left-0 bg-white dark:bg-gray-800 shadow-lg z-40 p-4">
+			<nav class="flex flex-col space-y-4">
+				<a href="/" class="nav-link {currentPath == '' ? 'text-blue-500' : ''}">Home</a>
+				<a href="/forsale" class="nav-link {currentPath == 'forsale' ? 'text-blue-500' : ''}">For Sale</a>
+				<a href="/lounge{extensionRouteLounge}" class="nav-link {currentPath == 'lounge' ? 'text-blue-500' : ''}">Lounge</a>
+				<a href="/analytics{extensionRoute}" class="nav-link {currentPath == 'analytics' ? 'text-blue-500' : ''}">Analytics</a>
+				{#if $selectedWallet}
+					<a href="/portfolio/{$selectedWallet?.address}" class="nav-link {currentPath == 'portfolio' ? 'text-blue-500' : ''}">
+						My Portfolio
+					</a>
+				{/if}
+			</nav>
+			<div class="mt-4">
+				<CollectionSearch />
+			</div>
+			<div class="mt-4">
+				<Web3Wallet availableWallets={['DeflyWallet','Kibisis','LuteWallet']} showAuthButtons={true} algodClient={algodClient} indexerClient={algodIndexer} allowWatchAccounts={true} walletListClass="bg-gray-100 dark:bg-gray-700"/>
+			</div>
+		</div>
+	{/if}
+
+	<main class="flex-grow mt-20">
 		<slot />
 	</main>
+
 	<SvelteToast {options} />
 	{#if $showConfetti}
-		<div style="
-		position: fixed;
-		top: -50px;
-		left: 0;
-		height: 100vh;
-		width: 100vw;
-		display: flex;
-		justify-content: center;
-		overflow: hidden;
-		pointer-events: none;">
+		<div class="fixed inset-0 pointer-events-none">
 			<Confetti x={[-5, 5]} y={[0, 0.1]} delay={[0, 2000]} amount={400} fallDistance="100vh" />
 		</div>
 	{/if}
-<!--	<Footer footerType="logo">
-		<div class="sm:flex sm:items-center sm:justify-between">
-		  <FooterLinkGroup ulClass="flex flex-wrap items-center mb-6 text-sm text-gray-500 sm:mb-0 dark:text-gray-400">
-			<FooterLink href="/what_is_voi">What is Voi?</FooterLink>
-			<FooterLink href="/how_to_node">How to Node?</FooterLink>
-			<FooterLink href="/about">About</FooterLink>
-		  </FooterLinkGroup>
-		  <FooterLinkGroup ulClass="flex flex-wrap items-center mb-6 text-sm text-gray-500 sm:mb-0 dark:text-gray-400">
-			<FooterLink href="https://x.com/voinftnavigator" target="_blank">NFTNavigator X</FooterLink>
-			<FooterLink href="https://x.com/xarmian" target="_blank">My X</FooterLink>
-			<FooterLink href="https://x.com/Voi_Net" target="_blank">Voi X</FooterLink>
-			<FooterLink href="https://t.co/mXYdYkWE6i" target="_blank">Voi Discord</FooterLink>
-			<FooterLink href="https://github.com/xarmian/voi_rewards_svelte" target="_blank">Source Code</FooterLink>
-		  </FooterLinkGroup>
-		</div>
-		<hr class="my-6 border-gray-200 sm:mx-auto dark:border-gray-700 lg:my-8" />
-	 </Footer>-->
 </div>
+
+<style>
+	.nav-link {
+		@apply hover:text-blue-500 transition duration-300;
+	}
+</style>

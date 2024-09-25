@@ -57,7 +57,7 @@ export interface Listing {
         const isDarkMode = document.documentElement.classList.contains('dark');
         const newArcpayClient = useArcpay({
             apiKey: PUBLIC_ARCPAY_KEY,
-            network: 'voi:testnet',
+            network: 'voi:mainnet',
             darkMode: isDarkMode,
         }) as AClient;
 
@@ -69,7 +69,7 @@ export interface Listing {
 }*/
 
 export const getArcpayClient = (): ArcpayClient => {
-    return createClient('voi:testnet', {
+    return createClient('voi:mainnet', {
         apiKey: PUBLIC_ARCPAY_KEY, // API key can be obtained from the arcpay dashboard
         darkMode: true,
     });

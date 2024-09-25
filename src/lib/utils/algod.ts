@@ -6,7 +6,7 @@ import algosdk from 'algosdk';
 //const server = "https://voi-testnet-node.nftnavigator.xyz";
 //const token = PUBLIC_ALGOD_TOKEN;
 
-const server = 'https://testnet-api.voi.nodly.io';
+const server = 'https://mainnet-api.voi.nodely.dev';
 const token = '';
 
 const port = '443';
@@ -16,7 +16,7 @@ const port = '443';
 //const indexerServer = "https://voi-testnet-idx.nftnavigator.xyz"
 //const indexerToken = PUBLIC_INDEXER_TOKEN;
 
-const indexerServer = 'https://testnet-idx.voi.nodly.io';
+const indexerServer = 'https://mainnet-idx.voi.nodely.dev';
 const indexerToken = '';
 
 const indexerPort = '443';

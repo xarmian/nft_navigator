@@ -9,6 +9,7 @@
 	import { MetaTags } from 'svelte-meta-tags';
 	import MultiCollectionView from '$lib/component/ui/MultiCollectionView.svelte';
     import SecondaryNavBar from '$lib/component/ui/SecondaryNavBar.svelte';
+    import { fade } from 'svelte/transition';
     
     export let data: PageData;
     let collections: Collection[] = data.collections;
@@ -17,6 +18,7 @@
     let cardsPerLoad = 0;
     let textFilter = '';
     let isMounted = false;
+    let activeTab = 'all';
 
     onMount(async () => {
         isMounted = true;
@@ -49,6 +51,9 @@
 
             filterCollections = filterCollections.filter((c: Collection) => {
                 try {
+                    if (c.highforgeData) {
+                        return c.highforgeData.title.toLowerCase().includes(textFilter.toLowerCase());
+                    }
                     return JSON.parse(c.firstToken?.metadata??"{}")?.name?.toLowerCase().includes(textFilter.toLowerCase());
                 } catch (e) {
                     return {};
@@ -90,48 +95,76 @@
 </script>
 
 <MetaTags title="Home | NFT Navigator" />
-<SecondaryNavBar></SecondaryNavBar>
-<div class="flex justify-between flex-col md:flex-row">
-    <div class="m-2 flex justify-center md:justify-start">
-        <Select options={[{id:'Popularity', name: 'Popularity'},{id: 'Mint', name: 'Mint Date'},{id: 'Name', name: 'Name'},{id: 'Randomize', name: 'Randomize'}]} bind:value={$sort.by} containerClass="m-1"></Select>
-        <Select options={[{id: 'Descending', name: 'Descending'},{id: 'Ascending', name: 'Ascending'}]} bind:value={$sort.direction} containerClass="m-1"></Select>
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold mb-8 text-center">Discover NFTs on Voi Network</h1>
+
+    <div class="mb-8">
+        <SecondaryNavBar />
     </div>
-    <div class="justify-center md:justify-end flex flex-row place-items-center space-x-3 mb-2">
-        <div class="relative">
-            <!--<input type="text" placeholder="Search" bind:value={textFilter} bind:this={inputElement} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600 w-full pr-8"/>-->
+
+    <div class="flex flex-col md:flex-row justify-between items-center mb-8">
+        <div class="flex space-x-4 mb-4 md:mb-0">
+            <button
+                class="{activeTab === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'} px-4 py-2 rounded-full transition duration-300"
+                on:click={() => activeTab = 'all'}
+            >
+                All Collections
+            </button>
+            <button
+                class="{activeTab === 'mintable' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'} px-4 py-2 rounded-full transition duration-300"
+                on:click={() => { activeTab = 'mintable'; $filters.mintable = true; }}
+            >
+                Mintable
+            </button>
+        </div>
+        <div class="flex items-center space-x-4">
+            <Select options={[{id:'Popularity', name: 'Popularity'},{id: 'Mint', name: 'Mint Date'},{id: 'Name', name: 'Name'},{id: 'Randomize', name: 'Randomize'}]} bind:value={$sort.by} containerClass="w-40" />
+            <Select options={[{id: 'Descending', name: 'Descending'},{id: 'Ascending', name: 'Ascending'}]} bind:value={$sort.direction} containerClass="w-40" />
+        </div>
+    </div>
+
+    <div class="relative mb-8">
+        {#if isMounted && filterCollections.length == 0}
+            <div class="text-center text-gray-500">Mainnet is on the way. Check back soon.</div>
+        {:else}
+            <input
+                type="text"
+                placeholder="Search collections"
+                bind:value={textFilter}
+                bind:this={inputElement}
+                class="w-full p-4 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
             {#if textFilter}
-                <button class="absolute inset-y-0 right-0 pr-3 flex items-center" on:click={() => { textFilter = ''; inputElement.focus(); }}>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-5 w-5 text-gray-500">
+                <button
+                    class="absolute right-4 top-1/2 transform -translate-y-1/2"
+                    on:click={() => { textFilter = ''; inputElement.focus(); }}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-6 w-6 text-gray-500">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                 </button>
             {/if}
-        </div>
-        <div class='flex flex-row'>
-            <Switch bind:checked={$filters.mintable} label="Mintable"></Switch>
-            <Switch bind:checked={$userPreferences.cleanGridView}>
-                <i class="fas fa-th"></i>
-            </Switch>
-        </div>
-    </div>
-</div>
-<div class="pb-16">
-    <div class="flex flex-col justify-center">
-        {#if isMounted}
-            <MultiCollectionView viewType={$userPreferences.cleanGridView ? 'grid' : 'row'} collections={filterCollections.slice(0, displayCount)}></MultiCollectionView>
         {/if}
     </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        {#if isMounted}
+            {#each filterCollections.slice(0, displayCount) as collection (collection.contractId)}
+                <div transition:fade>
+                    <MultiCollectionView viewType="grid" collections={[collection]} />
+                </div>
+            {/each}
+        {/if}
+    </div>
+
     {#if filterCollections.length > displayCount}
-        <div class="sentinel" use:inview={{ threshold: 1 }} on:inview_enter={showMore}></div>
-        <div class="h-64">&nbsp;</div>
+        <div class="text-center mt-8">
+            <button
+                class="bg-blue-500 text-white px-6 py-3 rounded-full hover:bg-blue-600 transition duration-300"
+                on:click={showMore}
+            >
+                Load More
+            </button>
+        </div>
     {/if}
 </div>
-<style>
-    .sentinel {
-        height: 1px;
-        width: 100%;
-    }
-    @media (max-width: 600px) {
-
-    }
-</style>

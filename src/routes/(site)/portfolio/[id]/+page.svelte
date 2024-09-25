@@ -289,7 +289,7 @@
                 <TransactionTable owner={walletId} />
             </div>
         </TabItem>
-        <TabItem>
+        <!--<TabItem>
             <div slot="title">
                 <div class="inline">
                     Quests
@@ -299,7 +299,7 @@
             <div class="m-4">
                 <QuestsTable wallet={walletId} />
             </div>
-        </TabItem>
+        </TabItem>-->
         <a
             href="#"
             on:click|preventDefault={() => multiselectMode = !multiselectMode}
