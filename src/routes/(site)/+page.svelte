@@ -125,7 +125,7 @@
 
     <div class="relative mb-8">
         {#if isMounted && filterCollections.length == 0}
-            <div class="text-center text-gray-500">Mainnet is on the way. Check back soon.</div>
+            <div class="text-center text-gray-500">Mainnet is here. Check back soon.</div>
         {:else}
             <input
                 type="text"
