@@ -20,7 +20,7 @@ export function getImageUrl(rawUrl: string, width?: number) {
     if (!width) return rawUrl;
     
     if (rawUrl && rawUrl.includes('prod.cdn.highforge.io')) {
-        return `https://prod.cdn.highforge.io/i/${encodeURIComponent(rawUrl)}`;
+        return `https://prod.cdn.highforge.io/i/${encodeURIComponent(rawUrl)}?w=${width}`;
     }
     else {
         return rawUrl;
@@ -29,7 +29,7 @@ export function getImageUrl(rawUrl: string, width?: number) {
 
 export function getTokenImageUrl(token: Token, width?: number) {
     if (width && token && token.metadataURI && token.metadataURI.includes('prod.cdn.highforge.io')) {
-        return `https://prod.cdn.highforge.io/i/${encodeURIComponent(token.metadataURI)}`;
+        return `https://prod.cdn.highforge.io/i/${encodeURIComponent(token.metadataURI)}?w=${width}`;
     }
     else {
         return token.metadata?.image;

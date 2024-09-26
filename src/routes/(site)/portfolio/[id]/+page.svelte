@@ -159,7 +159,7 @@
         <div class="flex h-full w-full absolute blur-xsm -z-10 opacity-60">
             {#each headerTokens as token (token)}
                 {#if token.metadata}
-                    <div class="flex-grow bg-cover bg-center inline-block" style="background-image: url({getImageUrl(token.metadata.image,240)});">&nbsp;</div>
+                    <div class="flex-grow bg-cover bg-center inline-block" style="background-image: url({getImageUrl(token.metadata.image,480)});">&nbsp;</div>
                 {/if}
             {/each}
         </div>

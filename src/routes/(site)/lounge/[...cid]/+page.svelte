@@ -418,7 +418,7 @@
     </div>
 </div>
 {#if selectedCollection}
-    <div class="absolute top-0 -z-10 h-screen w-screen opacity-30 dark:opacity-20 bgcontainer" style={`background-image: url(${getImageUrl(allCollections.find(c => c.contractId === Number(selectedCollection))?.highforgeData?.coverImageURL??'',240)});`}>
+    <div class="absolute top-0 -z-10 h-screen w-screen opacity-30 dark:opacity-20 bgcontainer" style={`background-image: url(${getImageUrl(allCollections.find(c => c.contractId === Number(selectedCollection))?.highforgeData?.coverImageURL??'',480)});`}>
         <div class="absolute inset-0 bg-black opacity-50"></div>
     </div>
 {/if}

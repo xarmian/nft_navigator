@@ -100,7 +100,7 @@
             <a href="/collection/{collection.contractId}">
                 <div class="side back bg-gray-200 dark:bg-gray-900 relative rounded-lg flex flex-col">
                     <div class="image-container relative overflow-hidden flex justify-center bg-gray-10 dark:bg-black">
-                        <img src={getImageUrl(metadata?.image,240)} alt={metadata?.name} title={(metadata?.name??'').replace(/[1#]/g, '')} class="h-60 w-full object-cover object-top"/>
+                        <img src={getImageUrl(metadata?.image,480)} alt={metadata?.name} title={(metadata?.name??'').replace(/[1#]/g, '')} class="h-60 w-full object-cover object-top"/>
                         {#if isMintable}
                             <div class="absolute bottom-0 left-0 bg-black h-2 w-full"></div>
                             <div class="absolute bottom-0 left-0 bg-red-500 h-2" style="width: {(totalMinted / maxSupply) * 100}%"></div>

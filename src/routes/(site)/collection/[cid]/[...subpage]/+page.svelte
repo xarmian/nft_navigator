@@ -95,8 +95,8 @@
 
 <div use:handleScroll class="banner_container h-60 justify-between overflow-hidden overflow-ellipsis relative flex flex-row text-white" style="transition: transform 0.3s ease-out;">
     {#if tokens[0] && tokens[0].metadata?.image}
-        <img src="{getImageUrl(data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata?.image,240)}" class="banner_img object-cover" />
-        <img src="{getImageUrl(data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata?.image,240)}" class="banner_img2 w-1/2 object-cover" />
+        <img src="{getImageUrl(data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata?.image,480)}" class="banner_img object-cover" />
+        <img src="{getImageUrl(data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata?.image,480)}" class="banner_img2 w-1/2 object-cover" />
     {/if}
     <div class="mask_dark flex justify-center h-full absolute w-full content-center bg-slate-100 dark:bg-slate-800">
         <div class="collection_detail w-1/2 flex justify-center content-center md:space-x-10 pr-2">

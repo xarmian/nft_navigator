@@ -41,7 +41,7 @@
 	let windowDefined = false;
     let waitingForConfirmationModal = false;
 
-    $: imageUrl = (token) ? getTokenImageUrl(token,((format == 'small') ? 240 : 480)) : '';
+    $: imageUrl = (token) ? getTokenImageUrl(token,((format == 'small') ? 480 : 0)) : '';
 
     $: currency = null as Currency | null;
 
@@ -336,6 +336,7 @@
                         <i class="fas fa-tag mr-2"></i>
                         List
                     </button>
+                    {#if false}
                     {#if !listing || (listing && listing.source === 'arcpay')}
                         <button on:click={listArcpay} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
                             <i class="fas fa-shopping-cart mr-2"></i>
@@ -376,6 +377,7 @@
                                 </div>
                             </div>
                         </button>
+                    {/if}
                     {/if}
                 </div>
             {:else if listing && !listing.sale && !listing.delete && $selectedWallet}
@@ -507,12 +509,6 @@
                                 <div class="flex justify-between">
                                     <div>Ranking</div>
                                     <div>{token.rank}</div>
-                                </div>
-                            {/if}
-                            {#if royaltyPercentage > 0}
-                                <div class="flex justify-between">
-                                    <div>Royalties</div>
-                                    <div>{royaltyPercentage / 100}%</div>
                                 </div>
                             {/if}
                         </div>
