@@ -5,7 +5,7 @@
     import Switch from '$lib/component/ui/Switch.svelte';
     import { inview } from 'svelte-inview';
     import Select from '$lib/component/ui/Select.svelte';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { MetaTags } from 'svelte-meta-tags';
 	import MultiCollectionView from '$lib/component/ui/MultiCollectionView.svelte';
     import SecondaryNavBar from '$lib/component/ui/SecondaryNavBar.svelte';
@@ -28,6 +28,32 @@
         const viewWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
         displayCount = Math.ceil(viewHeight / 352) * Math.floor(viewWidth / 240) + 2;
         cardsPerLoad = displayCount;
+
+        const spaceship = document.getElementById('spaceship');
+        const flame = document.getElementById('flame');
+        let position = 0;
+        let flameVisible = true;
+
+        spInteval = setInterval(() => {
+            position -= 2;
+            spaceship?.setAttribute('transform', `translate(0, ${position})`);
+            
+            flameVisible = !flameVisible;
+            if (flame) {
+                flame.style.visibility = flameVisible ? 'visible' : 'hidden';
+            }
+
+            if (position <= -200) {
+                position = 0;
+            }
+        }, 1000);
+    
+    });
+
+    onDestroy(() => {
+        if (spInteval) {
+            clearInterval(spInteval);
+        }
     });
 
     $: {
@@ -125,7 +151,45 @@
 
     <div class="relative mb-8">
         {#if isMounted && filterCollections.length == 0}
-            <div class="text-center text-gray-500">Mainnet is here. Check back soon.</div>
+            <div class="text-center text-gray-500 mb-4">Mainnet is here. Check back soon.</div>
+            <div class="w-full h-64 bg-gray-900 relative overflow-hidden rounded-lg mb-8">
+                <svg width="100%" height="100%" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Stars -->
+                    <g id="stars">
+                        <circle cx="30" cy="30" r="1" fill="white" />
+                        <circle cx="70" cy="50" r="1" fill="white" />
+                        <circle cx="150" cy="20" r="1" fill="white" />
+                        <circle cx="200" cy="40" r="1" fill="white" />
+                        <circle cx="280" cy="70" r="1" fill="white" />
+                        <circle cx="350" cy="30" r="1" fill="white" />
+                    </g>
+
+                    <!-- Spaceship -->
+                    <g id="spaceship">
+                        <animateTransform
+                            attributeName="transform"
+                            type="translate"
+                            from="0 0"
+                            to="0 -200"
+                            dur="4s"
+                            repeatCount="indefinite"
+                        />
+                        <path d="M200 140 L180 180 L220 180 Z" fill="#808080" />
+                        <rect x="190" y="100" width="20" height="50" fill="#A0A0A0" />
+                        <circle cx="200" cy="90" r="20" fill="#C0C0C0" />
+                        
+                        <!-- Flame -->
+                        <path id="flame" d="M195 180 Q200 190 205 180 L200 200 Z" fill="orange">
+                            <animate
+                                attributeName="opacity"
+                                values="1;0;1"
+                                dur="0.5s"
+                                repeatCount="indefinite"
+                            />
+                        </path>
+                    </g>
+                </svg>
+            </div>
         {:else}
             <input
                 type="text"
