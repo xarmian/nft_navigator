@@ -144,13 +144,13 @@
                 Mintable
             </button>
         </div>
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-4 -z-10">
             <Select options={[{id:'Popularity', name: 'Popularity'},{id: 'Mint', name: 'Mint Date'},{id: 'Name', name: 'Name'},{id: 'Randomize', name: 'Randomize'}]} bind:value={$sort.by} containerClass="w-40" />
             <Select options={[{id: 'Descending', name: 'Descending'},{id: 'Ascending', name: 'Ascending'}]} bind:value={$sort.direction} containerClass="w-40" />
         </div>
     </div>
 
-    <div class="relative mb-8">
+    <div class="relative mb-8 -z-10">
         {#if isMounted && filterCollections.length == 0}
             <div class="text-center text-gray-500 mb-4">Mainnet is here. Check back soon.</div>
             <div class="w-full h-64 bg-gray-900 relative overflow-hidden rounded-lg mb-8">
