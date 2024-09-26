@@ -133,7 +133,7 @@
         <div class="flex space-x-4 mb-4 md:mb-0">
             <button
                 class="{activeTab === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'} px-4 py-2 rounded-full transition duration-300"
-                on:click={() => activeTab = 'all'}
+                on:click={() => { activeTab = 'all'; $filters.mintable = false; }}
             >
                 All Collections
             </button>
@@ -151,9 +151,26 @@
     </div>
 
     <div class="relative mb-8">
-        {#if isMounted && filterCollections.length == 0}
-            <div class="text-center text-gray-500 mb-4">Mainnet is here. Check back soon.</div>
-            <div class="w-full h-64 bg-gray-900 relative overflow-hidden rounded-lg mb-8">
+        <input
+        type="text"
+        placeholder="Search collections"
+        bind:value={textFilter}
+        bind:this={inputElement}
+        class="w-full p-4 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+    />
+    {#if textFilter}
+        <button
+            class="absolute right-4 top-1/2 transform -translate-y-1/2"
+            on:click={() => { textFilter = ''; inputElement.focus(); }}
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-6 w-6 text-gray-500">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    {/if}
+    {#if isMounted && filterCollections.length == 0}
+        <div class="text-center text-gray-500 mb-4 mt-2">Nothing to see here. Check back soon.</div>
+        <div class="w-full h-64 bg-gray-900 relative overflow-hidden rounded-lg mb-8">
                 <svg width="100%" height="100%" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
                     <!-- Stars -->
                     <g id="stars">
@@ -191,24 +208,6 @@
                     </g>
                 </svg>
             </div>
-        {:else}
-            <input
-                type="text"
-                placeholder="Search collections"
-                bind:value={textFilter}
-                bind:this={inputElement}
-                class="w-full p-4 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            />
-            {#if textFilter}
-                <button
-                    class="absolute right-4 top-1/2 transform -translate-y-1/2"
-                    on:click={() => { textFilter = ''; inputElement.focus(); }}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-6 w-6 text-gray-500">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            {/if}
         {/if}
     </div>
 
