@@ -19,6 +19,7 @@
     let textFilter = '';
     let isMounted = false;
     let activeTab = 'all';
+    let spInteval: ReturnType<typeof setInterval> | null = null;
 
     onMount(async () => {
         isMounted = true;
