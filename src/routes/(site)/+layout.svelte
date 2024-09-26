@@ -123,7 +123,7 @@
 </script>
 
 <div class="app dark:text-white min-h-screen flex flex-col">
-	<div class="fixed w-full">
+	<div class="fixed w-full z-10">
 		<div class="bg-blue-500 text-white text-center py-2 text-sm font-medium">
 			You are connected to Voi MainNet. Please use caution.
 		</div>
@@ -182,7 +182,7 @@
 		</div>
 	{/if}
 
-	<main class="flex-grow mt-20">
+	<main class="flex-grow mt-28">
 		<slot />
 	</main>
 
