@@ -7,7 +7,7 @@ import { getNFD } from './nfd';
 
 //export const indexerBaseURL = "https://arc72-idx.nftnavigator.xyz/nft-indexer/v1";
 //export const indexerBaseURL = "http://localhost:3000/nft-indexer/v1";
-export const indexerBaseURL = "https://arc72-idx-mainnet.nftnavigator.xyz/nft-indexer/v1";
+export const indexerBaseURL = "https://arc72-voi-mainnet.nftnavigator.xyz/nft-indexer/v1";
 
 interface ITokenResponse {
     tokens: IToken[];
