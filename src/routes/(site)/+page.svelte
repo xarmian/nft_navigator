@@ -29,32 +29,6 @@
         const viewWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
         displayCount = Math.ceil(viewHeight / 352) * Math.floor(viewWidth / 240) + 2;
         cardsPerLoad = displayCount;
-
-        const spaceship = document.getElementById('spaceship');
-        const flame = document.getElementById('flame');
-        let position = 0;
-        let flameVisible = true;
-
-        spInteval = setInterval(() => {
-            position -= 2;
-            spaceship?.setAttribute('transform', `translate(0, ${position})`);
-            
-            flameVisible = !flameVisible;
-            if (flame) {
-                flame.style.visibility = flameVisible ? 'visible' : 'hidden';
-            }
-
-            if (position <= -200) {
-                position = 0;
-            }
-        }, 1000);
-    
-    });
-
-    onDestroy(() => {
-        if (spInteval) {
-            clearInterval(spInteval);
-        }
     });
 
     $: {
@@ -211,7 +185,7 @@
         {/if}
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0">
         {#if isMounted}
             {#each filterCollections.slice(0, displayCount) as collection (collection.contractId)}
                 <div transition:fade>

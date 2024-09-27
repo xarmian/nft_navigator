@@ -89,7 +89,7 @@
             {/each}
         </div>
         <div class="w-1/5">
-            {#if collection.gameData}
+            {#if collection.gameData && false}
                 <NftGamesButton contractid={collection.contractId} buttonClass='w-16 md:w-20 object-contain' />
             {/if}
         </div>
@@ -120,7 +120,7 @@
                             {/each}
                         </div>
                         {#if collection.gameData}
-                            <NftGamesButton contractid={collection.contractId} buttonClass='w-16 md:w-20 object-contain flex justify-center absolute bottom-0 right-0' />
+                            <!--<NftGamesButton contractid={collection.contractId} buttonClass='w-16 md:w-20 object-contain flex justify-center absolute bottom-0 right-0' />-->
                         {/if}
                     </div>
                 </div>
