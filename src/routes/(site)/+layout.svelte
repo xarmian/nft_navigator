@@ -12,11 +12,15 @@
 	import { Confetti } from 'svelte-confetti';
 	import { showConfetti } from '../../stores/collection';
 	import { fly } from 'svelte/transition';
+	import { fade } from 'svelte/transition';
+	import { slide } from 'svelte/transition';
 
 	let showMenu = false;
 	let currentPath = '';
 	let extensionRoute = '';
 	let extensionRouteLounge = '';
+	let showBanner = true;
+	let lastScrollY = 0;
 
 	const unsub = page.subscribe(value => {
 		let pathPieces = value.url.pathname.split('/');
@@ -108,6 +112,20 @@
 			}
 		});
 
+		// Modify the scroll event listener
+		const handleScroll = () => {
+			const currentScrollY = window.scrollY;
+			if (currentScrollY > lastScrollY && currentScrollY > 10) {
+				showBanner = false;
+				window.removeEventListener('scroll', handleScroll);
+			}
+		};
+
+		window.addEventListener('scroll', handleScroll);
+
+		return () => {
+			window.removeEventListener('scroll', handleScroll);
+		};
 	});
 
 	onDestroy(() => {
@@ -124,9 +142,11 @@
 
 <div class="app dark:text-white min-h-screen flex flex-col">
 	<div class="fixed w-full z-10">
-		<div class="bg-blue-500 text-white text-center py-2 text-sm font-medium">
-			You are connected to Voi MainNet. Please use caution.
-		</div>
+		{#if showBanner}
+			<div transition:slide="{{ duration: 300, axis: 'y' }}" class="bg-blue-500 text-white text-center py-2 text-sm font-medium">
+				You are connected to Voi MainNet. Please use caution.
+			</div>
+		{/if}
 		<header class="bg-white dark:bg-gray-900 py-4 px-6 flex items-center justify-between w-full z-50 shadow-md">
 			<a href="/" class="flex items-center space-x-3">
 				<img src="{Icon}" class="h-10 rounded-lg" alt="Logo" />
