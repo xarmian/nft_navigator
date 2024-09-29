@@ -6,7 +6,7 @@
     export let viewType: string = 'row';
 </script>
 
-<div class="{viewType == 'grid' ? 'flex flex-wrap w-full justify-center' : ''}">
+<div class="{viewType == 'grid' ? 'flex w-full justify-center' : ''}">
     {#each collections as collection (collection.contractId)}
         <CollectionSingle {collection} {viewType} />
     {/each}
