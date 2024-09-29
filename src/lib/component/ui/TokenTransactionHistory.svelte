@@ -111,8 +111,8 @@
                         {/if}
                         <tr class="text-gray-700 dark:text-gray-100">
                             <td class="px-4 py-3">{new Date(transfer.timestamp * 1000).toLocaleString()}</td>
-                            <td class="px-4 py-3 hidden md:block"><A href="https://voi.observer/explorer/transaction/{transfer.transactionId}" target="_blank">{transfer.transactionId.substring(0,15)}...</A></td>
-                            <td class="px-4 py-3 hidden md:block"><A href="https://voi.observer/explorer/block/{transfer.round.toString()}" target="_blank">{transfer.round}</A></td>
+                            <td class="px-4 py-3 hidden md:block"><A href="https://explorer.voi.network/explorer/transaction/{transfer.transactionId}" target="_blank">{transfer.transactionId.substring(0,15)}...</A></td>
+                            <td class="px-4 py-3 hidden md:block"><A href="https://explorer.voi.network/explorer/block/{transfer.round.toString()}" target="_blank">{transfer.round}</A></td>
                             <td class="px-4 py-3">
                                 {#if transfer.from == zeroAddress}
                                     <span class="text-center w-full text-sm bg-yellow-200 rounded-lg text-yellow-400 font-bold p-1 pl-2 pr-2">Minted</span>
@@ -157,8 +157,8 @@
 <Modal title="Transaction Details" bind:showModal={showTxModal}>
     <div class="text-center">
         {#if selectedTx}
-            <div class="text-2xl font-bold mb-2">Transaction ID: <A href="https://voi.observer/explorer/transaction/{selectedTx.transactionId}" target="_blank">{selectedTx.transactionId.substring(0, 6)}...{selectedTx.transactionId.substring(selectedTx.transactionId.length - 6)}</A></div>
-            <div class="text-sm">Round: <A href="https://voi.observer/explorer/block/{selectedTx.round.toString()}" target="_blank">{selectedTx.round}</A></div>
+            <div class="text-2xl font-bold mb-2">Transaction ID: <A href="https://explorer.voi.network/explorer/transaction/{selectedTx.transactionId}" target="_blank">{selectedTx.transactionId.substring(0, 6)}...{selectedTx.transactionId.substring(selectedTx.transactionId.length - 6)}</A></div>
+            <div class="text-sm">Round: <A href="https://explorer.voi.network/explorer/block/{selectedTx.round.toString()}" target="_blank">{selectedTx.round}</A></div>
             <div class="text-sm">Date: {new Date(selectedTx.timestamp * 1000).toLocaleString()}</div>
             <div class="text-sm">From: <A href='/portfolio/{selectedTx.from}'>{nfdMap[selectedTx.from] ? nfdMap[selectedTx.from] : formatAddr(selectedTx.from)}</A></div>
             <div class="text-sm">To: <A href='/portfolio/{selectedTx.to}'>{nfdMap[selectedTx.to] ? nfdMap[selectedTx.to] : formatAddr(selectedTx.to)}</A></div>

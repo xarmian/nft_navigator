@@ -255,7 +255,7 @@
                     </div>
                     <div class="mt-2 text-gray-400 flex flex-col">
                         <div class="font-bold">Transaction ID</div>
-                        <a href={"https://voi.observer/explorer/transaction/" + transactionId} target="_blank" class="text-xs underline text-blue-500 hover:text-blue-600">{transactionId}</a>
+                        <a href={"https://explorer.voi.network/explorer/transaction/" + transactionId} target="_blank" class="text-xs underline text-blue-500 hover:text-blue-600">{transactionId}</a>
                     </div>
                     <div class="flex flex-row items-center mt-4 space-x-4">
                         <button on:click={close} class="w-64 h-10 bg-blue-500 text-white rounded-md">Close</button>

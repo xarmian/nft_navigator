@@ -212,8 +212,8 @@
 <Modal title="Transaction Details" bind:showModal={showTxModal}>
     <div class="text-center">
         {#if selectedTx}
-            <div class="text-2xl font-bold mb-2">Transaction ID: <A href="https://voi.observer/explorer/transaction/{selectedTx.transactionId}" target="_blank">{selectedTx.transactionId.substring(0, 6)}...{selectedTx.transactionId.substring(selectedTx.transactionId.length - 6)}</A></div>
-            <div class="text-sm">Round: <A href="https://voi.observer/explorer/block/{selectedTx.round.toString()}" target="_blank">{selectedTx.round}</A></div>
+            <div class="text-2xl font-bold mb-2">Transaction ID: <A href="https://explorer.voi.network/explorer/transaction/{selectedTx.transactionId}" target="_blank">{selectedTx.transactionId.substring(0, 6)}...{selectedTx.transactionId.substring(selectedTx.transactionId.length - 6)}</A></div>
+            <div class="text-sm">Round: <A href="https://explorer.voi.network/explorer/block/{selectedTx.round.toString()}" target="_blank">{selectedTx.round}</A></div>
             <div class="text-sm">Date: {new Date(selectedTx.timestamp * 1000).toLocaleString()}</div>
             <div class="text-sm">From: <A href='/portfolio/{selectedTx.from}'>{nfdMap[selectedTx.from] ? nfdMap[selectedTx.from] : formatAddr(selectedTx.from)}</A></div>
             <div class="text-sm">To: <A href='/portfolio/{selectedTx.to}'>{nfdMap[selectedTx.to] ? nfdMap[selectedTx.to] : formatAddr(selectedTx.to)}</A></div>

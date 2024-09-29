@@ -203,7 +203,7 @@
                     </div>
                     <div class="flex flex-col">
                         <div class="text-sm font-bold mb-4 text-left">
-                            <a href="https://voi.observer/explorer/account/{walletIds[0]}" target="_blank" class="text-blue-500 hover:text-blue-700 underline">
+                            <a href="https://explorer.voi.network/explorer/account/{walletIds[0]}" target="_blank" class="text-blue-500 hover:text-blue-700 underline">
                                 Voi Observer
                                 <i class="fas fa-external-link-alt"></i>
                             </a>

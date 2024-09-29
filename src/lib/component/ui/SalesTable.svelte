@@ -105,9 +105,9 @@
                     <tr class:dark:bg-gray-700={i % 2 === 1}>
                         <td class="dark:border-gray-500">
                             <div>{new Date(sale.timestamp*1000).toLocaleString()}</div>
-                            <div>Block: <a href={'https://voi.observer/explorer/block/'+sale.round+'/transactions'} target="_blank">{sale.round}</a></div>
+                            <div>Block: <a href={'https://explorer.voi.network/explorer/block/'+sale.round+'/transactions'} target="_blank">{sale.round}</a></div>
                         </td>
-                        <td class="dark:border-gray-500 hidden md:table-cell"><a href={'https://voi.observer/explorer/transaction/'+sale.transactionId} target="_blank">{sale.transactionId.slice(0,12)}...</a></td>
+                        <td class="dark:border-gray-500 hidden md:table-cell"><a href={'https://explorer.voi.network/explorer/transaction/'+sale.transactionId} target="_blank">{sale.transactionId.slice(0,12)}...</a></td>
                         {#if collectionId === 0}
                             <td class="dark:border-gray-500"><a href={`/collection/${sale.collectionId}`}>{sale.collectionId}</a></td>
                         {/if}

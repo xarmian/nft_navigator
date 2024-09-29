@@ -155,9 +155,9 @@
                     {#each sales as sale}
                         <tr class={(sellerStatus.get(sale.seller) === 'Online' && sellerHealth.get(sale.seller)) ? 'bg-lime-500 dark:bg-lime-100 dark:bg-opacity-40 relative' : 'relative'}>
                             <td class="border border-gray-600 px-4 py-2">{new Date(sale.timestamp*1000).toLocaleString()}</td>
-                            <td class="border border-gray-600 px-4 py-2"><a href="https://voi.observer/explorer/transaction/{sale.transactionId}" target="_blank">{sale.transactionId.substring(0,8)}...</a></td>
-                            <td class="border border-gray-600 px-4 py-2"><a href="https://voi.observer/explorer/account/{sale.buyer}" target="_blank">{sale.buyer.substring(0,8)}...</a></td>
-                            <td class="border border-gray-600 px-4 py-2"><a href="https://voi.observer/explorer/account/{sale.seller}" target="_blank">{sale.seller.substring(0,8)}...</a></td>
+                            <td class="border border-gray-600 px-4 py-2"><a href="https://explorer.voi.network/explorer/transaction/{sale.transactionId}" target="_blank">{sale.transactionId.substring(0,8)}...</a></td>
+                            <td class="border border-gray-600 px-4 py-2"><a href="https://explorer.voi.network/explorer/account/{sale.buyer}" target="_blank">{sale.buyer.substring(0,8)}...</a></td>
+                            <td class="border border-gray-600 px-4 py-2"><a href="https://explorer.voi.network/explorer/account/{sale.seller}" target="_blank">{sale.seller.substring(0,8)}...</a></td>
                             <td class="border border-gray-600 px-4 py-2">{sale.price / Math.pow(10,6)}</td>
                             <td class="border border-gray-600 px-4 py-2">{sellerStatus.has(sale.seller) ? (sellerStatus.get(sale.seller)??'') : '-'}</td>
                             <td class="border border-gray-600 px-4 py-2">{sellerHealth.has(sale.seller) ? (sellerHealth.get(sale.seller) ? 'Yes' : 'No') : '-'}</td>

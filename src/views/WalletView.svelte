@@ -71,8 +71,8 @@
             </div>
         </h3>
         <h1 class="font-bold">
-            <a href='https://voi.observer/explorer/account/{walletId}/transactions'
-             title="Open wallet in Voi.Observer"
+            <a href='https://explorer.voi.network/explorer/account/{walletId}/transactions'
+             title="Open wallet in explorer.voi.network"
              target='_blank' class="text-blue-500 hover:text-blue-800 hover:underline">
                 {#if isMobile}
                     {walletId.substring(0, 8)}...{walletId.substring(walletId.length - 8, walletId.length)}

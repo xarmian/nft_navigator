@@ -479,7 +479,7 @@
                             <div><button on:click={() => goto(`/portfolio/${token.approved}`,{invalidateAll:true})}>{formattedApproved}</button></div>
                         {/if}
                         <div class="font-bold">Mint Round:</div>
-                        <div><a href="https://voi.observer/explorer/block/{token.mintRound}/transactions" target="_blank">{token.mintRound}</a></div>
+                        <div><a href="https://explorer.voi.network/explorer/block/{token.mintRound}/transactions" target="_blank">{token.mintRound}</a></div>
                         {#if royaltyPercentage > 0}
                             <div class="font-bold">Royalties:</div>
                             <div>{royaltyPercentage / 100}%</div>
