@@ -202,7 +202,7 @@ export const getCollections = async (params: getCollectionsParams): Promise<Coll
         const data: ICollectionResponse = await response.json();
         const c = data.collections.filter((c: Collection) => c.firstToken !== null);
 
-        const hfurl = 'https://test-voi.api.highforge.io/projects';
+        const hfurl = 'https://prod-voi.api.highforge.io/projects';
         const hfresponse = await params.fetch(hfurl);
         const hfdata = await hfresponse.json();
         const hfprojects = hfdata.results;
