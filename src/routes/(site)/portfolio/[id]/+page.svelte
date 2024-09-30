@@ -51,7 +51,6 @@
     }
     
     let voiBalance: number;
-    let viaBalance: number;
 
     onMount(async () => {
         isMobile = Device.isMobile;
@@ -60,9 +59,6 @@
     $: {
         getWalletBalance(walletIds[0],0).then((balance) => {
             voiBalance = balance;
-        });
-        getWalletBalance(walletIds[0],6779767).then((balance) => {
-            viaBalance = balance;
         });
     }
 
@@ -194,21 +190,15 @@
                                 <div class="text-md font-bold text-gray-500 dark:text-gray-300 mb-2">VOI</div>
                             </div>
                         {/if}
-                        {#if viaBalance != undefined}
-                            <div class="flex flex-row w-full space-x-2 items-stretch">
-                                <div class="text-lg font-bold text-green-500 dark:text-green-300">{(viaBalance / Math.pow(10,6)).toLocaleString()}</div>
-                                <div class="text-md font-bold text-gray-500 dark:text-gray-300 mb-2">VIA</div>
-                            </div>
-                        {/if}
                     </div>
                     <div class="flex flex-col">
                         <div class="text-sm font-bold mb-4 text-left">
                             <a href="https://explorer.voi.network/explorer/account/{walletIds[0]}" target="_blank" class="text-blue-500 hover:text-blue-700 underline">
-                                Voi Observer
+                                Voi Explorer
                                 <i class="fas fa-external-link-alt"></i>
                             </a>
                         </div>
-                        <div class="text-sm font-bold mb-4 text-left">
+                        <div class="text-sm font-bold mb-4 text-left hidden">
                             <a href="https://shellyssandbox.xyz/#/account/{walletIds[0]}" target="_blank" class="text-blue-500 hover:text-blue-700 underline">
                                 ARC-200 Balances
                                 <i class="fas fa-external-link-alt"></i>
