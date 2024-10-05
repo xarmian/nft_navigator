@@ -12,7 +12,7 @@
 	import { toast } from '@zerodevx/svelte-toast';
 	import type { NFTIndexerListingI, NFTIndexerTokenI } from 'ulujs/types/mp';
 	import { invalidateAll } from '$app/navigation';
-	import { zeroAddress } from '$lib/data/constants';
+	import { zeroAddress, NAUTILUS_CONTRACT_ID as ctcInfoMp206, WVOI2_CONTRACT_ID as TOKEN_WVOI2 } from '$lib/data/constants';
 
     export let showModal: boolean;
     export let token: Token;
@@ -21,8 +21,6 @@
 
     export let onClose: () => void = () => {};
     export let onAfterSend: (t: Token) => void = () => {};
-
-    const ctcInfoMp206 = 29117863;
 
     enum SendingView {
         Presend = "presend",
@@ -62,8 +60,6 @@
         let resp;
         const doDelete = (salePrice??0) === 0 && listing;
 
-        const TOKEN_WVOI2 = 34099056;
-        
         // multiply salePrice by 10^(listingCurrency.decimals) and represent as string
         const salePriceAU = ((salePrice??0) * Math.pow(10, (listingCurrency?.decimals??0))).toString();
 
@@ -272,7 +268,7 @@
                     <div class="flex flex-row justify-center">
                         <div class="m-1 p-3">
                             <div class="text-sm font-bold">Your {listingCurrency?.unitName} Balance:</div>
-                            <div class="text-sm text-gray-400">{(walletBalance / Math.pow(10,listingCurrency.decimals))??0}</div>
+                            <div class="text-sm text-gray-400">{(walletBalance / Math.pow(10,listingCurrency.decimals))}</div>
                         </div>
                     </div>
                     {#if walletBalance == 0}

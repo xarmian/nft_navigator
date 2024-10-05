@@ -93,6 +93,7 @@
     let inputElement: HTMLInputElement;
 </script>
 
+{#if collection}
 <div use:handleScroll class="banner_container h-60 justify-between overflow-hidden overflow-ellipsis relative flex flex-row text-white" style="transition: transform 0.3s ease-out;">
     {#if tokens[0] && tokens[0].metadata?.image}
         <img src="{getImageUrl(data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata?.image,480)}" class="banner_img object-cover" />
@@ -120,12 +121,12 @@
                         <div class="tooltip">
                             <div class="text-sm">Tokens</div>
                             <div class="text-lg text-blue-300">
-                                {collection.burnedSupply != null ? (collection.totalSupply - collection.burnedSupply) : '-'}
+                                {collection?.burnedSupply ? (collection.totalSupply - collection.burnedSupply) : '-'}
                             </div>
                             <div class="tooltiptext flex flex-col space-y-1 w-auto whitespace-nowrap p-2 bg-slate-700">
-                                <div>Original Supply: {collection.totalSupply}</div>
-                                <div>Tokens Burned: {collection.burnedSupply}</div>
-                                <div>Tokens Remaining: {collection.totalSupply - collection.burnedSupply}</div>
+                                <div>Original Supply: {collection?.totalSupply}</div>
+                                <div>Tokens Burned: {collection?.burnedSupply}</div>
+                                <div>Tokens Remaining: {collection?.totalSupply - collection?.burnedSupply}</div>
                             </div>
                         </div>
                         <div>
@@ -226,6 +227,11 @@
         </div>
     {/if}
 </div>
+{:else}
+    <div class="w-full flex justify-center items-center h-screen">
+        <div class="text-xl font-bold">Unable to locate collection: {contractId}</div>
+    </div>
+{/if}
 
 <style>
     /*.show-more {
