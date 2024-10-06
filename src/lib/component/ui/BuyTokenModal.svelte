@@ -13,8 +13,7 @@
 	import type { NFTIndexerListingI } from 'ulujs/types/mp';
 	import { invalidate, invalidateAll } from '$app/navigation';
 	import { onDestroy } from 'svelte';
-
-    const TOKEN_WVOI2 = 34099056;
+    import { WVOI2_CONTRACT_ID as TOKEN_WVOI2} from '$lib/data/constants';
 
     export let showModal: boolean;
     export let token: Token;
@@ -212,7 +211,7 @@
                 {#if walletBalance == 0}
                     <div class="flex flex-col items-center">
                         <div class="text-xl font-bold text-red-500">Warning!</div>
-                        <div class="text-sm text-gray-400">The selected address has no Voi. Please verify before sending.</div>
+                        <div class="text-sm text-gray-400">The selected address has no Voi.</div>
                     </div>
                 {/if}
                 <div class="flex flex-row justify-between mt-4 space-x-2">

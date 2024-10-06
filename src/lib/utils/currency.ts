@@ -3,6 +3,7 @@ import { algodClient, algodIndexer } from './algod';
 import { arc200 as Contract } from "ulujs";
 import { currencies } from '../../stores/collection';
 import { get } from 'svelte/store';
+import { WVOI2_CONTRACT_ID } from '../data/constants';
 
 export const getWalletBalance = async (address: string, assetId: number): Promise<number> => {
     try {
@@ -33,8 +34,8 @@ export const getWalletBalance = async (address: string, assetId: number): Promis
 export const getCurrency = async (assetId: number, forMarket: boolean = false): Promise<Currency | null> => {
     switch (assetId) {
         case 0:
-        case 34099056:
-            if (assetId === 34099056 && forMarket) break;
+        case WVOI2_CONTRACT_ID:
+            if (assetId === WVOI2_CONTRACT_ID && forMarket) break;
             return {
                 assetId: 0,
                 name: 'Voi',

@@ -9,8 +9,9 @@
 	import { MetaTags } from 'svelte-meta-tags';
 	import MultiCollectionView from '$lib/component/ui/MultiCollectionView.svelte';
     import SecondaryNavBar from '$lib/component/ui/SecondaryNavBar.svelte';
-    import { fade } from 'svelte/transition';
-    
+    import { fade, fly } from 'svelte/transition';
+    import LoadingSpinner from '$lib/component/ui/LoadingSpinner.svelte'; // You'll need to create this component
+
     export let data: PageData;
     let collections: Collection[] = data.collections;
     let filterCollections: Collection[] = [];
@@ -20,6 +21,7 @@
     let isMounted = false;
     let activeTab = 'all';
     let spInteval: ReturnType<typeof setInterval> | null = null;
+    let isLoading = false;
 
     onMount(async () => {
         isMounted = true;
@@ -89,7 +91,19 @@
     }
 
     function showMore() {
-        displayCount += cardsPerLoad;
+        isLoading = true;
+        setTimeout(() => {
+            displayCount += cardsPerLoad;
+            isLoading = false;
+        }, 500); // Simulate loading delay
+    }
+
+    function handleCollectionClick() {
+        isLoading = true;
+        // Simulate navigation delay
+        setTimeout(() => {
+            isLoading = false;
+        }, 500);
     }
 
     let inputElement: HTMLInputElement;
@@ -189,11 +203,19 @@
         {#if isMounted}
             {#each filterCollections.slice(0, displayCount) as collection (collection.contractId)}
                 <div transition:fade>
-                    <MultiCollectionView viewType="grid" collections={[collection]} />
+                    <MultiCollectionView viewType="grid" collections={[collection]} on:click={handleCollectionClick} />
                 </div>
             {/each}
         {/if}
     </div>
+
+    {#if isLoading}
+        <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div in:fly="{{ y: 50, duration: 300 }}" out:fade="{{ duration: 200 }}">
+                <LoadingSpinner />
+            </div>
+        </div>
+    {/if}
 
     {#if filterCollections.length > displayCount}
         <div class="text-center mt-8">

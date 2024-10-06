@@ -14,8 +14,8 @@
 	import BuyTokenModal from './BuyTokenModal.svelte';
     import ListTokenModal from './ListTokenModal.svelte';
     import NautilusLogo from '$lib/assets/nautilus.svg';
-    import { buyToken as buyTokenArcpay, getListings as getListingsArcpay, listToken as listTokenArcpay } from '$lib/arcpay';
-    import type { Listing as AListing } from '$lib/arcpay';
+    //import { buyToken as buyTokenArcpay, getListings as getListingsArcpay, listToken as listTokenArcpay } from '$lib/arcpay';
+    //import type { Listing as AListing } from '$lib/arcpay';
 
     export let token: Token;
     export let collection: Collection | undefined;
@@ -82,7 +82,7 @@
             }
             else {
                 // get arcpay listings
-                const arcpayListings: AListing[] = await getListingsArcpay(token, true);
+                /*const arcpayListings: AListing[] = await getListingsArcpay(token, true);
                 if (arcpayListings.length > 0) {
                     //listing = arcpayListings[0];
                     const l: AListing = arcpayListings[0];
@@ -109,7 +109,7 @@
                         }
                     }
                 }
-                else {
+                else {*/
                     const marketUrl = `${indexerBaseURL}/mp/listings/?collectionId=${token.contractId}&tokenId=${token.tokenId}&active=true`;
                     try {
                         const marketData = await fetch(marketUrl).then((response) => response.json());
@@ -126,7 +126,7 @@
                     catch (e) {
                         console.error(e);
                     }
-                }
+                //}
             }
         //}
 
@@ -336,8 +336,7 @@
                         <i class="fas fa-tag mr-2"></i>
                         List
                     </button>
-                    {#if false}
-                    {#if !listing || (listing && listing.source === 'arcpay')}
+                    {#if false && (!listing || (listing && listing.source === 'arcpay'))}
                         <button on:click={listArcpay} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
                             <i class="fas fa-shopping-cart mr-2"></i>
                             <div class="flex-col">
@@ -377,7 +376,6 @@
                                 </div>
                             </div>
                         </button>
-                    {/if}
                     {/if}
                 </div>
             {:else if listing && !listing.sale && !listing.delete && $selectedWallet}

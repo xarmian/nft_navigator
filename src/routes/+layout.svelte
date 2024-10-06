@@ -5,8 +5,18 @@
 	import '@fortawesome/fontawesome-free/css/all.min.css'
 	import { onMount } from 'svelte';
 	import { invalidate } from '$app/navigation';
-	
-	// export let data;
+	import { navigating } from '$app/stores';
+	import { isLoading } from '../stores/loading';
+	import GlobalLoadingSpinner from '$lib/component/ui/GlobalLoadingSpinner.svelte';
+
+	// Show loading spinner when navigating between pages
+	$: {
+		if ($navigating) {
+			isLoading.set(true);
+		} else {
+			isLoading.set(false);
+		}
+	}
 
 	/*let { supabase, session } = data;
 	$: ({ supabase, session } = data);
@@ -30,6 +40,9 @@
 	$: siteName = metadata.siteName ?? ' NFT Navigator';
 	$: cardType = metadata.cardType ?? 'summary';
 </script>
+
+<GlobalLoadingSpinner />
+
 <svelte:head>
 	<title>{pageName} | NFT Navigator</title>
 	<meta name="description" content="{description}" />
