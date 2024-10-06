@@ -64,7 +64,7 @@
 
     const unsub = selectedWallet.subscribe((value) => {
         if (walletIds && walletIds.length > 0 && value?.address && walletIds[0] != value.address) {
-            goto('/portfolio/' + value.address);
+            //goto('/portfolio/' + value.address, { invalidateAll: true });
         }
     });
 

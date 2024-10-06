@@ -7,6 +7,8 @@
 	import { getTokens, populateTokenRanking } from '$lib/utils/indexer';
 	import { selectedWallet } from 'avm-wallet-svelte';
 	import { getTokenImageUrl } from '$lib/utils/functions';
+	import { isLoading } from '../../../stores/loading';
+	import { goto } from '$app/navigation';
 
     export let token: Token | null = null;
     export let listing: Listing | null = null;
@@ -65,12 +67,20 @@
     let infourl = '';
     let marketurl = '';
     let collectionurl = '';
+
+    function handleClick(event: MouseEvent) {
+        event.preventDefault();
+        isLoading.set(true);
+        goto(infourl).then(() => {
+            isLoading.set(false);
+        });
+    }
 </script>
 
 <div class="card-container">
     <div class="card">
         {#if token}
-            <a class="side cursor-pointer" href={infourl}>
+            <a class="side cursor-pointer" on:click={handleClick}>
                 <Card padding="none">
                     <div class="image-container relative rounded-t-lg overflow-hidden flex justify-center">
                         <img src={getTokenImageUrl(token,480)} alt={token.metadata?.name} title={token.metadata?.name} class="h-72 max-h-72 max-w-72 object-contain object-center"/>
