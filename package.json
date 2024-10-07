@@ -53,7 +53,7 @@
 		"@vercel/analytics": "^1.2.2",
 		"algosdk": "^2.7.0",
 		"arcpay-sdk": "^0.0.6",
-		"avm-wallet-svelte": "^0.3.2",
+		"avm-wallet-svelte": "^0.3.5",
 		"compare-versions": "^6.1.0",
 		"d3": "^7.9.0",
 		"d3-scale": "github:d3/d3-scale",

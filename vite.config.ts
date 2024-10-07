@@ -5,9 +5,9 @@ export default defineConfig({
 	plugins: [sveltekit()],
 	define: { global: "globalThis", },
 	ssr: {
-		noExternal: ['three', 'arcpay-sdk', 'algosdk','@txnlab/use-wallet']
+		noExternal: ['three', 'arcpay-sdk', 'algosdk','@txnlab/use-wallet'],
 	},
-	/* optimizeDeps: {
-		include: ['avm-wallet-svelte']
+	/*optimizeDeps: {
+		include: ['avm-wallet-svelte', 'lute-connect']
 	},*/
 });
