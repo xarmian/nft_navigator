@@ -118,7 +118,89 @@
 <div class="flex flex-col md:flex-row shadow-2xl rounded-xl bg-opacity-0 bg-black dark:bg-white dark:bg-opacity-10 my-2">
     <div class="w-full overflow-hidden rounded-lg shadow-xs">
         <div class="w-full overflow-x-auto">
-            <table class="w-full whitespace-no-wrap">
+            <!-- Filter controls -->
+            <div class="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:hidden">
+                <div class={tokenList.length > 0 ? 'hidden' : ''}>
+                    <label for="token-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Token</label>
+                    <select id="token-filter" class="mt-1 block w-full border border-gray-200 rounded-lg p-2 dark:text-black" bind:value={filterToken}>
+                        <option value=''>All</option>
+                        {#each tokenList as token (token)}
+                            <option value={token}>{token.metadata ? token.metadata.name : token.contractId + '-' + token.tokenId}</option>
+                        {/each}
+                    </select>
+                </div>
+                <div>
+                    <label for="from-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">From</label>
+                    <input id="from-filter" type="text" placeholder="Search" class="mt-1 block w-full border border-gray-200 rounded-lg p-2 dark:text-black" bind:value={searchFrom} />
+                </div>
+                <div>
+                    <label for="to-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">To</label>
+                    <input id="to-filter" type="text" placeholder="Search" class="mt-1 block w-full border border-gray-200 rounded-lg p-2 dark:text-black" bind:value={searchTo} />
+                </div>
+                <div>
+                    <label for="sales-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Only Sales</label>
+                    <Switch label="" bind:checked={showOnlySales} title="Toggle only marketplace sales"></Switch>
+                </div>
+                <div>
+                    <button class="mt-6 w-full cursor-pointer p-2 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200" on:click={refreshTable}>
+                        <i class="fas fa-sync-alt" aria-details="Refresh"></i>
+                        <span class="ml-2">Refresh</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mobile view -->
+            <div class="md:hidden">
+                {#each paginatedTransfers as transfer (transfer.transactionId)}
+                    <div class="bg-white dark:bg-gray-700 p-4 mb-4 rounded-lg shadow">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="text-sm text-gray-500 dark:text-gray-300">{new Date(transfer.timestamp * 1000).toLocaleString()}</div>
+                            <button class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200" on:click={() => doShowTxModal(transfer)}>
+                                <i class="fas fa-info-circle" aria-details="Info"></i>
+                                <span class="ml-1">Details</span>
+                            </button>
+                        </div>
+                        <div class="flex items-center mb-2">
+                            {#if transfer.token}
+                                <TokenIcon token={transfer.token}></TokenIcon>
+                                <div class="ml-2 text-sm">{transfer.token.metadata?.name??''}</div>
+                            {:else}
+                                <div>{transfer.tokenId}</div>
+                            {/if}
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                                <span class="font-semibold">From:</span> 
+                                {#if transfer.from == zeroAddress}
+                                    <span class="inline-block text-center text-xs bg-yellow-200 rounded-lg text-yellow-400 font-bold p-1">Minted</span>
+                                {:else}
+                                    <A href='/portfolio/{transfer.from}'>{nfdMap[transfer.from] ? nfdMap[transfer.from] : formatAddr(transfer.from)}</A>
+                                {/if}
+                            </div>
+                            <div>
+                                <span class="font-semibold">To:</span> 
+                                {#if transfer.to == zeroAddress}
+                                    <span class="inline-block text-center text-xs bg-yellow-200 rounded-lg text-yellow-400 font-bold p-1">Burned</span>
+                                {:else}
+                                    <A href='/portfolio/{transfer.to}'>{nfdMap[transfer.to] ? nfdMap[transfer.to] : formatAddr(transfer.to)}</A>
+                                {/if}
+                            </div>
+                        </div>
+                        <div class="mt-2 text-sm">
+                            <span class="font-semibold">Sale Price:</span> 
+                            {#if transfer.salePrice}
+                                {transfer.salePrice / Math.pow(10,transfer.saleCurrency?.decimals??0)} {transfer.saleCurrency?.unitName??''}
+                                <span role="img" aria-label="Celebration">🎉</span>
+                            {:else}
+                                -
+                            {/if}
+                        </div>
+                    </div>
+                {/each}
+            </div>
+
+            <!-- Desktop view -->
+            <table class="w-full whitespace-no-wrap hidden md:table">
                 <thead>
                     <tr class="text-xs font-semibold tracking-wide text-left text-gray-500 dark:text-gray-100 uppercase border-b bg-gray-50 dark:bg-gray-700">
                         <th class="px-4 py-3 align-top">Date</th>
@@ -200,10 +282,12 @@
                     {/each}
                 </tbody>
             </table>
+
+            <!-- Pagination -->
             <div class="pagination">
-                <button on:click={previousPage} disabled={currentPage === 1}>Previous</button>
-                <span>Page {currentPage} of {Math.ceil(filteredTransfers.length / transactionsPerPage)}</span>
-                <button on:click={nextPage} disabled={currentPage === Math.ceil(filteredTransfers.length / transactionsPerPage)}>Next</button>
+                <button on:click={previousPage} disabled={currentPage === 1} class="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300">Previous</button>
+                <span class="px-4 py-2">Page {currentPage} of {Math.ceil(filteredTransfers.length / transactionsPerPage)}</span>
+                <button on:click={nextPage} disabled={currentPage === Math.ceil(filteredTransfers.length / transactionsPerPage)} class="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300">Next</button>
             </div>
         </div>
     </div>
@@ -236,18 +320,4 @@
         padding: 20px;
     }
 
-    .pagination button {
-        padding: 10px 20px;
-        font-size: 16px;
-        color: white;
-        background-color: #007BFF;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-    }
-
-    .pagination button:disabled {
-        background-color: #ccc;
-        cursor: not-allowed;
-    }
 </style>

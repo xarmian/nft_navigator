@@ -122,7 +122,7 @@
                             <div class="w-20 text-ellipsis overflow-hidden inline-block">{sale.buyer.slice(0,8)}...{sale.buyer.slice(-8)}</div>
                             <i use:copy={sale.buyer} class="fas fa-copy cursor-pointer align-super" on:svelte-copy={() => toast.push(`Wallet Copied to Clipboard:<br/> ${sale.buyer.substring(0,20)}...`)}></i>
                         </td>
-                        <td class="dark:border-gray-500">{(sale.price/1000000).toLocaleString()} {sale.currency == 0 ? 'VOI' : 'VIA'}</td>
+                        <td class="dark:border-gray-500">{(sale.price/1000000).toLocaleString()} VOI</td>
                     </tr>
                 {/each}
             </tbody>

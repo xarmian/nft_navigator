@@ -70,7 +70,6 @@
             <Tooltip header={(data) => format(new Date(data.date),'MM/dd/yyyy hh:ss a')} let:data>
                 <TooltipItem label="Volume" value={data.value.toLocaleString()} />
                 <TooltipItem label="VOI" value={data.voi.toLocaleString()} />
-                <TooltipItem label="VIA" value={data.via.toLocaleString()} />
                 <TooltipItem label="# Sales" value={data.salesCount} />
             </Tooltip>
         </Chart>

@@ -9,10 +9,10 @@
 	import { getWalletBalance, getCurrency } from '$lib/utils/currency';
 	import { Breadcrumb, BreadcrumbItem } from 'flowbite-svelte';
 	import { showConfetti } from '../../../stores/collection';
-	import { toast } from '@zerodevx/svelte-toast';
 	import type { NFTIndexerListingI, NFTIndexerTokenI } from 'ulujs/types/mp';
 	import { invalidateAll } from '$app/navigation';
 	import { zeroAddress, NAUTILUS_CONTRACT_ID as ctcInfoMp206, WVOI2_CONTRACT_ID as TOKEN_WVOI2 } from '$lib/data/constants';
+    import Share from './Share.svelte';
 
     export let showModal: boolean;
     export let token: Token;
@@ -336,12 +336,14 @@
             {:else if sendingView === "listed"}
                 <div class="flex flex-col items-center m-2">
                     <div class="text-xl font-bold">Token Listing Complete</div>
-                    <div class="mt-2 text-gray-400">
-                        The token listing is complete
-                    </div>
-                    <div class="mt-2 text-gray-400 flex flex-col">
+                    <div class="mt-2 text-gray-400 flex flex-col justify-center">
                         <div class="font-bold">Transaction ID</div>
                         <a href={"https://explorer.voi.network/explorer/transaction/" + transactionId} target="_blank" class="text-xs underline text-blue-500 hover:text-blue-600">{transactionId}</a>
+                    </div>
+                    <div class="mt-2 text-gray-400 flex flex-col">
+                        <div class="relative">
+                            <Share url={`https://nftnavigator.xyz/collection/${token.contractId}/token/${token.tokenId}`} text={`Check out this sweet ${tokenName} I just listed on Voi Network for ${salePrice} VOI! #Voiagers #VoiNFTs`} />
+                        </div>
                     </div>
                     <div class="flex flex-row items-center mt-4 space-x-4">
                         <button on:click={close} class="w-64 h-10 bg-blue-500 text-white rounded-md">Close</button>
@@ -376,3 +378,9 @@
         </div>
     </div>
 </Modal>
+<style>
+    /* Add this style to allow the popover to extend outside the modal */
+    :global(.modal-container) {
+        overflow: visible !important;
+    }
+</style>

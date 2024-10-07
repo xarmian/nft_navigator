@@ -160,11 +160,7 @@
 				<a href="/forsale" class="nav-link {currentPath == 'forsale' ? 'text-blue-500' : ''}">For Sale</a>
 				<a href="/lounge{extensionRouteLounge}" class="nav-link {currentPath == 'lounge' ? 'text-blue-500' : ''}">Lounge</a>
 				<a href="/analytics{extensionRoute}" class="nav-link {currentPath == 'analytics' ? 'text-blue-500' : ''}">Analytics</a>
-				{#if $selectedWallet}
-					<a href="/portfolio/{$selectedWallet?.address}" class="nav-link {currentPath == 'portfolio' ? 'text-blue-500' : ''}">
-						My Portfolio
-					</a>
-				{/if}
+				<a href="/portfolio" class="nav-link {currentPath == 'portfolio' ? 'text-blue-500' : ''}">My Portfolio</a>
 			</nav>
 			<div class="flex items-center space-x-4">
 				<div class="hidden lg:block">
@@ -187,11 +183,7 @@
 				<a href="/forsale" class="nav-link {currentPath == 'forsale' ? 'text-blue-500' : ''}">For Sale</a>
 				<a href="/lounge{extensionRouteLounge}" class="nav-link {currentPath == 'lounge' ? 'text-blue-500' : ''}">Lounge</a>
 				<a href="/analytics{extensionRoute}" class="nav-link {currentPath == 'analytics' ? 'text-blue-500' : ''}">Analytics</a>
-				{#if $selectedWallet}
-					<a href="/portfolio/{$selectedWallet?.address}" class="nav-link {currentPath == 'portfolio' ? 'text-blue-500' : ''}">
-						My Portfolio
-					</a>
-				{/if}
+				<a href="/portfolio" class="nav-link {currentPath == 'portfolio' ? 'text-blue-500' : ''}">My Portfolio</a>
 			</nav>
 			<div class="mt-4">
 				<CollectionSearch />
@@ -202,7 +194,7 @@
 		</div>
 	{/if}
 
-	<main class="flex-grow mt-28">
+	<main class="flex-grow {showBanner ? 'pt-28' : 'pt-20'}">
 		<slot />
 	</main>
 

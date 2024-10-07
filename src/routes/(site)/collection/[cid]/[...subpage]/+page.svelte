@@ -14,6 +14,7 @@
 	import PixelPursuitButton from '$lib/component/ui/PixelPursuitButton.svelte';
 	import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
 	import LoungeButton from '$lib/component/ui/LoungeButton.svelte';
+	import Share from '$lib/component/ui/Share.svelte';
 
     //const forsale = $page.url.searchParams.get('forsale');
 
@@ -21,7 +22,7 @@
     $: contractId = data.contractId;
     let subpage = data.subpage;
     $: tokens = data.tokens as Token[];
-    let collectionName = data.collectionName;
+    let collectionName = data.collectionName.trim();
     $: collection = data.collection as Collection;
     let filteredTokens = [] as Token[];
     let displayCount = 10;
@@ -94,7 +95,7 @@
 </script>
 
 {#if collection}
-<div use:handleScroll class="banner_container h-60 justify-between overflow-hidden overflow-ellipsis relative flex flex-row text-white" style="transition: transform 0.3s ease-out;">
+<div use:handleScroll class="banner_container z-10 h-60 justify-between overflow-ellipsis relative flex flex-row text-white" style="transition: transform 0.3s ease-out;">
     {#if tokens[0] && tokens[0].metadata?.image}
         <img src="{getImageUrl(data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata?.image,480)}" class="banner_img object-cover" />
         <img src="{getImageUrl(data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata?.image,480)}" class="banner_img2 w-1/2 object-cover" />
@@ -140,11 +141,12 @@
                     </div>
                 </div>
             </div>
-            <div class="flex flex-col space-y-2 items-stretch justify-center mb-2 z-10 w-24">
+            <div class="flex flex-col space-y-2 items-stretch justify-center mb-2 z-20 w-24">
                 <LoungeButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-12 text-black"/>
                 <NautilusButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-12"/>
                 <HighforgeButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-12"/>
                 <PixelPursuitButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 text-black dark:text-black px-2 rounded-md cursor-pointer min-h-12"/>
+                <Share url={`https://nftnavigator.xyz/collection/${contractId}`} text={`Check out ${collectionName} on Voi Network! #Voiagers #VoiNFTs`} placement="left" />
                 {#if collection?.gameData}
                     <!--<NftGamesButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-12"/>-->
                 {/if}
@@ -160,7 +162,7 @@
         </div>
     </div>
 </div>
-<div class="flex pb-16">
+<div class="flex pb-16 relative z-0">
     {#if displayTab == 'tokens' || displayTab == 'burned' || displayTab == 'ranking'}
         <div class="p-4 hidden md:block">
             <div class="relative self-start">

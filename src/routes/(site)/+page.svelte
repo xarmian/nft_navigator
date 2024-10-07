@@ -10,7 +10,7 @@
 	import MultiCollectionView from '$lib/component/ui/MultiCollectionView.svelte';
     import SecondaryNavBar from '$lib/component/ui/SecondaryNavBar.svelte';
     import { fade, fly } from 'svelte/transition';
-    import LoadingSpinner from '$lib/component/ui/LoadingSpinner.svelte'; // You'll need to create this component
+    import LoadingSpinner from '$lib/component/ui/LoadingSpinner.svelte';
 
     export let data: PageData;
     let collections: Collection[] = data.collections;

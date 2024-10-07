@@ -4,10 +4,12 @@ import type { Token } from '$lib/data/types';
 import { getCollections } from '$lib/utils/indexer';
 import type { LayoutServerLoad } from '../../../$types';
 import { indexerBaseURL } from '$lib/utils/indexer';
+import { selectedWallet } from 'avm-wallet-svelte';
+import { get } from 'svelte/store';
 
 export const load = (async ({ params, fetch }) => {
-	const walletId: string = params.id??'';
-	const walletIds = walletId.split(',');
+	const walletId: string | undefined = (((params.id??'').length) > 0) ? params.id : get(selectedWallet)?.address;
+	console.log('walletId', walletId);
 	let walletNFD: null | string = null;
 	let walletAvatar: undefined | string = undefined;
 	const tokens: Token[] = [];
@@ -15,14 +17,14 @@ export const load = (async ({ params, fetch }) => {
 	const collections = await getCollections({ fetch });
 
 	try {
-		const nfd = await getNFD([walletIds[0]], fetch); // nfd is array of objects with key = owner, replacementValue = nfd
-		const nfdObj: any = nfd.find((n: any) => n.key === walletIds[0]);
-		walletNFD = nfdObj?.replacementValue ?? undefined;
-		walletAvatar = nfdObj?.avatar ?? '/blank_avatar_small.png';
+		if (walletId) {
+			const nfd = await getNFD([walletId], fetch); // nfd is array of objects with key = owner, replacementValue = nfd
+			const nfdObj: any = nfd.find((n: any) => n.key === walletId);
+			walletNFD = nfdObj?.replacementValue ?? undefined;
+			walletAvatar = nfdObj?.avatar ?? '/blank_avatar_small.png';
 
-		// owned tokens
-		for(const wid of walletIds) {
-			const url = `${indexerBaseURL}/tokens?owner=${wid}`;
+			// owned tokens
+			const url = `${indexerBaseURL}/tokens?owner=${walletId}`;
 			const data = await fetch(url).then((response: any) => response.json());
 			data.tokens.forEach((token: any) => {
 				tokens.push({
@@ -42,20 +44,20 @@ export const load = (async ({ params, fetch }) => {
 			});
 
 			// approved tokens
-			const aurl = `${indexerBaseURL}/tokens?approved=${wid}`;
+			const aurl = `${indexerBaseURL}/tokens?approved=${walletId}`;
 			const adata = await fetch(aurl).then((response: any) => response.json());
 			adata.tokens.forEach((token: any) => {
 				approvals.push({
 					contractId: token.contractId,
-					tokenId: token.tokenId,
-					owner: token.owner,
-					ownerNFD: walletNFD,
-					metadataURI: token.metadataURI,
-					metadata: JSON.parse(token.metadata ?? '{}'),
-					mintRound: token['mint-round'],
-					approved: token.approved,
-					marketData: undefined,
-					salesData: undefined,
+						tokenId: token.tokenId,
+						owner: token.owner,
+						ownerNFD: walletNFD,
+						metadataURI: token.metadataURI,
+						metadata: JSON.parse(token.metadata ?? '{}'),
+						mintRound: token['mint-round'],
+						approved: token.approved,
+						marketData: undefined,
+						salesData: undefined,
 					rank: null,
 					isBurned: token.isBurned,
 				});

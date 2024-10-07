@@ -14,8 +14,9 @@
 	import BuyTokenModal from './BuyTokenModal.svelte';
     import ListTokenModal from './ListTokenModal.svelte';
     import NautilusLogo from '$lib/assets/nautilus.svg';
-    //import { buyToken as buyTokenArcpay, getListings as getListingsArcpay, listToken as listTokenArcpay } from '$lib/arcpay';
-    //import type { Listing as AListing } from '$lib/arcpay';
+    import { buyToken as buyTokenArcpay, getListings as getListingsArcpay, listToken as listTokenArcpay } from '$lib/arcpay';
+    import type { Listing as AListing } from '$lib/arcpay';
+    import Share from '$lib/component/ui/Share.svelte';
 
     export let token: Token;
     export let collection: Collection | undefined;
@@ -82,7 +83,7 @@
             }
             else {
                 // get arcpay listings
-                /*const arcpayListings: AListing[] = await getListingsArcpay(token, true);
+                const arcpayListings: AListing[] = await getListingsArcpay(token, true);
                 if (arcpayListings.length > 0) {
                     //listing = arcpayListings[0];
                     const l: AListing = arcpayListings[0];
@@ -109,7 +110,7 @@
                         }
                     }
                 }
-                else {*/
+                else {
                     const marketUrl = `${indexerBaseURL}/mp/listings/?collectionId=${token.contractId}&tokenId=${token.tokenId}&active=true`;
                     try {
                         const marketData = await fetch(marketUrl).then((response) => response.json());
@@ -126,7 +127,7 @@
                     catch (e) {
                         console.error(e);
                     }
-                //}
+                }
             }
         //}
 
@@ -336,7 +337,7 @@
                         <i class="fas fa-tag mr-2"></i>
                         List
                     </button>
-                    {#if false && (!listing || (listing && listing.source === 'arcpay'))}
+                    {#if false && (!listing || (listing && listing?.source === 'arcpay'))}
                         <button on:click={listArcpay} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
                             <i class="fas fa-shopping-cart mr-2"></i>
                             <div class="flex-col">
@@ -418,33 +419,63 @@
                 </div>
             </div>
         {:else}
-            <a href="/collection/{token.contractId}/token/{token.tokenId}" class="relative overflow-hidden place-self-center" class:rounded-xl={format !== 'small'} >
-                <img src={imageUrl} class="{format === 'small' ? 'w-72 h-72' : 'w-96'} object-contain" />
-                {#if listing && !listing.sale && !listing.delete}
-                    {#if listing.source === 'arcpay'}
-                        <button on:click|stopPropagation|preventDefault={buyArcpay} class="absolute top-0 right-0 p-1 text-white rounded-full text-nowrap" title="Buy on NFT Navigator">
-                            {#if currency}
-                                <div class="badge top-right"><div>For Sale</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}</div></div>
-                            {:else}
-                                <div class="badge top-right"><div>For Sale</div><div class="text-xxs">See Marketplace</div></div>
-                            {/if}
-                        </button>
-                    {:else}
-                        <a href="https://nautilus.sh/#/collection/{token.contractId}/token/{token.tokenId}" on:click|stopPropagation target="_blank" class="absolute top-0 right-0 p-1 text-white rounded-full text-nowrap" title="View on Marketplace">
-                            {#if currency}
-                                <div class="badge top-right"><div>For Sale</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}</div></div>
-                            {:else}
-                                <div class="badge top-right"><div>For Sale</div><div class="text-xxs">See Marketplace</div></div>
-                            {/if}
-                        </a>
+            {#if format === 'small'}
+                <a href="/collection/{token.contractId}/token/{token.tokenId}" class="relative overflow-hidden place-self-center rounded-xl">
+                    <img src={imageUrl} class="w-72 h-72 object-contain" />
+                    {#if listing && !listing.sale && !listing.delete}
+                        {#if listing.source === 'arcpay'}
+                            <button on:click|stopPropagation|preventDefault={buyArcpay} class="absolute top-0 right-0 p-1 text-white rounded-full text-nowrap" title="Buy on NFT Navigator">
+                                {#if currency}
+                                    <div class="badge top-right"><div>For Sale</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}</div></div>
+                                {:else}
+                                    <div class="badge top-right"><div>For Sale</div><div class="text-xxs">See Marketplace</div></div>
+                                {/if}
+                            </button>
+                        {:else}
+                            <a href="https://nautilus.sh/#/collection/{token.contractId}/token/{token.tokenId}" on:click|stopPropagation target="_blank" class="absolute top-0 right-0 p-1 text-white rounded-full text-nowrap" title="View on Marketplace">
+                                {#if currency}
+                                    <div class="badge top-right"><div>For Sale</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}</div></div>
+                                {:else}
+                                    <div class="badge top-right"><div>For Sale</div><div class="text-xxs">See Marketplace</div></div>
+                                {/if}
+                            </a>
+                        {/if}
                     {/if}
-                {/if}
-                {#if showOwnerIcon && token.owner == $selectedWallet?.address}
-                    <div class="absolute top-0 left-0 p-1 text-green-500 text-3xl" title='Owned by You'>
-                        <i class="fas fa-user"></i>
-                    </div>
-                {/if}
-            </a>
+                    {#if showOwnerIcon && token.owner == $selectedWallet?.address}
+                        <div class="absolute top-0 left-0 p-1 text-green-500 text-3xl" title='Owned by You'>
+                            <i class="fas fa-user"></i>
+                        </div>
+                    {/if}
+                </a>
+            {:else}
+                <div class="relative overflow-hidden place-self-center">
+                    <img src={imageUrl} class="w-96 object-contain" />
+                    {#if listing && !listing.sale && !listing.delete}
+                        {#if listing.source === 'arcpay'}
+                            <button on:click|stopPropagation|preventDefault={buyArcpay} class="absolute top-0 right-0 p-1 text-white rounded-full text-nowrap" title="Buy on NFT Navigator">
+                                {#if currency}
+                                    <div class="badge top-right"><div>For Sale</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}</div></div>
+                                {:else}
+                                    <div class="badge top-right"><div>For Sale</div><div class="text-xxs">See Marketplace</div></div>
+                                {/if}
+                            </button>
+                        {:else}
+                            <a href="https://nautilus.sh/#/collection/{token.contractId}/token/{token.tokenId}" on:click|stopPropagation target="_blank" class="absolute top-0 right-0 p-1 text-white rounded-full text-nowrap" title="View on Marketplace">
+                                {#if currency}
+                                    <div class="badge top-right"><div>For Sale</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}</div></div>
+                                {:else}
+                                    <div class="badge top-right"><div>For Sale</div><div class="text-xxs">See Marketplace</div></div>
+                                {/if}
+                            </a>
+                        {/if}
+                    {/if}
+                    {#if showOwnerIcon && token.owner == $selectedWallet?.address}
+                        <div class="absolute top-0 left-0 p-1 text-green-500 text-3xl" title='Owned by You'>
+                            <i class="fas fa-user"></i>
+                        </div>
+                    {/if}
+                </div>
+            {/if}
         {/if}
         <div class="flex justify-between w-full flex-col md:flex-row" class:flex-grow={format === 'small'} class:md:flex-col={format === 'small'}>
             {#if format !== 'small'}
@@ -523,6 +554,7 @@
                 </div>
             {/each}
         </div>
+        <Share url={`https://nftnavigator.xyz/collection/${token.contractId}/token/${token.tokenId}`} text="Check out {token.metadata?.name??String(token.tokenId)} on NFT Navigator @voinftnavigator! #Voiagers #VoiNFTs" />
     {/if}
 </div>
 {#if showSendTokenModal}
