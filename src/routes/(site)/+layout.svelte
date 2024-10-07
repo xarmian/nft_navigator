@@ -188,7 +188,7 @@
 			<div class="mt-4">
 				<CollectionSearch />
 			</div>
-			<div class="mt-4">
+			<div class="mt-4 flex justify-center">
 				<Web3Wallet availableWallets={['DeflyWallet','Kibisis','LuteWallet']} showAuthButtons={true} algodClient={algodClient} indexerClient={algodIndexer} allowWatchAccounts={true} walletListClass="bg-gray-100 dark:bg-gray-700"/>
 			</div>
 		</div>
