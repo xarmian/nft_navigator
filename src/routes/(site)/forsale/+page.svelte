@@ -103,7 +103,7 @@
                 </button>
             {/if}
         </div>
-        <Switch bind:checked={$filters.voiGames} label="Voi Games"></Switch>
+        <!--<Switch bind:checked={$filters.voiGames} label="Voi Games"></Switch>-->
     </div>
 </div>
 <div class="pb-16">

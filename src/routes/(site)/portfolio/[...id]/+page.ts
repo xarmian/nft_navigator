@@ -9,7 +9,7 @@ import { get } from 'svelte/store';
 
 export const load = (async ({ params, fetch }) => {
 	const walletId: string | undefined = (((params.id??'').length) > 0) ? params.id : get(selectedWallet)?.address;
-	console.log('walletId', walletId);
+
 	let walletNFD: null | string = null;
 	let walletAvatar: undefined | string = undefined;
 	const tokens: Token[] = [];

@@ -38,7 +38,7 @@
   Share
 </Button>
 
-<Popover class="w-64 text-sm font-light" bind:open={popoverOpen} placement={placement}>
+<Popover class="w-64 text-sm font-light relative z-10" bind:open={popoverOpen} placement={placement}>
   <div class="px-3 py-2">
     <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Share to:</h3>
     <div class="flex flex-col space-y-2">

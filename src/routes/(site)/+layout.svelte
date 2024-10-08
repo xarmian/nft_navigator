@@ -14,6 +14,7 @@
 	import { fly } from 'svelte/transition';
 	import { fade } from 'svelte/transition';
 	import { slide } from 'svelte/transition';
+	import { PUBLIC_WALLET_CONNECT_PROJECT_ID } from '$env/static/public';
 
 	let showMenu = false;
 	let currentPath = '';
@@ -167,7 +168,19 @@
 					<CollectionSearch />
 				</div>
 				<div class="hidden lg:block">
-					<Web3Wallet availableWallets={['DeflyWallet','Kibisis','LuteWallet']} showAuthButtons={true} algodClient={algodClient} indexerClient={algodIndexer} allowWatchAccounts={true} walletListClass="bg-gray-100 dark:bg-gray-700 dark:text-gray-200"/>
+					<Web3Wallet availableWallets={['DeflyWallet','Kibisis','LuteWallet','WalletConnect']}
+					 showAuthButtons={true} 
+					 algodClient={algodClient} 
+					 indexerClient={algodIndexer} 
+					 allowWatchAccounts={true} 
+					 wcProject={{
+						projectId: PUBLIC_WALLET_CONNECT_PROJECT_ID,
+						projectName: 'NFT Navigator',
+						projectDescription: 'NFT Navigator',
+						projectUrl: 'https://nftnavigator.xyz',
+						projectIcons: ['https://nftnavigator.xyz/android-chrome-192x192.png'],
+					 }}
+					 walletListClass="bg-gray-100 dark:bg-gray-700 dark:text-gray-200"/>
 				</div>
 				<DarkMode />
 				<button on:click|stopPropagation={() => showMenu = !showMenu} class="lg:hidden">
@@ -189,7 +202,19 @@
 				<CollectionSearch />
 			</div>
 			<div class="mt-4 flex justify-center">
-				<Web3Wallet availableWallets={['DeflyWallet','Kibisis','LuteWallet']} showAuthButtons={true} algodClient={algodClient} indexerClient={algodIndexer} allowWatchAccounts={true} walletListClass="bg-gray-100 dark:bg-gray-700"/>
+				<Web3Wallet availableWallets={['DeflyWallet','Kibisis','LuteWallet','WalletConnect']}
+					showAuthButtons={true} 
+					algodClient={algodClient} 
+					indexerClient={algodIndexer} 
+					allowWatchAccounts={true} 
+					wcProject={{
+					projectId: PUBLIC_WALLET_CONNECT_PROJECT_ID,
+					projectName: 'NFT Navigator',
+					projectDescription: 'NFT Navigator',
+					projectUrl: 'https://nftnavigator.xyz',
+					projectIcons: ['https://nftnavigator.xyz/android-chrome-192x192.png'],
+					}}
+					walletListClass="bg-gray-100 dark:bg-gray-700"/>
 			</div>
 		</div>
 	{/if}
