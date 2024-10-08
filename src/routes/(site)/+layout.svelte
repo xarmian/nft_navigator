@@ -47,7 +47,7 @@
 	setOnAddHandler(async (wallets) => {
 		console.log('Wallet added', wallets);
 
-		const response = await fetch('/api/quests', {
+		/*const response = await fetch('/api/quests', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -68,13 +68,13 @@
 				toast.push('Congratulations! The Connect Wallet Quest has been Completed!');
 				setTimeout(() => showConfetti.set(false), 10000);
 			}
-		}
+		}*/
 	});
 
 	setOnAuthHandler(async (wallet) => {
 		console.log('Wallet authenticated', wallet);
 
-		const response = await fetch('/api/quests', {
+		/*const response = await fetch('/api/quests', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -101,7 +101,7 @@
 			else {
 				invalidateAll();
 			}
-		}
+		}*/
 	});
 
 	onMount(() => {

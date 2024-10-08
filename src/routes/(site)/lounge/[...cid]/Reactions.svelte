@@ -65,7 +65,7 @@
             alert(data.error.message);
         } else {
             const data = JSON.parse((await response.json()).data);
-            if (data[data[0]['isFirstAction']]) {
+            if (false && data[data[0]['isFirstAction']]) {
                 showConfetti.set(true);
                 toast.push(`Congratulations! The React to a Post Quest has been Completed!`);
                 setTimeout(() => {

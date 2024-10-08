@@ -165,7 +165,7 @@
                 sendingView = SendingView.Sent;
 
                 // submit POST to /api/quests to record action
-                const response = await fetch('/api/quests', {
+                /*const response = await fetch('/api/quests', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -193,7 +193,7 @@
                             showConfetti.set(false)
                         }, 10000);
                     }
-                }
+                }*/
                 
                 invalidateAll();
             }

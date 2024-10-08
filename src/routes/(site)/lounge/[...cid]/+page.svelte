@@ -197,13 +197,13 @@
             return false;
         } else {
             const data = JSON.parse((await response.json()).data);
-            if (data[data[0]['isFirstAction']]) {
+            /*if (data[data[0]['isFirstAction']]) {
                 showConfetti.set(true);
                 toast.push(`Congratulations! The ${postPrivacy} Post Quest has been Completed!`);
                 setTimeout(() => {
                     showConfetti.set(false)
                 }, 10000);
-            }
+            }*/
 
             return true;
         }
