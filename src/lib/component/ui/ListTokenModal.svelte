@@ -11,9 +11,9 @@
 	import { showConfetti } from '../../../stores/collection';
 	import type { NFTIndexerListingI, NFTIndexerTokenI } from 'ulujs/types/mp';
 	import { invalidateAll } from '$app/navigation';
-	import { zeroAddress, NAUTILUS_CONTRACT_ID as ctcInfoMp206, WVOI2_CONTRACT_ID as TOKEN_WVOI2 } from '$lib/data/constants';
+	import { zeroAddress, NAUTILUS_CONTRACT_ID as ctcInfoMp206, WVOI2_CONTRACT_ID as TOKEN_WVOI2, TOKEN_NAUT_VOI_STAKING } from '$lib/data/constants';
     import Share from './Share.svelte';
-
+    import { decodeRoyalties } from '$lib/utils/functions';
     export let showModal: boolean;
     export let token: Token;
     export let fromAddr: string;
@@ -86,15 +86,24 @@
         else {
             // create or update listing
 
+            // create a clone of token and decode royalties
+            const metadata = JSON.parse(JSON.stringify(token.metadata??'{}'));
+            let royalties = undefined;
+            if (metadata?.royalties) {
+                metadata.royalties = decodeRoyalties(metadata?.royalties);
+                royalties = metadata.royalties;
+            }
+
             // copy token (Token) to NFTIndexerTokenI
             const t: NFTIndexerTokenI = {
                 contractId: token.contractId, // number
                 tokenId: token.tokenId, // number
                 owner: token.owner, // string
-                metadata: JSON.stringify(token.metadata??'{}'),
+                metadata: JSON.stringify(metadata??'{}'),
                 metadataURI: token.metadataURI, // string
                 "mint-round": token.mintRound, // number
                 approved: token.approved, // string
+                royalties: royalties, // string
             };
 
             resp = await mp.list(
@@ -109,9 +118,9 @@
                     wrappedNetworkTokenId: TOKEN_WVOI2, // number 
                     mpContractId: ctcInfoMp206, // number 
                     extraTxns: [], // extra transaction to include before listing txn (optional)
-                    enforceRoyalties: false, // include royalty payout in listing (optional, default=false) 
+                    enforceRoyalties: [TOKEN_NAUT_VOI_STAKING].includes(listing?.collectionId || 0) ? false : true, // include royalty payout in listing (optional, default=false) 
                     skipEnsure: true, // skip ensure (optional, default=false)
-                    listingsToDelete: listing ? [listing as NFTIndexerListingI] : [], // listing ids to delete (optional)
+                    listingsToDelete: listing ? [listing as unknown as NFTIndexerListingI] : [], // listing ids to delete (optional)
                 }
             );
         }

@@ -168,7 +168,7 @@
 					<CollectionSearch />
 				</div>
 				<div class="hidden lg:block">
-					<Web3Wallet availableWallets={['DeflyWallet','Kibisis','LuteWallet','WalletConnect']}
+					<Web3Wallet availableWallets={['Kibisis','LuteWallet','WalletConnect']}
 					 showAuthButtons={true} 
 					 algodClient={algodClient} 
 					 indexerClient={algodIndexer} 
@@ -202,17 +202,17 @@
 				<CollectionSearch />
 			</div>
 			<div class="mt-4 flex justify-center">
-				<Web3Wallet availableWallets={['DeflyWallet','Kibisis','LuteWallet','WalletConnect']}
+				<Web3Wallet availableWallets={['Kibisis', 'LuteWallet', 'WalletConnect']}
 					showAuthButtons={true} 
 					algodClient={algodClient} 
 					indexerClient={algodIndexer} 
 					allowWatchAccounts={true} 
 					wcProject={{
-					projectId: PUBLIC_WALLET_CONNECT_PROJECT_ID,
-					projectName: 'NFT Navigator',
-					projectDescription: 'NFT Navigator',
-					projectUrl: 'https://nftnavigator.xyz',
-					projectIcons: ['https://nftnavigator.xyz/android-chrome-192x192.png'],
+						projectId: PUBLIC_WALLET_CONNECT_PROJECT_ID,
+						projectName: 'NFT Navigator',
+						projectDescription: 'NFT Navigator',
+						projectUrl: 'https://nftnavigator.xyz',
+						projectIcons: ['https://nftnavigator.xyz/android-chrome-192x192.png'],
 					}}
 					walletListClass="bg-gray-100 dark:bg-gray-700"/>
 			</div>

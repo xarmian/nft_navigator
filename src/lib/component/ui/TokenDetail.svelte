@@ -413,7 +413,7 @@
             </div>
         {:else}
             {#if format === 'small'}
-                <a href="/collection/{token.contractId}/token/{token.tokenId}" class="relative overflow-hidden place-self-center rounded-xl">
+                <a href="/collection/{token.contractId}/token/{token.tokenId}" class="relative overflow-hidden place-self-center rounded-t-xl">
                     <img src={imageUrl} class="w-72 h-72 object-contain" />
                     {#if listing && !listing.sale && !listing.delete}
                         {#if listing.source === 'arcpay'}
