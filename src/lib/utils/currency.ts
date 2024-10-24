@@ -40,6 +40,7 @@ export const getCurrency = async (assetId: number, forMarket: boolean = false): 
                 assetId: 0,
                 name: 'Voi',
                 unitName: 'VOI',
+                symbol: 'VOI',
                 total: 10000000000,
                 decimals: 6,
             };
@@ -48,6 +49,7 @@ export const getCurrency = async (assetId: number, forMarket: boolean = false): 
                 assetId: 6779767,
                 name: 'Voi Incentive Asset',
                 unitName: 'VIA',
+                symbol: 'VIA',
                 total: 10000000000,
                 decimals: 6,
             };
@@ -69,6 +71,7 @@ export const getCurrency = async (assetId: number, forMarket: boolean = false): 
                 assetId: assetId,
                 name: (name.success) ? name.returnValue : '',
                 unitName: (symbol.success) ? symbol.returnValue : '',
+                symbol: (symbol.success) ? symbol.returnValue : '',
                 decimals: (decimals.success) ? Number(decimals.returnValue) : 0,
                 total: (total.success) ? Number(total.returnValue) : 0,
             };
@@ -83,6 +86,7 @@ export const getCurrency = async (assetId: number, forMarket: boolean = false): 
                     assetId: assetInfo.assetIndex,
                     name: assetInfo.params.name,
                     unitName: assetInfo.params.unitName,
+                    symbol: assetInfo.params.unitName,
                     total: assetInfo.params.total,
                     decimals: assetInfo.params.decimals,
                 };

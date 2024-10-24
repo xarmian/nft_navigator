@@ -110,11 +110,11 @@
                 fromAddr, // string
                 t as NFTIndexerTokenI, // NFTIndexerTokenI
                 salePriceAU, // string (AU) (ex "10000000000")
-                listingCurrency?.assetId, // ARC200IndexerToken
+                listingCurrency, // ARC200IndexerToken
                 {
                     algodClient, 
                     indexerClient: algodIndexer,  
-                    paymentTokenId: TOKEN_WVOI2, // number
+                    paymentTokenId: 0, // number
                     wrappedNetworkTokenId: TOKEN_WVOI2, // number 
                     mpContractId: ctcInfoMp206, // number 
                     extraTxns: [], // extra transaction to include before listing txn (optional)

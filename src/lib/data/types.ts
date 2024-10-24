@@ -118,6 +118,7 @@ export interface Currency {
     assetId: number;
     name: string;
     unitName: string
+    symbol?: string;
     total: number;
     decimals: number;
 }
