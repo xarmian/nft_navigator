@@ -12,9 +12,12 @@
 	import { Confetti } from 'svelte-confetti';
 	import { showConfetti } from '../../stores/collection';
 	import { fly } from 'svelte/transition';
-	import { fade } from 'svelte/transition';
 	import { slide } from 'svelte/transition';
 	import { PUBLIC_WALLET_CONNECT_PROJECT_ID } from '$env/static/public';
+	import { fetchProjects } from '$lib/utils/projects';
+	import type { IProject } from '$lib/utils/projects';
+
+	let projects: IProject[] = [];
 
 	let showMenu = false;
 	let currentPath = '';
@@ -104,7 +107,14 @@
 		}*/
 	});
 
+	async function loadProjects() {
+		projects = await fetchProjects();
+		projects = projects.filter(p => p.status === 'active');
+	}
+
 	onMount(() => {
+		loadProjects();
+
 		// click outside menu to close
 		document.addEventListener('click', (e: MouseEvent) => {
 			// @ts-expect-error - closest does exist
@@ -168,7 +178,7 @@
 					<CollectionSearch />
 				</div>
 				<div class="hidden lg:block">
-					<Web3Wallet availableWallets={['Kibisis','LuteWallet','WalletConnect']}
+					<Web3Wallet availableWallets={['Kibisis','LuteWallet','Biatec Wallet','WalletConnect']}
 					 showAuthButtons={true} 
 					 algodClient={algodClient} 
 					 indexerClient={algodIndexer} 
@@ -222,6 +232,39 @@
 	<main class="flex-grow {showBanner ? 'pt-28' : 'pt-20'}">
 		<slot />
 	</main>
+
+	<div class="w-full overflow-hidden mb-8 pt-4 border-t border-gray-200 dark:border-gray-700">
+		<p class="text-sm text-gray-500 dark:text-gray-400 font-semibold px-4">Voi Ecosystem Projects</p>
+		<div class="relative">
+			<div class="flex overflow-x-auto space-x-2 py-4 px-2 scrollbar-hide">
+				{#each projects as project}
+					<a
+						href={project.url}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="flex-shrink-0 group w-24"
+					>
+						<div class="w-24 h-24 rounded-lg bg-gray-200 dark:bg-gray-700 p-2 flex items-center justify-center border border-gray-200 dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-500 transition-colors">
+							{#if project.logo}
+								<img
+									src={project.logo}
+									alt={project.title}
+									class="max-w-full max-h-full object-contain"
+								/>
+							{:else}
+								<span class="text-sm text-center text-gray-600 dark:text-gray-300">
+									{project.title}
+								</span>
+							{/if}
+						</div>
+						<p class="text-xs text-center mt-2 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 break-words hyphens-auto">
+							{project.title}
+						</p>
+					</a>
+				{/each}
+			</div>
+		</div>
+	</div>
 
 	<SvelteToast {options} />
 	{#if $showConfetti}

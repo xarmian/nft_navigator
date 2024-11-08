@@ -1,82 +1,31 @@
 <script lang="ts">
-	  import type { ChangeEventHandler } from "svelte/elements";
+    import type { ChangeEventHandler } from "svelte/elements";
 
     export let label: string = '';
     export let checked: boolean = false;
     export let onChange: ChangeEventHandler<HTMLInputElement> | null = null;
     export let title = '';
-    export let labelStyle = '';
-    export let sliderStyle = '';
 </script>
 
-
-<div title={title}>
-  <label class="switch">
-      <input type="checkbox" bind:checked={checked} on:change={onChange}>
-      <span class="slider round" style={sliderStyle}></span>
-  </label>
-  <span class="label-text" style={labelStyle}>{label}<slot/></span>
+<div class="flex items-center gap-3" {title}>
+    <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 {checked ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}"
+        on:click={() => {
+            checked = !checked;
+            if (onChange) onChange(new Event('change'));
+        }}
+    >
+        <span
+            class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+            class:translate-x-5={checked}
+            class:translate-x-0={!checked}
+        />
+    </button>
+    {#if label}
+        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</span>
+    {/if}
+    <slot />
 </div>
-
-  <style>
-  .switch {
-    position: relative;
-    display: inline-block;
-    width: 60px;
-    height: 34px;
-  }
-  
-  .switch input { 
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-  
-  .slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    transition: .4s;
-  }
-  
-  .slider:before {
-    position: absolute;
-    content: "";
-    height: 26px;
-    width: 26px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    transition: .4s;
-  }
-  
-  input:checked + .slider {
-    background-color: #2196F3;
-  }
-  
-  input:focus + .slider {
-    box-shadow: 0 0 1px #2196F3;
-  }
-  
-  input:checked + .slider:before {
-    transform: translateX(26px);
-  }
-  
-  .slider.round {
-    border-radius: 34px;
-  }
-  
-  .slider.round:before {
-    border-radius: 50%;
-  }
-  
-  .label-text {
-    margin: 0px 12px 0px 0px;
-    vertical-align: middle;
-    white-space: nowrap;
-  }
-</style>

@@ -39,4 +39,6 @@ export const userPreferences = writable({
 
 export const showConfetti = writable(false);
 
+export const viewMode = writable('Collection'); // Can be 'Token' or 'Collection'
+
 // Path: src/stores/collection.ts

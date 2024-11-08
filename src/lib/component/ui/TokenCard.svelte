@@ -15,8 +15,26 @@
     // export let includeCollection: boolean = false;
 
     let currency: Currency | null = null;
+    let imageLoaded = false;
+    let imageUrl: string;
+
+    // Memoize token props to avoid recalculation
+    let tokenProps: any[] = [];
+    let flipped = false
 
     onMount(async () => {
+        if (!token) return;
+
+        // Set image URL immediately
+        imageUrl = getTokenImageUrl(token, 480) ?? '';
+
+        // Preload image
+        const img = new Image();
+        img.src = imageUrl;
+        img.onload = () => {
+            imageLoaded = true;
+        };
+
         if (listing == null) listing = token?.marketData??null;
         if (listing) {
             if (!token) {
@@ -28,27 +46,27 @@
             currency = await getCurrency(listing.currency);
         }
 
-        if (token) {
-            if (token.metadata) {
-                tokenProps = Object.keys(token.metadata.properties).map((key) => {
-                    if (token && token.metadata) {
-                        return { trait_type: key, value: token?.metadata.properties[key as keyof typeof token.metadata.properties] };
-                    }
-                });
-            }
+        if (token && token.metadata) {
+            tokenProps = Object.keys(token.metadata.properties).map((key) => {
+                if (token && token.metadata) {
+                    return { trait_type: key, value: token?.metadata.properties[key as keyof typeof token.metadata.properties] };
+                }
+            });
+        }
 
+        if (token) {
             infourl = (`/collection/${token.contractId}/token/${token.tokenId}`);
             collectionurl = `/collection/${token.contractId}`;
             marketurl = `https://nautilus.sh/#/collection/${token.contractId}/token/${token.tokenId}`;
+        }
 
+        // Only populate ranking if not already present
+        if (token && !token.rank) {
             populateTokenRanking(token.contractId,[token],fetch).then((tokens) => {
                 token = tokens[0];
             });
         }
     });
-
-    let tokenProps: any[] = [];
-    let flipped = false
 
     function flip(node: any, {
         delay = 0,
@@ -83,7 +101,19 @@
             <a class="side cursor-pointer" on:click={handleClick}>
                 <Card padding="none">
                     <div class="image-container relative rounded-t-lg overflow-hidden flex justify-center">
-                        <img src={getTokenImageUrl(token,480)} alt={token.metadata?.name} title={token.metadata?.name} class="h-72 max-h-72 max-w-72 object-contain object-center"/>
+                        {#if imageUrl}
+                            <img
+                                src={imageUrl}
+                                alt={token.metadata?.name}
+                                title={token.metadata?.name}
+                                class="h-72 max-h-72 max-w-72 object-contain object-center transition-opacity duration-300"
+                                class:opacity-0={!imageLoaded}
+                                class:opacity-100={imageLoaded}
+                            />
+                            {#if !imageLoaded}
+                                <div class="absolute inset-0 bg-gray-100 dark:bg-gray-800 animate-pulse" />
+                            {/if}
+                        {/if}
                         {#if token.rank}
                             <div class="absolute bottom-0 left-0 bg-gray-100 dark:bg-gray-400 text-black dark:text-gray-100 p-1 text-xs">
                                 <i class="fas fa-medal"></i> {token.rank}
