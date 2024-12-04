@@ -53,11 +53,16 @@
 	});
 
     function handleClickOutside(event: MouseEvent) {
-        // @ts-expect-error - event
-        if (!event.target.closest('.collectionSearchComponent')) {
-            hideDropdown = true;
+        const target = event.target as HTMLElement;
+        // Don't close if clicking the input field
+        if (target.tagName === 'INPUT') {
+            hideDropdown = false;
+            return;
         }
-        else {
+        // Check if click is outside the search component
+        if (!target.closest('.collectionSearchComponent')) {
+            hideDropdown = true;
+        } else {
             hideDropdown = false;
         }
     }
