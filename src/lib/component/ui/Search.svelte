@@ -15,8 +15,7 @@
     let recentSearchValue: Collection[] = [];
 	let windowDefined = false;
     let filteredWallets: string[] = [];
-    let isFocused = false;
-    $: hideDropdown = !isFocused;
+    let isOpen = false;
     let viewing: 'analytics' | 'lounge' | null = null;
 
     onMount(async () => {
@@ -56,9 +55,10 @@
     function handleClickOutside(event: MouseEvent) {
         const target = event.target as HTMLElement;
         if (!target.closest('.collectionSearchComponent')) {
-            isFocused = false;
+            isOpen = false;
         }
     }
+
     function handleKeydown(event: KeyboardEvent) {
         const maxIndex = Math.max(filteredCollections.length - 1, filteredWallets.length - 1);
         if (event.key === 'ArrowDown') {
@@ -150,27 +150,23 @@
             }
         }
     }
+
+    function handleInputClick(event: MouseEvent) {
+        event.stopPropagation();
+        isOpen = true;
+        doShowRecent(true);
+    }
 </script>
 
 <div class="relative collectionSearchComponent">
     <input 
         type="text" 
-        on:focus={() => { 
-            isFocused = true; 
-            doShowRecent(true); 
-        }} 
-        on:blur={(e) => {
-            // Only unfocus if we're not clicking inside the component
-            const relatedTarget = e.relatedTarget && (e.relatedTarget instanceof HTMLElement ? e.relatedTarget : null);
-            if (!relatedTarget?.closest('.collectionSearchComponent')) {
-                isFocused = false;
-            }
-        }}
+        on:click={handleInputClick}
         bind:value={search} 
         placeholder="Search collection, NFD..." 
         class="p-2 w-full border rounded-md bg-gray-100 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-400 text-black dark:text-white" 
     />
-    {#if hideDropdown != true && (filteredCollections.length > 0 || showRecent || filteredWallets.length > 0)}
+    {#if isOpen && (filteredCollections.length > 0 || showRecent || filteredWallets.length > 0)}
         <ul class="absolute right-0 md:left-0 bg-white dark:bg-gray-800 border rounded-md mt-0.5 w-80 max-h-80 overflow-auto shadow-md z-50">
             {#each filteredCollections as collection, index (collection.contractId)}
                 <li class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer text-black dark:text-white {selected === index ? 'bg-blue-200 dark:bg-blue-700' : ''}">
