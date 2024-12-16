@@ -37,7 +37,7 @@ export function getTokenImageUrl(token: Token, width?: number) {
         return `https://prod.cdn.highforge.io/i/${encodeURIComponent(token.metadataURI)}?w=${width}`;
     }
     else if (token.metadata?.image && token.metadata.image.includes('ipfs://')) {
-        return token.metadataURI.replace('ipfs://', 'https://ipfs.io/ipfs/');
+        return token.metadata?.image.replace('ipfs://', 'https://ipfs.io/ipfs/');
     }
     else {
         return token.metadata?.image;
