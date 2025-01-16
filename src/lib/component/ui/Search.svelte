@@ -164,7 +164,7 @@
         type="text" 
         on:click={handleInputClick}
         bind:value={search} 
-        placeholder="Search collection, NFD..." 
+        placeholder="Search collection, enVoi..." 
         class="p-2 w-full border rounded-md bg-gray-100 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-400 text-black dark:text-white" 
     />
     {#if isOpen && (filteredCollections.length > 0 || showRecent || filteredWallets.length > 0)}
