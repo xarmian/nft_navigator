@@ -4,6 +4,7 @@
     import { getCollections } from '$lib/utils/indexer';
     import { onDestroy, onMount } from 'svelte';
     import { recentSearch, userPreferences } from '../../../stores/collection';
+    import { getEnvoiAddresses, searchEnvoi, type EnvoiSearchResult } from '$lib/utils/envoi';
     import { getAddressesForNFD } from '$lib/utils/nfd';
     import { page } from '$app/stores';
 
@@ -14,7 +15,7 @@
     let filteredCollections: Collection[] = [];
     let recentSearchValue: Collection[] = [];
 	let windowDefined = false;
-    let filteredWallets: string[] = [];
+    let filteredWallets: EnvoiSearchResult[] = [];
     let isOpen = false;
     let viewing: 'analytics' | 'lounge' | null = null;
 
@@ -72,7 +73,7 @@
                     gotoCollection(selectedCollection.contractId);
                 }
             } else if (filteredWallets.length > 0) {
-                gotoPortfolio(filteredWallets[selected]);
+                gotoPortfolio(filteredWallets[selected].address);
             }
         }
     }
@@ -137,13 +138,13 @@
             filteredCollections = (search.length >= 2) ? collections.filter(collection => collection.highforgeData?.title.toUpperCase().includes(search.toUpperCase())) : [];
 
             // do an NFD search
-            if (search.includes('.algo')) {
-                getAddressesForNFD(search, fetch).then((data) => {
+            if (search.length == 58) {
+                filteredWallets = [ { address: search, name: search, metadata: {} } ];
+            }
+            else if (search.length >= 2) {
+                searchEnvoi(search).then((data) => {
                     filteredWallets = data;
                 });
-            }
-            else if (search.length == 58) {
-                filteredWallets = [ search ];
             }
             else {
                 filteredWallets = [];
@@ -167,7 +168,7 @@
         class="p-2 w-full border rounded-md bg-gray-100 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-400 text-black dark:text-white" 
     />
     {#if isOpen && (filteredCollections.length > 0 || showRecent || filteredWallets.length > 0)}
-        <ul class="absolute right-0 md:left-0 bg-white dark:bg-gray-800 border rounded-md mt-0.5 w-80 max-h-80 overflow-auto shadow-md z-50">
+        <ul class="absolute right-0 md:left-0 bg-white dark:bg-gray-800 border rounded-md mt-0.5 w-96 max-h-80 overflow-auto shadow-md z-50">
             {#each filteredCollections as collection, index (collection.contractId)}
                 <li class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer text-black dark:text-white {selected === index ? 'bg-blue-200 dark:bg-blue-700' : ''}">
                     <button on:click={() => gotoCollection(collection.contractId)} class="flex flex-row space-x-2 w-full">
@@ -181,12 +182,27 @@
                     </button>
                 </li>
             {/each}
-            {#each filteredWallets as wallet, index (wallet)}
+            {#each filteredWallets as wallet, index (wallet.address)}
                 <li class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer text-black dark:text-white {selected === index ? 'bg-blue-200 dark:bg-blue-700' : ''}">
-                    <button on:click={() => gotoPortfolio(wallet)} class="flex flex-row space-x-2 w-full">
-                        <i class="fas fa-wallet place-self-center"></i>
-                        <div class="flex-grow inline-flex text-left">
-                            {wallet}
+                    <button on:click={() => gotoPortfolio(wallet.address)} class="w-full">
+                        <div class="flex items-center gap-3">
+                            {#if wallet.metadata?.avatar}
+                                <img 
+                                    src={wallet.metadata.avatar} 
+                                    alt={`${wallet.name} avatar`}
+                                    class="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                />
+                            {:else}
+                                <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center flex-shrink-0">
+                                    <span class="text-gray-600 dark:text-gray-300 text-base">
+                                        {wallet.name.charAt(0).toUpperCase()}
+                                    </span>
+                                </div>
+                            {/if}
+                            <div class="flex flex-col flex-grow min-w-0">
+                                <span class="text-lg font-medium truncate self-start">{wallet.name}</span>
+                                <span class="text-sm text-gray-500 dark:text-gray-400 font-mono truncate">{wallet.address}</span>
+                            </div>
                         </div>
                     </button>
                 </li>
