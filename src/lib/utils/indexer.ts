@@ -61,18 +61,19 @@ interface getCollectionsParams {
 }
 
 export function reformatTokenName(name: string, num?: string | number) {
-    if (num !== undefined && name.includes(String(num))) {
-        const baseName = name.replace(String(num), '').trim();
+    if (num !== undefined) {
+        // Remove the number and any '#' symbols, then trim
+        const baseName = name.replace(/#?\s*\d+\s*$/, '').trim();
         return `${baseName} #${num}`;
     } else {
-        const match = name.match(/^(.*?)(\s*#\s*|\s*)(\d+)$/);
+        // Match any number at the end, with optional # and spaces
+        const match = name.match(/^(.*?)(?:\s*#?\s*)(\d+)\s*$/);
         if (match) {
             const baseName = match[1].trim();
-            const number = match[3];
+            const number = match[2];
             return `${baseName} #${number}`;
-        } else {
-            return name;
         }
+        return name;
     }
 }
 
