@@ -43,6 +43,7 @@ export interface Collection {
     uniqueOwners?: number | undefined;
     popularity?: number;
     creator: string;
+    creatorName?: string | undefined;
     globalState?: Array<{ key: string; value: string }>;
 }
 

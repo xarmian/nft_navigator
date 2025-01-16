@@ -115,7 +115,7 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
             let metadata = null;
             try {
                 metadata = JSON.parse(token.metadata);
-            } catch (e) {
+            } catch {
                 metadata = {};
             }
             if (metadata == null) {
@@ -151,7 +151,7 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
 
         // for each token, get NFD data
         const owners = Array.from(new Set(tokens.map((token: Token) => token.owner)));
-        const nfd = await getNFD(owners, params.fetch);
+        const nfd = await getNFD(owners);
         tokens.forEach((token: Token) => {
             const nfdObj = nfd.find((n: { key: string }) => n.key === token.owner);
             if (nfdObj) {
@@ -162,7 +162,7 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
 
         return tokens;
     } catch (err) {
-        console.error(err);
+        console.error('Error fetching tokens:', err);
         return [];
     }
 }
@@ -202,6 +202,18 @@ export const getCollections = async (params: getCollectionsParams): Promise<Coll
         const data: ICollectionResponse = await response.json();
         const c = data.collections.filter((c: Collection) => c.firstToken !== null);
 
+        // Get unique creators and resolve their NFDs
+        const creators = Array.from(new Set(c.map(collection => collection.creator)));
+        const nfdResults = await getNFD(creators);
+
+        // Assign creator names to collections
+        c.forEach((collection: Collection) => {
+            const creatorNFD = nfdResults.find(nfd => nfd.key === collection.creator);
+            if (creatorNFD) {
+                collection.creatorName = creatorNFD.replacementValue;
+            }
+        });
+
         const hfurl = 'https://prod-voi.api.highforge.io/projects';
         const hfresponse = await params.fetch(hfurl);
         const hfdata = await hfresponse.json();
@@ -215,13 +227,13 @@ export const getCollections = async (params: getCollectionsParams): Promise<Coll
                         try {
                             const metadata = JSON.parse(c.firstToken.metadata);
                             c.firstToken.metadata = JSON.stringify({ ...metadata, image: p.coverImageURL });
-                        } catch (e) {
+                        } catch {
                             c.firstToken.metadata = JSON.stringify({ });
                         }
                     }
                     c.highforgeData = p;
                 }
-            });
+            });            
         });
 
         voiGames.forEach((game: IHighforgeProject) => {
@@ -235,7 +247,7 @@ export const getCollections = async (params: getCollectionsParams): Promise<Coll
         if (!params.contractId) collectionStore.set(c);
         return c;
     } catch (err) {
-        console.error(err);
+        console.error('Error fetching collections:', err);
         return [];
     }
 }
@@ -361,7 +373,7 @@ export async function populateTokenRanking(contractId: number, tokens: Token[], 
                 const rarity = calculateRarityScore(aggregateTraitCount, token.metadata.properties, totalNFTsInCollection);
                 rarityArray.push({ tokenId: token.tokenId, rarity });
             }
-            catch(err) {
+            catch {
                 rarityArray.push({ tokenId: token.tokenId, rarity: 0 });
             }
         });
@@ -406,7 +418,7 @@ export async function populateTokenRanking(contractId: number, tokens: Token[], 
             });
         }
         catch(err) {
-            console.error(err);
+            console.error('Error fetching token rankings:', err);
         }
     }
     return tokens;

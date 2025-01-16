@@ -77,7 +77,7 @@
         </div>
         <div class="w-1/5 hidden md:block">
             <a href="/portfolio/{collection.creator}" on:click|stopPropagation>
-                {collection.creator.slice(0,6)+'...'+collection.creator.slice(-8)}
+                {collection.creatorName ?? collection.creator.slice(0,6)+'...'+collection.creator.slice(-8)}
             </a>
         </div>
         <div class="w-2/5 md:w-1/5">
@@ -109,7 +109,7 @@
                     <div class='p-1 flex flex-col flex-grow'>
                         <div class="flex flex-col mb-1">
                             <div class="text-sm font-bold">{collection.highforgeData?.title ?? metadata?.name?.replace(/[1#]/g, '')}</div>
-                            <a href="/portfolio/{collection.creator}" on:click|stopPropagation class="place-self-end text-xs text-gray-600 dark:text-gray-300">{collection.creator.slice(0,6)+'...'+collection.creator.slice(-8)}</a>
+                            <a href="/portfolio/{collection.creator}" on:click|stopPropagation class="place-self-end text-xs text-gray-600 dark:text-gray-300">{collection.creatorName ?? collection.creator.slice(0,6)+'...'+collection.creator.slice(-8)}</a>
                         </div>
                         <div class="content-end flex-grow">
                             {#each data as item}

@@ -136,7 +136,7 @@
                         </div>
                         <div>
                             <div class="text-sm">Creator</div>
-                            <div class="text-lg text-blue-300 hover:text-blue-200"><a href='/portfolio/{collection?.creator}'>{collection?.creator.substring(0,8)}...</a></div>
+                            <div class="text-lg text-blue-300 hover:text-blue-200"><a href='/portfolio/{collection?.creator}'>{collection?.creatorName ?? collection?.creator.substring(0,8) + '...'}</a></div>
                         </div>
                     </div>
                 </div>
