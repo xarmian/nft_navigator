@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { getNFD } from '$lib/utils/nfd';
 import type { Token } from '$lib/data/types';
-import { getCollections } from '$lib/utils/indexer';
+import { getCollections, getTokens } from '$lib/utils/indexer';
 import type { LayoutServerLoad } from '../../../$types';
 import { indexerBaseURL } from '$lib/utils/indexer';
 import { selectedWallet } from 'avm-wallet-svelte';
@@ -12,7 +12,7 @@ export const load = (async ({ params, fetch }) => {
 
 	let walletNFD: null | string = null;
 	let walletAvatar: undefined | string = undefined;
-	const tokens: Token[] = [];
+	let tokens: Token[] = [];
 	const approvals: Token[] = [];
 	const collections = await getCollections({ fetch });
 
@@ -24,9 +24,11 @@ export const load = (async ({ params, fetch }) => {
 			walletAvatar = nfdObj?.avatar ?? '/blank_avatar_small.png';
 
 			// owned tokens
-			const url = `${indexerBaseURL}/tokens?owner=${walletId}`;
+			tokens = await getTokens({ owner: walletId, fetch });	
+			/*const url = `${indexerBaseURL}/tokens?owner=${walletId}`;
 			const data = await fetch(url).then((response: any) => response.json());
 			data.tokens.forEach((token: any) => {
+				console.log(token);
 				tokens.push({
 					contractId: token.contractId,
 					tokenId: token.tokenId,
@@ -41,7 +43,7 @@ export const load = (async ({ params, fetch }) => {
 					rank: null,
 					isBurned: token.isBurned,
 				});
-			});
+			});*/
 
 			// approved tokens
 			const aurl = `${indexerBaseURL}/tokens?approved=${walletId}`;

@@ -21,7 +21,7 @@ interface ICollectionResponse {
 
 interface IToken {
     contractId: number;
-    tokenId: number;
+    tokenId: string;
     owner: string;
     metadataURI: string;
     metadata: string;
@@ -50,7 +50,7 @@ interface getTokensParams {
     fetch?: FetchFunction | undefined;
     limit?: number | undefined;
     owner?: string | undefined;
-    tokenId?: number | undefined;
+    tokenId?: string | undefined;
     invalidate?: boolean | undefined;
 }
 
@@ -78,6 +78,7 @@ export function reformatTokenName(name: string, num?: string | number) {
 }
 
 export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
+
     if (params.contractId && !params.invalidate) {
         const tokens: Token[] | undefined = get(tokenStore).get(Number(params.contractId));
         if (tokens && tokens.length > 0) {
@@ -367,7 +368,7 @@ export async function populateTokenRanking(contractId: number, tokens: Token[], 
             }
         });
 
-        const rarityArray: { tokenId: number; rarity: number }[] = [];
+        const rarityArray: { tokenId: string; rarity: number }[] = [];
         tokens.forEach((token: Token) => {
             try {
                 if (!token.metadata) throw new Error('No metadata');

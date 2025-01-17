@@ -5,13 +5,13 @@ import type { LayoutServerLoad } from '../../../../../$types';
 
 export const load = (async ({ params, fetch }) => {
 	const contractId = Number(params.cid);
-	const tokenId = Number(params.tokenid);
+	const tokenId = params.tokenid;
 	let token: Token | null = null;
 	let collection: Collection | null = null;
 
 	if (contractId && tokenId) {
 		const tokens = await getTokens({ contractId, tokenId, fetch });
-		token = tokens.find((t) => t.tokenId === Number(tokenId)) ?? null;
+		token = tokens.find((t) => t.tokenId === tokenId) ?? null;
 		
 		// get NFD for owner
 		if (token) {

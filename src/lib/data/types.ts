@@ -6,7 +6,7 @@ export interface Token {
     owner: string;
     ownerNFD?: string | null;
     contractId: number;
-    tokenId: number;
+    tokenId: string;
     mintRound: number;
     metadata?: Metadata;
     metadataURI: string;
@@ -69,7 +69,7 @@ export interface IPollResponse {
 export interface RawToken {
     owner: string;
     contractId: number;
-    tokenId: number;
+    tokenId: string;
     "mint-round": number;
     metadata: string;
     metadataURI: string;
@@ -92,7 +92,7 @@ export interface Listing {
     mpContractId: number;
     mpListingId: number;
     collectionId: number;
-    tokenId: number;
+    tokenId: string;
     price: number;
     currency: number;
     seller: string;
@@ -109,7 +109,7 @@ export interface Sale {
     price: number;
     currency: number;
     timestamp: number;
-    tokenId: number;
+    tokenId: string;
     collectionId: number;
     listing: Listing;
     round: number;

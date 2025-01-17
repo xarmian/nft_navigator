@@ -98,7 +98,7 @@
                                 mpContractId: l.app_id,
                                 mpListingId: 0,
                                 collectionId: Number(l.asset_id.split('/')[0]),
-                                tokenId: Number(l.asset_id.split('/')[1]),
+                                tokenId: l.asset_id.split('/')[1],
                                 seller: '',
                                 price: l.sales[0].price * Math.pow(10, c.decimals),
                                 currency: Number(l.currency),
@@ -184,7 +184,7 @@
 
     let collectionName = '';
     $: {
-        collectionName = collection?.highforgeData?.title ?? token?.metadata?.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
+        collectionName = collection?.highforgeData?.title ?? (token?.metadata?.name??'').replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
         collectionName = collectionName.substring(0, 28) + (collectionName.length > 28 ? '...' : '');
     }
 

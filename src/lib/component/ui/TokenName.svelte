@@ -2,6 +2,8 @@
     import { reformatTokenName } from "$lib/utils/indexer";
 
     export let name: string;
-    export let tokenId: number | undefined = undefined;
+    export let tokenId: string | undefined = undefined;
 </script>
-{reformatTokenName(name, tokenId)}
+<div class="truncate max-w-64">
+    {reformatTokenName(name, tokenId)}
+</div>
