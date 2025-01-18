@@ -127,7 +127,7 @@ export async function resolveEnvoiToken(tokenIds: string[]): Promise<EnvoiNameRe
         // Make parallel requests for each chunk
         const results = await Promise.all(
             chunks.map(async (chunk) => {
-                const url = `https://api.envoi.sh/api/token/${chunk.join(',')}?avatar=full`;
+                const url = `https://api.envoi.sh/api/token/${chunk.join(',')}?avatar=small`;
                 const response = await fetch(url);
                 if (!response.ok) {
                     throw new Error('Failed to fetch token data');
