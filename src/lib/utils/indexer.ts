@@ -4,6 +4,7 @@ import { get } from 'svelte/store';
 import voiGames from '$lib/data/voiGames.json';
 import { getCurrency } from './currency';
 import { getNFD } from './nfd';
+import { resolveEnvoiToken } from './envoi';
 
 //export const indexerBaseURL = "https://arc72-idx.nftnavigator.xyz/nft-indexer/v1";
 //export const indexerBaseURL = "http://localhost:3000/nft-indexer/v1";
@@ -78,7 +79,6 @@ export function reformatTokenName(name: string, num?: string | number) {
 }
 
 export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
-
     if (params.contractId && !params.invalidate) {
         const tokens: Token[] | undefined = get(tokenStore).get(Number(params.contractId));
         if (tokens && tokens.length > 0) {
@@ -162,6 +162,27 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
             }
         });
 
+        // Resolve Envoi tokens for any tokens with contractId 797609
+        const envoiTokens = tokens.filter(token => token.contractId === 797609);
+        if (envoiTokens.length > 0) {
+            const tokenIds = envoiTokens.map(token => token.tokenId);
+            const envoiResults = await resolveEnvoiToken(tokenIds);
+
+            // Update tokens with Envoi data
+            envoiTokens.forEach(token => {
+                const envoiData = envoiResults.find(result => result.token_id === token.tokenId);
+                if (envoiData && token.metadata) {
+                    token.metadata = {
+                        ...token.metadata,
+                        envoiName: envoiData.name || token.metadata.name,
+                        image: envoiData.metadata.avatar || token.metadata.image
+                    };
+                }
+            });
+        }
+
+        // filter tokens with contractId 797610
+        tokens = tokens.filter(token => token.contractId !== 797610);
         return tokens;
     } catch (err) {
         console.error('Error fetching tokens:', err);

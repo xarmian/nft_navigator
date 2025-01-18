@@ -39,8 +39,9 @@
             if ((displayTab === 'burned') != (token.isBurned??false)) return false;
 
             if (searchText !== ''
-                && !token.metadata?.name.toLowerCase().includes(searchText.toLowerCase())
+                && !token.metadata?.name?.toLowerCase().includes(searchText.toLowerCase())
                 && !token.traits?.some(trait => trait.toLowerCase().includes(searchText.toLowerCase()))
+                && (token.contractId === 797609 && !token.metadata?.envoiName?.toLowerCase().includes(searchText.toLowerCase()))
                 ) return false;
             
             return Object.entries(filters).every(([key, value]) => {

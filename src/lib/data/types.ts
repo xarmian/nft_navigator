@@ -85,6 +85,7 @@ export interface Metadata {
     image_mimetype: string;
     properties: Record<string, string>;
     royalties: string;
+    envoiName?: string;
 }
 
 export interface Listing {
