@@ -564,7 +564,12 @@
         <div class="flex flex-wrap w-full justify-center md:justify-start">
             {#each tokenProps as prop}
                 <div class="p-2 m-1 text-md rounded-xl max-w-56 text-nowrap overflow-ellipsis overflow-hidden" style="color: {prop.fgcolor}; background-color: {prop.bgcolor}">
-                    <span class="font-bold">{prop.trait_type}:</span> {prop.value}
+                    <span class="font-bold">{prop.trait_type}:</span> 
+                    {#if prop.value && typeof prop.value === 'string' && prop.value.match(/^https?:\/\//)}
+                        <a href={prop.value} target="_blank" rel="noopener noreferrer">{prop.value}</a>
+                    {:else}
+                        {prop.value}
+                    {/if}
                 </div>
             {/each}
         </div>
