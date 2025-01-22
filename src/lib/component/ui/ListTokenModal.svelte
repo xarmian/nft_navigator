@@ -96,12 +96,12 @@
 
             // copy token (Token) to NFTIndexerTokenI
             const t: NFTIndexerTokenI = {
-                contractId: token.contractId, // number
-                tokenId: token.tokenId, // number
+                contractId: Number(token.contractId), // number
+                tokenId: Number(token.tokenId), // number
                 owner: token.owner, // string
                 metadata: JSON.stringify(metadata??'{}'),
                 metadataURI: token.metadataURI, // string
-                "mint-round": token.mintRound, // number
+                "mint-round": Number(token.mintRound), // number
                 approved: token.approved, // string
                 royalties: royalties, // string
             };
