@@ -23,15 +23,15 @@
     export let onClose: () => void = () => {};
     export let onAfterSend: (t: Token) => void = () => {};
 
-    enum SendingView {
-        Confirm = "confirm",
-        Sending = "sending",
-        Waiting = "waiting",
-        Error = "error",
-        Sent = "sent",
-    }
+    const SendingView = {
+        Confirm: "confirm",
+        Sending: "sending",
+        Waiting: "waiting",
+        Error: "error",
+        Sent: "sent",
+    } as const;
 
-    let sendingView: SendingView = SendingView.Confirm;
+    let sendingView: typeof SendingView[keyof typeof SendingView] = SendingView.Confirm;
     let tokenName = reformatTokenName(token.metadata?.name??'', token.tokenId);
 
     let walletBalance: number;
@@ -185,9 +185,11 @@
     }
 </script>
 <Modal title="Buy NFT Token" bind:showModal onClose={afterClose} showTopCloseButton={true} showBottomCloseButton={false}>
-    <Breadcrumb separator=">" class="w-full">
+    <Breadcrumb class="w-full">
         <BreadcrumbItem><span class={sendingView === SendingView.Confirm ? 'font-bold underline text-orange-500' : ''}>Confirm</span></BreadcrumbItem>
+        <span class="mx-2">&gt;</span>
         <BreadcrumbItem><span class={sendingView === SendingView.Sending || sendingView === SendingView.Waiting ? 'font-bold underline text-orange-500' : ''}>Sign</span></BreadcrumbItem>
+        <span class="mx-2">&gt;</span>
         <BreadcrumbItem><span class={sendingView === SendingView.Sent ? 'font-bold underline text-orange-500' : ''}>Complete</span></BreadcrumbItem>
     </Breadcrumb>
     <div class="min-h-96 flex items-center w-full">

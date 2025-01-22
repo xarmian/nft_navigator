@@ -95,44 +95,44 @@
         </div>
     </div>
 {:else}
-    <div class="card-container cursor-pointer rounded-xl overflow-hidden m-1" >
+    <div class="card-container cursor-pointer rounded-xl overflow-hidden m-1">
         <div class="card">
-            <a href="/collection/{collection.contractId}">
-                <div class="side back bg-gray-200 dark:bg-gray-900 relative rounded-lg flex flex-col">
-                    <div class="image-container relative overflow-hidden flex justify-center bg-gray-10 dark:bg-black">
+            <div class="side back bg-gray-200 dark:bg-gray-900 relative rounded-lg flex flex-col">
+                <div class="image-container relative overflow-hidden flex justify-center bg-gray-10 dark:bg-black">
+                    <a href="/collection/{collection.contractId}">
                         <img src={getImageUrl(metadata?.image,480)} alt={metadata?.name} title={(metadata?.name??'').replace(/[1#]/g, '')} class="h-60 w-full object-cover object-top"/>
                         {#if isMintable}
                             <div class="absolute bottom-0 left-0 bg-black h-2 w-full"></div>
                             <div class="absolute bottom-0 left-0 bg-red-500 h-2" style="width: {(totalMinted / maxSupply) * 100}%"></div>
                         {/if}
-                   </div>
-                    <div class='p-1 flex flex-col flex-grow'>
-                        <div class="flex flex-col mb-1">
-                            <div class="text-sm font-bold">{collection.highforgeData?.title ?? metadata?.name?.replace(/[1#]/g, '')}</div>
-                            <a href="/portfolio/{collection.creator}" on:click|stopPropagation class="place-self-end text-xs text-gray-600 dark:text-gray-300">{collection.creatorName ?? collection.creator.slice(0,6)+'...'+collection.creator.slice(-8)}</a>
-                        </div>
-                        <div class="content-end flex-grow">
-                            {#each data as item}
-                                <div class="flex justify-start space-x-2 text-gray-700 dark:text-gray-200">
-                                    <i class={item.icon + ' text-gray-600 dark:text-gray-400'}></i>
-                                    <p class="text-sm">{item.name}: {item.value}</p>
-                                </div>
-                            {/each}
-                        </div>
-                        {#if collection.gameData}
-                            <!--<NftGamesButton contractid={collection.contractId} buttonClass='w-16 md:w-20 object-contain flex justify-center absolute bottom-0 right-0' />-->
-                        {/if}
-                    </div>
-                </div>
-                {#if isMintable}
-                    <a class="badge top-right" target="_blank" href="https://highforge.io/project/{collection.contractId}">
-                        <div>Mintable</div>
-                        {#if collection.globalState?.find((m) => m.key === 'price')?.value !== undefined}
-                            <div>{(Number(collection.globalState?.find((m) => m.key === 'price')?.value) / Math.pow(10,6)).toLocaleString()} Voi</div>
-                        {/if}
                     </a>
-                {/if}
-            </a>
+                </div>
+                <div class='p-1 flex flex-col flex-grow'>
+                    <div class="flex justify-between items-start mb-1">
+                        <a href="/collection/{collection.contractId}" class="text-sm font-bold">{collection.highforgeData?.title ?? metadata?.name?.replace(/[1#]/g, '')}</a>
+                        <a href="/portfolio/{collection.creator}" on:click|stopPropagation class="text-xs text-gray-600 dark:text-gray-300">{collection.creatorName ?? collection.creator.slice(0,6)+'...'+collection.creator.slice(-8)}</a>
+                    </div>
+                    <div class="content-end flex-grow">
+                        {#each data as item}
+                            <div class="flex justify-start space-x-2 text-gray-700 dark:text-gray-200">
+                                <i class={item.icon + ' text-gray-600 dark:text-gray-400'}></i>
+                                <p class="text-sm">{item.name}: {item.value}</p>
+                            </div>
+                        {/each}
+                    </div>
+                    {#if collection.gameData}
+                        <!--<NftGamesButton contractid={collection.contractId} buttonClass='w-16 md:w-20 object-contain flex justify-center absolute bottom-0 right-0' />-->
+                    {/if}
+                </div>
+            </div>
+            {#if isMintable}
+                <a class="badge top-right" target="_blank" href="https://highforge.io/project/{collection.contractId}">
+                    <div>Mintable</div>
+                    {#if collection.globalState?.find((m) => m.key === 'price')?.value !== undefined}
+                        <div>{(Number(collection.globalState?.find((m) => m.key === 'price')?.value) / Math.pow(10,6)).toLocaleString()} Voi</div>
+                    {/if}
+                </a>
+            {/if}
         </div>
     </div>
 {/if}

@@ -14,6 +14,8 @@
 	import { showConfetti } from '../../../stores/collection';
 	import { toast } from '@zerodevx/svelte-toast';
 	import { invalidateAll } from '$app/navigation';
+    import { searchEnvoi, type EnvoiSearchResult } from '$lib/utils/envoi';
+    import { onMount, onDestroy } from 'svelte';
 
     export let showModal: boolean;
     export let token: Token | null = null;
@@ -24,16 +26,16 @@
     export let onClose: () => void = () => {};
     export let onAfterSend: (t: Token) => void = () => {};
 
-    enum SendingView {
-        Presend = "presend",
-        Confirm = "confirm",
-        Sending = "sending",
-        Waiting = "waiting",
-        Error = "error",
-        Sent = "sent",
-    }
+    const SendingView = {
+        Presend: "presend",
+        Confirm: "confirm",
+        Sending: "sending",
+        Waiting: "waiting",
+        Error: "error",
+        Sent: "sent",
+    } as const;
 
-    let sendingView: SendingView = SendingView.Presend;
+    let sendingView: typeof SendingView[keyof typeof SendingView] = SendingView.Presend;
     if (tokens.length == 0 && token) tokens = [token];
     
     let transferTo = '';
@@ -47,6 +49,24 @@
     let sentCount = 0;
     $: imageUrl = (tokens[0] && tokens[0].metadataURI) ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(tokens[0].metadataURI)}?w=240` : tokens[0]?.metadata?.image;
 
+    let searchQuery = '';
+    let isSearchOpen = false;
+    let filteredWallets: EnvoiSearchResult[] = [];
+    let selected = 0;
+
+    $: {
+        if (searchQuery.length == 58) {
+            filteredWallets = [ { address: searchQuery, name: searchQuery, metadata: {} } ];
+        }
+        else if (searchQuery.length >= 2) {
+            searchEnvoi(searchQuery).then((data) => {
+                filteredWallets = data;
+            });
+        }
+        else {
+            filteredWallets = [];
+        }
+    }
 
     $: if (transferTo && transferTo.length > 0) {
         updateBalances();
@@ -221,12 +241,52 @@
         reset();
         onClose();
     }
+
+    function handleWalletSelect(wallet: EnvoiSearchResult) {
+        transferTo = wallet.address;
+        searchQuery = wallet.name;
+        isSearchOpen = false;
+        if (transferTo) updateBalances();
+    }
+
+    function handleClickOutside(event: MouseEvent) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.walletSearchComponent')) {
+            isSearchOpen = false;
+        }
+    }
+
+    function handleKeydown(event: KeyboardEvent) {
+        if (!isSearchOpen) return;
+        
+        const maxIndex = filteredWallets.length - 1;
+        if (event.key === 'ArrowDown') {
+            selected = Math.min(selected + 1, maxIndex);
+        } else if (event.key === 'ArrowUp') {
+            selected = Math.max(selected - 1, 0);
+        } else if (event.key === 'Enter' && filteredWallets.length > 0) {
+            handleWalletSelect(filteredWallets[selected]);
+        }
+    }
+
+    onMount(() => {
+        window.addEventListener('click', handleClickOutside);
+        window.addEventListener('keydown', handleKeydown);
+    });
+
+    onDestroy(() => {
+        window.removeEventListener('click', handleClickOutside);
+        window.removeEventListener('keydown', handleKeydown);
+    });
 </script>
 <Modal title="{type == 'send' ? 'Transfer NFT Token' : 'Change NFT Token Approval'}" bind:showModal onClose={afterClose} showTopCloseButton={true} showBottomCloseButton={false}>
-    <Breadcrumb separator=">" class="w-full">
+    <Breadcrumb class="w-full">
         <BreadcrumbItem><span class={sendingView === SendingView.Presend ? 'font-bold underline text-orange-500' : ''}>Select Wallet</span></BreadcrumbItem>
+        <span class="mx-2">&gt;</span>
         <BreadcrumbItem><span class={sendingView === SendingView.Confirm ? 'font-bold underline text-orange-500' : ''}>Confirm</span></BreadcrumbItem>
+        <span class="mx-2">&gt;</span>
         <BreadcrumbItem><span class={sendingView === SendingView.Sending || sendingView === SendingView.Waiting ? 'font-bold underline text-orange-500' : ''}>Sign</span></BreadcrumbItem>
+        <span class="mx-2">&gt;</span>
         <BreadcrumbItem><span class={sendingView === SendingView.Sent ? 'font-bold underline text-orange-500' : ''}>Complete</span></BreadcrumbItem>
     </Breadcrumb>
     <div class="min-h-96 flex items-center w-full">
@@ -255,7 +315,44 @@
                         </div>
                     {/if}
                     <div class="text-xl font-bold">{type == 'send' ? 'Send to' : 'Change Approved Spender to'}</div>
-                    <WalletSearch onSubmit={(v) => transferTo = v} loadPreviousValue={false} showSubmitButton={false} />
+                    <div class="relative walletSearchComponent w-full max-w-md">
+                        <input 
+                            type="text" 
+                            bind:value={searchQuery}
+                            on:focus={() => isSearchOpen = true}
+                            placeholder="Search by enVoi name or paste address..." 
+                            class="p-2 w-full border rounded-md bg-gray-100 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-400 text-black dark:text-white" 
+                        />
+                        {#if isSearchOpen && filteredWallets.length > 0}
+                            <ul class="absolute left-0 bg-white dark:bg-gray-800 border rounded-md mt-0.5 w-full max-h-80 overflow-auto shadow-md z-50">
+                                {#each filteredWallets as wallet, index}
+                                    <li class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer text-black dark:text-white {selected === index ? 'bg-blue-200 dark:bg-blue-700' : ''}">
+                                        <button on:click={() => handleWalletSelect(wallet)} class="w-full">
+                                            <div class="flex items-center gap-3">
+                                                {#if wallet.metadata?.avatar}
+                                                    <img 
+                                                        src={wallet.metadata.avatar} 
+                                                        alt={`${wallet.name} avatar`}
+                                                        class="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                                    />
+                                                {:else}
+                                                    <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center flex-shrink-0">
+                                                        <span class="text-gray-600 dark:text-gray-300 text-base">
+                                                            {wallet.name.charAt(0).toUpperCase()}
+                                                        </span>
+                                                    </div>
+                                                {/if}
+                                                <div class="flex flex-col flex-grow min-w-0">
+                                                    <span class="text-lg font-medium truncate self-start">{wallet.name}</span>
+                                                    <span class="text-sm text-gray-500 dark:text-gray-400 font-mono truncate">{wallet.address}</span>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </li>
+                                {/each}
+                            </ul>
+                        {/if}
+                    </div>
                 </div>
                 {#if type == 'approve' && token?.approved !== zeroAddress}
                     <div class="flex flex-col items-center mt-4">

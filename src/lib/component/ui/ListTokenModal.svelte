@@ -22,18 +22,18 @@
     export let onClose: () => void = () => {};
     export let onAfterSend: (t: Token) => void = () => {};
 
-    enum SendingView {
-        Presend = "presend",
-        Confirm = "confirm",
-        Sending = "sending",
-        Waiting = "waiting",
-        Updating = "updating",
-        Error = "error",
-        Listed = "listed",
-        Deleted = "deleted",
-    }
+    const SendingView = {
+        Presend: "presend",
+        Confirm: "confirm",
+        Sending: "sending",
+        Waiting: "waiting",
+        Updating: "updating",
+        Error: "error",
+        Listed: "listed",
+        Deleted: "deleted",
+    } as const;
 
-    let sendingView: SendingView = SendingView.Presend;
+    let sendingView: typeof SendingView[keyof typeof SendingView] = SendingView.Presend;
     let tokenName = reformatTokenName(token.metadata?.name??'', token.tokenId);
 
     let walletBalance: number;
@@ -233,9 +233,11 @@
     }
 </script>
 <Modal title="List NFT For Sale" bind:showModal onClose={afterClose} showTopCloseButton={true} showBottomCloseButton={false}>
-    <Breadcrumb separator=">" class="w-full">
+    <Breadcrumb class="w-full">
         <BreadcrumbItem><span class={sendingView === SendingView.Confirm ? 'font-bold underline text-orange-500' : ''}>Confirm</span></BreadcrumbItem>
+        <span class="mx-2">&gt;</span>
         <BreadcrumbItem><span class={sendingView === SendingView.Sending || sendingView === SendingView.Waiting ? 'font-bold underline text-orange-500' : ''}>Sign</span></BreadcrumbItem>
+        <span class="mx-2">&gt;</span>
         <BreadcrumbItem><span class={sendingView === SendingView.Listed ? 'font-bold underline text-orange-500' : ''}>Complete</span></BreadcrumbItem>
     </Breadcrumb>
     <div class="min-h-96 flex items-center w-full">
@@ -387,9 +389,3 @@
         </div>
     </div>
 </Modal>
-<style>
-    /* Add this style to allow the popover to extend outside the modal */
-    :global(.modal-container) {
-        overflow: visible !important;
-    }
-</style>

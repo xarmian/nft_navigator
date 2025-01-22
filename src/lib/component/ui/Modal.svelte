@@ -19,7 +19,7 @@
 
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions -->
 <dialog
-    class="modal-container"
+    class="modal-container dark:bg-gray-800 dark:text-white"
 	bind:this={dialog}
 	on:close={() => {
         showModal = false;
@@ -32,38 +32,37 @@
         <div class="flex flex-row justify-between">
             <div class="flex flex-col place-self-center">
                 {#if title}
-                    <h2>{title}</h2>
+                    <h2 class="dark:text-white">{title}</h2>
                 {/if}        
                 <slot name="header" />
             </div>
             {#if showTopCloseButton}
                 <div class="flex flex-col">
-                    <button class="close-button !px-3 !py-1 mb-1" on:click={() => dialog.close()}>
+                    <button class="close-button !px-3 !py-1 mb-1 dark:bg-blue-600 dark:hover:bg-blue-700" on:click={() => dialog.close()} aria-label="Close modal">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
             {/if}
         </div>
-        <hr />
+        <hr class="dark:border-gray-600" />
 		<slot />
         {#if showBottomCloseButton}
-            <hr class="mb-3" />
+            <hr class="mb-3 dark:border-gray-600" />
             <!-- svelte-ignore a11y-autofocus -->
             <div class="flex justify-end">
-                <button autofocus={focusCloseButton} class="close-button" on:click={() => dialog.close()}>Close</button>
+                <button autofocus={focusCloseButton} class="close-button dark:bg-blue-600 dark:hover:bg-blue-700" on:click={() => dialog.close()}>Close</button>
             </div>
         {/if}
 	</div>
 </dialog>
 
-<style>
+<style lang="postcss">
     dialog {
         border-radius: 4px;
         border: none;
         padding: 0;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         background: white;
-        @apply dark:bg-slate-600 dark:text-white;
     }
     .close-button {
         padding: 10px 20px;
@@ -107,5 +106,8 @@
     }
     button {
         display: block;
+    }
+    .modal-container {
+        overflow: visible !important;
     }
 </style>

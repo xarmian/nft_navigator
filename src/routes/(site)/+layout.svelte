@@ -159,13 +159,15 @@
 			</div>
 		{/if}
 		<header class="bg-white dark:bg-gray-900 py-4 px-6 flex items-center justify-between w-full z-50 shadow-md">
-			<a href="/" class="flex items-center space-x-3">
-				<img src="{Icon}" class="h-10 rounded-lg" alt="Logo" />
+			<div class="flex items-center space-x-3">
+				<a href="/">
+					<img src="{Icon}" class="h-10 rounded-lg" alt="Logo" />
+				</a>
 				<div>
 					<div class="text-xl font-bold font-sans">NFT Navigator</div>
 					<div class="text-xs">on the <a href="https://voi.network" target="_blank" class="underline text-blue-500 hover:text-blue-600">Voi</a> Network</div>
 				</div>
-			</a>
+			</div>
 			<nav class="hidden lg:flex items-center space-x-6">
 				<a href="/" class="nav-link {currentPath == '' ? 'text-blue-500' : ''}">Home</a>
 				<a href="/forsale" class="nav-link {currentPath == 'forsale' ? 'text-blue-500' : ''}">For Sale</a>
@@ -193,7 +195,7 @@
 					 walletListClass="bg-gray-100 dark:bg-gray-700 dark:text-gray-200"/>
 				</div>
 				<DarkMode />
-				<button on:click|stopPropagation={() => showMenu = !showMenu} class="lg:hidden">
+				<button on:click|stopPropagation={() => showMenu = !showMenu} aria-label="Menu" class="lg:hidden">
 					<i class="fas fa-bars text-2xl"></i>
 				</button>
 			</div>
