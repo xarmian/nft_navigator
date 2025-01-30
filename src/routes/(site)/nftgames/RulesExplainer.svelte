@@ -1,10 +1,74 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { Chart, DoughnutController, ArcElement, Tooltip, Legend } from 'chart.js';
+
+	Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
+
 	export let startDate: Date;
 	export let endDate: Date;
 	let activeSection = 'prize-pool';
+	let chartCanvas: HTMLCanvasElement;
+	let chart: Chart | null = null;
+
+	function createChart() {
+		if (chartCanvas && activeSection === 'prize-pool') {
+			// Destroy existing chart if it exists
+			if (chart) {
+				chart.destroy();
+			}
+
+			const ctx = chartCanvas.getContext('2d');
+			if (ctx) {
+				chart = new Chart(ctx, {
+					type: 'doughnut',
+					data: {
+						labels: ['Volume Trading', 'Profit Trading', 'Minting', 'Social Media'],
+						datasets: [{
+							data: [42.5, 42.5, 10, 5],
+							backgroundColor: [
+								'rgb(59, 130, 246)', // blue-500
+								'rgb(16, 185, 129)', // green-500
+								'rgb(245, 158, 11)', // amber-500
+								'rgb(236, 72, 153)'  // pink-500
+							],
+							borderWidth: 1
+						}]
+					},
+					options: {
+						responsive: true,
+						plugins: {
+							legend: {
+								position: 'bottom',
+								labels: {
+									usePointStyle: true,
+									padding: 20
+								}
+							},
+							tooltip: {
+								callbacks: {
+									label: function(tooltipItem) {
+										return `${tooltipItem.label}: ${tooltipItem.raw}% of prize pool`;
+									}
+								}
+							}
+						},
+						cutout: '60%'
+					}
+				});
+			}
+		}
+	}
 
 	function toggleSection(section: string) {
 		activeSection = activeSection === section ? '' : section;
+	}
+
+	onMount(() => {
+		createChart();
+	});
+
+	$: if (activeSection === 'prize-pool' && chartCanvas) {
+		createChart();
 	}
 </script>
 
@@ -26,12 +90,18 @@
 			</button>
 			
 			{#if activeSection === 'prize-pool'}
-				<div class="p-4 space-y-2">
+				<div class="p-4 space-y-4">
 					<p>Total potential pool: 100 Million VOI</p>
 					<ul class="list-disc list-inside space-y-1">
 						<li>10% fee on all transactions</li>
 						<li>Voi Foundation matching up to 50 Million VOI</li>
 					</ul>
+
+					<!-- Prize Pool Distribution Chart -->
+					<div class="w-full max-w-md mx-auto aspect-square mt-6">
+						<canvas bind:this={chartCanvas}></canvas>
+					</div>
+
 					<div class="grid grid-cols-2 gap-4 mt-4">
 						<div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
 							<h4 class="font-bold mb-2">Traders (85%)</h4>
