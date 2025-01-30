@@ -64,13 +64,26 @@
 
 	// Process collections to get display images
 	$: {
-		const numImages = 6; // Adjust number of images to display
+		const numImages = 6;
 		const positions: Array<{x: number, y: number}> = [];
-		displayImages = collections
-			.filter(c => c.firstToken?.metadata)
+		
+		// Filter collections that have images first
+		const collectionsWithImages = collections.filter(c => {
+			if (!c.firstToken?.metadata) return false;
+			const metadata = JSON.parse(c.firstToken.metadata);
+			if (metadata.image && !metadata.image.includes('highforge')) return false;
+			return !!metadata.image;
+		});
+
+		// Randomly shuffle and take first 6
+		const shuffledCollections = [...collectionsWithImages]
+			.sort(() => Math.random() - 0.5)
+			.slice(0, numImages);
+
+		displayImages = shuffledCollections
 			.map((c, index) => {
 				const metadata = JSON.parse(c.firstToken!.metadata);
-				const imageUrl = metadata.image || '';
+				const imageUrl = metadata.image;
 				const name = metadata.name || 'Untitled';
 				
 				const pos = generatePosition(positions, index, numImages);
@@ -78,13 +91,11 @@
 				const transformData = generateTransform(pos.x, pos.y);
 				
 				return {
-					url: getImageUrl(imageUrl, 480), // Use Highforge CDN with 480px width
+					url: getImageUrl(imageUrl, 480),
 					name,
 					...transformData
 				};
-			})
-			.filter(img => img.url)
-			.slice(0, numImages);
+			});
 	}
 
 	// Remove interval-based movement

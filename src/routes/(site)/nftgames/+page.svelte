@@ -128,14 +128,16 @@
 		<div class="text-center relative z-0 mb-8">
 			<div class="inline-block px-8 py-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg transform -translate-y-20">
 				<h1 class="text-4xl font-bold mb-4">VOI NFT Winter Games 2025</h1>
-				<p class="text-lg">
-					{#if loading}
-						Loading game statistics...
-					{:else}
-						<span class="font-bold">{formatNumber(totalVolume / VOI_FACTOR)} VOI</span> total volume • 
-						<span class="font-bold">{totalParticipants}</span> participants
-					{/if}
-				</p>
+				{#if isGameActive}
+					<p class="text-lg">
+						{#if loading}
+							Loading game statistics...
+						{:else}
+							<span class="font-bold">{formatNumber(totalVolume / VOI_FACTOR)} VOI</span> total volume • 
+							<span class="font-bold">{totalParticipants}</span> participants
+						{/if}
+					</p>
+				{/if}
 				<div class="flex justify-center gap-4 mt-2">
 					<div 
 						class="px-3 py-1 bg-blue-500 text-white rounded-full text-sm relative group cursor-help"
