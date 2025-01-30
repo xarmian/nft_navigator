@@ -6,6 +6,7 @@
 
 	export let startDate: Date;
 	export let endDate: Date;
+	export let activeTab: number;
 	let activeSection = 'prize-pool';
 	let chartCanvas: HTMLCanvasElement;
 	let chart: Chart | null = null;
@@ -41,8 +42,15 @@
 								position: 'bottom',
 								labels: {
 									usePointStyle: true,
-									padding: 20
-								}
+									padding: 20,
+								},
+								onClick: (e, legendItem) => {
+									const index = legendItem.index;
+									if (index === 0) activeTab = 1; // Volume Trading
+									else if (index === 1) activeTab = 2; // Profit Trading
+									else if (index === 2) activeTab = 3; // Minting
+									else if (index === 3) activeTab = 4; // Social Media
+								},
 							},
 							tooltip: {
 								callbacks: {

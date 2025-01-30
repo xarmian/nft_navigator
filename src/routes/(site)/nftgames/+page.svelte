@@ -231,7 +231,7 @@
 			<div class="py-2 sm:p-6">
 				{#if activeTab === 0}
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-						<RulesExplainer {startDate} {endDate} />
+						<RulesExplainer {startDate} {endDate} bind:activeTab />
 						<GameStats {totalVolume} {totalParticipants} {collections} sales={gameSales} {startDate} {endDate} />
 					</div>
 				{:else if activeTab === 1}

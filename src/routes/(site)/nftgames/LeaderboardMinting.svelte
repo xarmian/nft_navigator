@@ -45,7 +45,7 @@
 <div class="space-y-4">
 	<div class="flex justify-between items-center">
 		<h2 class="text-2xl font-bold">Collection Minting Leaderboard</h2>
-		<div class="px-3 py-1 bg-green-500 text-white rounded-full text-sm">
+		<div class="px-3 py-1 bg-amber-500 text-white rounded-full text-sm">
 			10% of Prize Pool
 		</div>
 	</div>

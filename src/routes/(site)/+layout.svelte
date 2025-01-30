@@ -174,6 +174,14 @@
 				<a href="/lounge{extensionRouteLounge}" class="nav-link {currentPath == 'lounge' ? 'text-blue-500' : ''}">Lounge</a>
 				<a href="/analytics{extensionRoute}" class="nav-link {currentPath == 'analytics' ? 'text-blue-500' : ''}">Analytics</a>
 				<a href="/portfolio" class="nav-link {currentPath == 'portfolio' ? 'text-blue-500' : ''}">My Portfolio</a>
+				<a href="/nftgames" class="nav-link relative group inline-block">
+					<div class="absolute inset-0 flex items-center justify-center text-yellow-400/50 transform transition-transform group-hover:scale-110">
+						<i class="fas fa-trophy text-3xl"></i>
+					</div>
+					<div class="relative text-center">
+						<div class="leading-tight">Winter Games</div>
+					</div>
+				</a>
 			</nav>
 			<div class="flex items-center space-x-4">
 				<div class="hidden lg:block">

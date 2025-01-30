@@ -11,6 +11,7 @@
     import SecondaryNavBar from '$lib/component/ui/SecondaryNavBar.svelte';
     import { fade, fly } from 'svelte/transition';
     import LoadingSpinner from '$lib/component/ui/LoadingSpinner.svelte';
+    import NFTGamesAd from '$lib/component/ui/NFTGamesAd.svelte';
 
     export let data: PageData;
     let collections: Collection[] = data.collections;
@@ -113,6 +114,8 @@
 <div class="container mx-auto px-4 py-8">
     <h1 class="text-4xl font-bold my-8 text-center">Discover NFTs on Voi Network</h1>
 
+    <NFTGamesAd />
+
     <div class="mb-8">
         <SecondaryNavBar />
     </div>
@@ -133,8 +136,8 @@
             </button>
         </div>
         <div class="flex items-center space-x-4">
-            <Select options={[{id:'Popularity', name: 'Popularity'},{id: 'Mint', name: 'Mint Date'},{id: 'Name', name: 'Name'},{id: 'Randomize', name: 'Randomize'}]} bind:value={$sort.by} containerClass="w-40" />
-            <Select options={[{id: 'Descending', name: 'Descending'},{id: 'Ascending', name: 'Ascending'}]} bind:value={$sort.direction} containerClass="w-40" />
+            <Select options={[{id:'Popularity', name: 'Popularity'},{id: 'Mint', name: 'Mint Date'},{id: 'Name', name: 'Name'},{id: 'Randomize', name: 'Randomize'}]} bind:value={$sort.by} />
+            <Select options={[{id: 'Descending', name: 'Descending'},{id: 'Ascending', name: 'Ascending'}]} bind:value={$sort.direction} />
         </div>
     </div>
 
