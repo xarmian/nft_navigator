@@ -118,14 +118,14 @@
 	}
 </script>
 
-<div class="min-h-screen bg-gray-100 dark:bg-gray-900">
+<div class="min-h-screen bg-gray-100 dark:bg-gray-900 w-screen overflow-x-hidden">
 	<!-- Dynamic Banner -->
 	<div class="w-full">
 		<DynamicBanner {collections} />
 	</div>
 
-	<div class="container mx-auto p-4 space-y-4">
-		<div class="text-center relative z-0 mb-8">
+	<div class="container mx-auto px-2 sm:px-4 space-y-4">
+		<div class="text-center relative z-0 -mb-10">
 			<div class="inline-block px-8 py-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg transform -translate-y-20">
 				<h1 class="text-4xl font-bold mb-4">VOI NFT Winter Games 2025</h1>
 				{#if isGameActive}
@@ -210,7 +210,7 @@
 
 		<!-- Custom Tab Navigation -->
 		<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
-			<div class="flex border-b border-gray-200 dark:border-gray-700">
+			<div class="flex border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
 				{#each tabSet as tab, i}
 					<button
 						class="px-6 py-3 font-medium {activeTab === i ? 'text-blue-500 border-b-2 border-blue-500 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}"
@@ -222,7 +222,7 @@
 				{/each}
 			</div>
 
-			<div class="p-6">
+			<div class="py-2 sm:p-6">
 				{#if activeTab === 0}
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<RulesExplainer {startDate} {endDate} />
