@@ -15,6 +15,7 @@
 		opacity: number;
 		x: number;  // Store actual position
 		y: number;
+		contractId: number;
 	}
 
 	let displayImages: NFTImage[] = [];
@@ -82,7 +83,7 @@
 
 	// Function to select images initially
 	function selectImages() {
-		const numImages = 18;
+		const numImages = 6;
 		
 		// Filter collections that have images first
 		const collectionsWithImages = collections.filter(c => {
@@ -116,6 +117,7 @@
 				return {
 					url: getImageUrl(imageUrl, 480),
 					name,
+					contractId: c.contractId,
 					...transformData
 				};
 			});
@@ -145,7 +147,7 @@
 	<!-- Images container -->
 	<div class="absolute inset-0">
 		{#each displayImages as image, i (image.url)}
-			<div
+			<a
 				class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 shadow-xl rounded-lg overflow-hidden transition-all duration-300 ease-in-out hover:z-50"
 				style="
 					transform: {image.transform} scale({image.scale});
@@ -153,6 +155,7 @@
 					opacity: {image.opacity};
 				"
 				transition:fade={{duration: 300}}
+				href={`/collection/${image.contractId}`}
 			>
 				<img
 					src={image.url}
@@ -163,7 +166,7 @@
 				<div class="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 truncate">
 					{image.name}
 				</div>
-			</div>
+			</a>
 		{/each}
 	</div>
 

@@ -129,7 +129,11 @@
 	<div class="container mx-auto px-2 sm:px-4 space-y-4">
 		<div class="text-center relative z-0 -mb-10">
 			<div class="inline-block px-8 py-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg transform -translate-y-20">
-				<h1 class="text-4xl font-bold mb-4">VOI NFT Winter Games 2025</h1>
+				<h1 class="text-4xl font-bold mb-4 flex items-center">
+					<i class="fas fa-trophy mr-2 text-yellow-500"></i>
+					VOI NFT Winter Games 2025
+					<i class="fas fa-trophy ml-2 text-yellow-500"></i>
+				</h1>
 				{#if isGameActive}
 					<p class="text-lg">
 						{#if loading}
