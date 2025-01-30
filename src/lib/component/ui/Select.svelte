@@ -14,11 +14,12 @@
 
 <div class="relative inline-block w-full min-w-[200px]">
 	{#if label}
-		<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
+		<label for="select-{label}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
 	{/if}
 	<select
+		id="select-{label}"
 		bind:value
-		class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+		class="appearance-none w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
 		on:change={() => onchange(value)}
 	>
 		{#each options as option}
