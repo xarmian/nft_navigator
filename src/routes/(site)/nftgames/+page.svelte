@@ -15,8 +15,10 @@
 	const VOI_DECIMALS = 6;
 	const VOI_FACTOR = Math.pow(10, VOI_DECIMALS);
 
-	const startDate = new Date('2025-02-14T17:00:00Z');
-	const endDate = new Date('2025-02-28T17:00:00Z');
+	export let data;
+	const startDate = new Date(data.startDate);
+	const endDate = new Date(data.endDate);
+
 	const startTimestamp = startDate.getTime();
 	const endTimestamp = endDate.getTime();
 

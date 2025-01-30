@@ -18,42 +18,60 @@
 	}
 
 	let displayImages: NFTImage[] = [];
+	let selectedCollections: Collection[] = [];
 	let containerHeight = 400;
-	let containerWidth = 1200;  // Approximate width for positioning
+	let containerWidth = 1200;  // Default width for SSR
+	let isMounted = false;
+
+	// Update container width on mount and window resize
+	onMount(() => {
+		isMounted = true;
+		const updateWidth = () => {
+			containerWidth = window.innerWidth;
+			if (collections.length > 0) {
+				updateImagePositions();
+			}
+		};
+		
+		updateWidth();
+		window.addEventListener('resize', updateWidth);
+		return () => {
+			isMounted = false;
+			window.removeEventListener('resize', updateWidth);
+		};
+	});
 
 	// Helper function to calculate distance between two points
 	function distance(x1: number, y1: number, x2: number, y2: number) {
 		return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
 	}
 
-	// Generate a position that evenly spaces images horizontally
+	// Generate a position that fans out images in an arc
 	function generatePosition(existingPositions: Array<{x: number, y: number}>, index: number, totalImages: number) {
-		// Calculate evenly spaced X position
-		const spacing = containerWidth / (totalImages - 1);
-		const x = (spacing * index) - (containerWidth / 2);
+		// Calculate horizontal spread across full width
+		const x = (containerWidth * (index / (totalImages - 1))) - containerWidth/2;
 		
-		// Add some horizontal jitter to make it look more natural
-		const jitter = spacing * 0.2; // 20% of spacing for random movement
-		const jitteredX = x + (Math.random() * jitter * 2 - jitter);
+		// Calculate y position based on parabolic arc
+		// Maximum height at center, lower at edges
+		const normalizedX = (x + containerWidth/2) / containerWidth; // 0 to 1
+		const y = 100 - (100 * (1 - Math.pow(2 * normalizedX - 1, 2))); // Deeper parabola
 		
-		// Keep vertical randomness with upward bias
-		const randomY = Math.random();
-		const y = -150 + (randomY * randomY * 200);
-
-		return { x: jitteredX, y };
+		return { x, y };
 	}
 
-	// Generate a random transform for each image
+	// Generate a transform that orients images along the arc
 	function generateTransform(x: number, y: number) {
-		const rotateX = Math.random() * 40 - 20;
-		const rotateY = Math.random() * 40 - 20;
-		const rotateZ = Math.random() * 20 - 10;
-		const translateZ = Math.random() * 100 - 50;
-		const scale = 1.8 + Math.random() * 0.4;
-		const opacity = 0.7 + Math.random() * 0.3;
+		// Calculate rotation proportional to distance from center
+		const normalizedX = (x + containerWidth/2) / containerWidth; // 0 to 1
+		const rotateZ = (normalizedX * 2 - 1) * 45; // Scales from -45 to 45 degrees linearly
+		const rotateY = 0; // Remove Y rotation for cleaner look
+		const rotateX = 15; // Slight forward tilt
+		const scale = 1.8 + Math.random() * 0.2; // Reduced scale to prevent overlap
+		const opacity = 0.9 + Math.random() * 0.1;
+		const translateZ = Math.random() * 30;
 
 		return {
-			transform: `translate(${x}px, ${y}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) rotateZ(${rotateZ}deg) translateZ(${translateZ}px)`,
+			transform: `translate(${x}px, ${y-100}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) rotateZ(${rotateZ}deg) translateZ(${translateZ}px)`,
 			scale,
 			opacity,
 			zIndex: Math.floor(translateZ),
@@ -62,10 +80,9 @@
 		};
 	}
 
-	// Process collections to get display images
-	$: {
-		const numImages = 6;
-		const positions: Array<{x: number, y: number}> = [];
+	// Function to select images initially
+	function selectImages() {
+		const numImages = 18;
 		
 		// Filter collections that have images first
 		const collectionsWithImages = collections.filter(c => {
@@ -76,17 +93,23 @@
 		});
 
 		// Randomly shuffle and take first 6
-		const shuffledCollections = [...collectionsWithImages]
+		selectedCollections = [...collectionsWithImages]
 			.sort(() => Math.random() - 0.5)
 			.slice(0, numImages);
+	}
 
-		displayImages = shuffledCollections
+	// Function to update image positions
+	function updateImagePositions() {
+		if (selectedCollections.length === 0) return;
+		
+		const positions: Array<{x: number, y: number}> = [];
+		displayImages = selectedCollections
 			.map((c, index) => {
 				const metadata = JSON.parse(c.firstToken!.metadata);
 				const imageUrl = metadata.image;
 				const name = metadata.name || 'Untitled';
 				
-				const pos = generatePosition(positions, index, numImages);
+				const pos = generatePosition(positions, index, selectedCollections.length);
 				positions.push(pos);
 				const transformData = generateTransform(pos.x, pos.y);
 				
@@ -98,10 +121,13 @@
 			});
 	}
 
-	// Remove interval-based movement
-	onMount(() => {
-		return () => {};
-	});
+	// Watch collections for changes and update display images when ready
+	$: if (isMounted && collections.length > 0) {
+		if (selectedCollections.length === 0) {
+			selectImages();
+		}
+		updateImagePositions();
+	}
 </script>
 
 <div 
