@@ -187,6 +187,16 @@
 						<div class="mt-2 text-sm text-yellow-500">
 							Get Ready for the VOI NFT Winter Games!
 						</div>
+						<div class="mt-4">
+							<a 
+								href="http://bit.ly/4jd94OO" 
+								target="_blank" 
+								rel="noopener noreferrer" 
+								class="inline-block px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
+							>
+								Register Your Collection for the Games
+							</a>
+						</div>
 					</div>
 				{:else}
 					<div class="mt-2 text-sm text-red-500 font-medium">
