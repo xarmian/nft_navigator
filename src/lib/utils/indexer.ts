@@ -34,12 +34,11 @@ interface IToken {
 interface ITransfer {
     transactionId: string;
     contractId: number;
-    tokenId: number;
+    tokenId: string;
     fromAddr: string;
     toAddr: string;
     round: number;
     timestamp: number;
-    token?: IToken;
 }
 
 interface FetchFunction {
@@ -275,15 +274,23 @@ export const getCollections = async (params: getCollectionsParams): Promise<Coll
     }
 }
 
-export const getTransfers = async (params: { contractId?: string | undefined, tokenId?: string | undefined, user?: string | undefined, fetch: FetchFunction }): Promise<Transfer[]> => {
-    const { contractId, tokenId, user } = params;
+export const getTransfers = async (params: { 
+    contractId?: string | undefined, 
+    tokenId?: string | undefined, 
+    user?: string | undefined, 
+    minRound?: string | undefined,
+    maxRound?: string | undefined,
+    from?: string | undefined,
+    fetch: FetchFunction 
+}): Promise<Transfer[]> => {
+    const { contractId, tokenId, user, minRound, maxRound, from } = params;
 
     if ((contractId && !tokenId) || (!contractId && tokenId)) {
         throw new Error('Both contractId and tokenId must be provided');
     }
 
-    if (!contractId && !tokenId && !user) {
-        throw new Error('At least one of contractId and tokenId, or owner must be provided');
+    if (!contractId && !tokenId && !user && !from) {
+        throw new Error('At least one of contractId and tokenId, owner, or from must be provided');
     }
 
     let url = `${indexerBaseURL}/transfers?includes=token`;
@@ -292,6 +299,16 @@ export const getTransfers = async (params: { contractId?: string | undefined, to
         url += `&contractId=${contractId}&tokenId=${tokenId}`;
     } else if (user) {
         url += `&user=${user}`;
+    }
+    
+    if (minRound) {
+        url += `&min-round=${minRound}`;
+    }
+    if (maxRound) {
+        url += `&max-round=${maxRound}`;
+    }
+    if (from) {
+        url += `&from=${from}`;
     }
 
     try {
@@ -306,19 +323,7 @@ export const getTransfers = async (params: { contractId?: string | undefined, to
                 from: transfer.fromAddr,
                 to: transfer.toAddr,
                 round: transfer.round,
-                timestamp: transfer.timestamp,
-                token: transfer.token ? {
-                    contractId: transfer.token.contractId,
-                    tokenId: transfer.token.tokenId,
-                    owner: transfer.token.owner,
-                    metadataURI: transfer.token.metadataURI,
-                    metadata: JSON.parse(transfer.token.metadata),
-                    mintRound: transfer.token['mint-round'],
-                    approved: transfer.token.approved,
-                    marketData: null,
-                    salesData: null,
-                    rank: null,
-                } : null,
+                timestamp: transfer.timestamp
             };
         }).sort((a: Transfer, b: Transfer) => b.timestamp - a.timestamp);
     } catch (err) {
@@ -327,8 +332,17 @@ export const getTransfers = async (params: { contractId?: string | undefined, to
     }
 }
 
-export const getSales = async (params: { contractId?: string, tokenId?: string, user?: string, sortBy?: string, limit?: number, fetch: FetchFunction }): Promise<Sale[]> => {
-    const { contractId, tokenId, user, sortBy, limit } = params;
+export const getSales = async (params: { 
+    contractId?: string, 
+    tokenId?: string, 
+    user?: string, 
+    sortBy?: string, 
+    limit?: number,
+    minTime?: number,
+    maxTime?: number,
+    fetch: FetchFunction 
+}): Promise<Sale[]> => {
+    const { contractId, tokenId, user, sortBy, limit, minTime, maxTime } = params;
     let url = `${indexerBaseURL}/mp/sales`;
     const paramsArray = [];
     if (contractId) {
@@ -345,6 +359,12 @@ export const getSales = async (params: { contractId?: string, tokenId?: string, 
     }
     if (limit) {
         paramsArray.push(['limit', limit.toString()]);
+    }
+    if (minTime) {
+        paramsArray.push(['min-time', minTime.toString()]);
+    }
+    if (maxTime) {
+        paramsArray.push(['max-time', maxTime.toString()]);
     }
     const urlParams = new URLSearchParams(paramsArray);
     url += '?' + urlParams.toString();
