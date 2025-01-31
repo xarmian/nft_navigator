@@ -215,20 +215,33 @@
 		</div>
 
 		<!-- Custom Tab Navigation -->
-		<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
-			<div class="flex border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+		<div class="bg-white dark:bg-gray-800 rounded-lg shadow relative">
+			<div class="flex border-b border-gray-200 dark:border-gray-700 overflow-x-auto relative z-10">
 				{#each tabSet as tab, i}
-					<button
-						class="px-6 py-3 font-medium {activeTab === i ? 'text-blue-500 border-b-2 border-blue-500 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}"
-						on:click={() => activeTab = i}
-					>
-						<i class="fas fa-{tab.icon} mr-2"></i>
-						{tab.name}
-					</button>
+					<div class="flex-1 relative">
+						<button
+							class="absolute inset-0 px-6 py-3 font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 {activeTab === i ? 'text-blue-500 border-b-2 border-blue-500 -mb-px bg-gray-50 dark:bg-gray-700' : 'text-gray-500 dark:text-gray-400'}"
+							on:click={() => (activeTab = i)}
+							role="tab"
+							aria-selected={activeTab === i}
+						>
+							<div class="flex items-center justify-center">
+								<i class="fas fa-{tab.icon} mr-2"></i>
+								<span>{tab.name}</span>
+							</div>
+						</button>
+						<!-- Spacer to maintain layout -->
+						<div class="invisible px-6 py-3 font-medium">
+							<div class="flex items-center justify-center">
+								<i class="fas fa-{tab.icon} mr-2"></i>
+								<span>{tab.name}</span>
+							</div>
+						</div>
+					</div>
 				{/each}
 			</div>
 
-			<div class="py-2 sm:p-6">
+			<div class="py-2 sm:p-6 relative z-0">
 				{#if activeTab === 0}
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<RulesExplainer {startDate} {endDate} bind:activeTab />
