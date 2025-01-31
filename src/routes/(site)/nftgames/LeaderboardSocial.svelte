@@ -136,7 +136,7 @@
 			</div>
 		{/if}
 
-		<p class="text-center text-sm opacity-75">
+		<p class="text-center text-sm opacity-75 hidden">
 			Top 25 creators will be entered into raffle for prizes
 		</p>
 	{/if}

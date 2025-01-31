@@ -112,7 +112,7 @@
 			</table>
 		</div>
 
-		<p class="text-center text-sm text-gray-500 mt-4">
+		<p class="text-center text-sm text-gray-500 mt-4 hidden">
 			Top 25 collections will be entered into raffle for prizes
 		</p>
 	{/if}
