@@ -50,9 +50,9 @@
         showMenu = !showMenu;
 
         if (showMenu) {
-            if (windowDefined) document.addEventListener('click', handleClickOutside);
+            if (windowDefined && document) document.addEventListener('click', handleClickOutside);
         } else {
-            if (windowDefined) document.removeEventListener('click', handleClickOutside);
+            if (windowDefined && document) document.removeEventListener('click', handleClickOutside);
         }
 
         return false;
@@ -62,7 +62,7 @@
         const target = event.target as Node;
         if (menuRef && !menuRef.contains(target)) {
             showMenu = false;
-            if (windowDefined) document.removeEventListener('click', handleClickOutside);
+            if (windowDefined && document) document.removeEventListener('click', handleClickOutside);
         }
     }
 
@@ -73,7 +73,7 @@
     });
 
     onDestroy(() => {
-        if (windowDefined) document.removeEventListener('click', handleClickOutside);
+        if (windowDefined && document) document.removeEventListener('click', handleClickOutside);
     });
 
     async function getMarketData() {
