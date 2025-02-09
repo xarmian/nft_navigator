@@ -23,6 +23,7 @@
 	let containerHeight = 400;
 	let containerWidth = 1200;  // Default width for SSR
 	let isMounted = false;
+	let bannerOpacity = 1;  // New variable to control banner opacity
 
 	// Update container width on mount and window resize
 	onMount(() => {
@@ -34,11 +35,23 @@
 			}
 		};
 		
+		// Add scroll listener
+		const handleScroll = () => {
+			const scrollY = window.scrollY;
+			const fadeStartPoint = 0;
+			const fadeEndPoint = 300;  // Adjust this value to control how quickly the banner fades
+			
+			bannerOpacity = Math.max(0, 1 - (scrollY - fadeStartPoint) / (fadeEndPoint - fadeStartPoint));
+		};
+		
 		updateWidth();
 		window.addEventListener('resize', updateWidth);
+		window.addEventListener('scroll', handleScroll);
+		
 		return () => {
 			isMounted = false;
 			window.removeEventListener('resize', updateWidth);
+			window.removeEventListener('scroll', handleScroll);
 		};
 	});
 
@@ -133,8 +146,8 @@
 </script>
 
 <div 
-	class="relative w-full overflow-hidden bg-gradient-to-b from-gray-900 to-gray-800"
-	style="height: 400px; perspective: 2000px;"
+	class="relative w-full"
+	style="height: 400px; perspective: 2000px; opacity: {bannerOpacity};"
 >
 	<div class="absolute inset-0 bg-blue-500/10"></div>
 	
