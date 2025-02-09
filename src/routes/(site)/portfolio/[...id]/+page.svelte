@@ -175,7 +175,7 @@
                 <div class="flex flex-col p-4 md:p-8 mt-2 mb-2 bg-slate-100 dark:bg-slate-700 shadow-2xl rounded-2xl opacity-90 space-y-4">
                     <div class="flex flex-row space-x-4">
                         {#if walletAvatar}
-                            <img src={walletAvatar} class="h-24 w-24 rounded-full place-self-center mb-2" />
+                            <img src={walletAvatar} alt={walletNFD??formattedWallet} class="h-24 w-24 rounded-full place-self-center mb-2" />
                         {/if}
                         <div class="flex flex-col">
                             <div class="flex flex-row space-x-2 text-2xl font-bold mb-0">

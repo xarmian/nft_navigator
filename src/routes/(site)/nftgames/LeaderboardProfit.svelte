@@ -2,6 +2,7 @@
 	import type { Sale } from '$lib/data/types';
 	import { formatNumber } from '$lib/utils/format';
 	import { getNFD } from '$lib/utils/nfd';
+	import type { AggregatedNFD } from '$lib/utils/nfd';
 	import { onMount } from 'svelte';
 
 	export let sales: Sale[];
@@ -13,7 +14,7 @@
 
 	interface ProfitEntry {
 		address: string;
-		nfd: string | null;
+		nfd: AggregatedNFD | null;
 		totalProfit: number;
 		profitableTrades: number;
 		totalTrades: number;
@@ -79,7 +80,7 @@
 		profitLeaderboard.forEach(entry => {
 			const nfdResult = nfdResults.find(n => n.key === entry.address);
 			if (nfdResult) {
-				entry.nfd = nfdResult.replacementValue;
+				entry.nfd = nfdResult;
 			}
 		});
 
@@ -130,10 +131,12 @@
 								</span>
 							</td>
 							<td class="p-2">
-								<a class="flex items-center gap-2 hover:underline" href={`https://explorer.voi.network/explorer/account/${entry.address}`} target="_blank">
+								<a class="flex items-center gap-2 hover:underline" href={`/portfolio/${entry.address}`}>
 									{#if entry.nfd}
-										<span class="font-medium">{entry.nfd}</span>
+										<img src={entry.nfd.avatar} alt={entry.nfd.replacementValue} class="w-10 h-10 rounded-full" />
+										<span class="font-medium">{entry.nfd.replacementValue}</span>
 									{:else}
+										<img src="/blank_avatar_small.png" alt={entry.address} class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 dark:opacity-50" />
 										<span class="font-mono text-sm">
 											<span class="hidden md:inline">{entry.address.slice(0, 12)}...{entry.address.slice(-12)}</span>
 											<span class="inline md:hidden">{entry.address.slice(0, 4)}...{entry.address.slice(-4)}</span>

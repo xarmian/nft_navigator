@@ -4,8 +4,6 @@
 
 	Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
 
-	export let startDate: Date;
-	export let endDate: Date;
 	export let activeTab: number;
 	let activeSection = 'prize-pool';
 	let chartCanvas: HTMLCanvasElement;
@@ -67,8 +65,20 @@
 		}
 	}
 
-	function toggleSection(section: string) {
+	function toggleSection(section: string, event: MouseEvent) {
+		const button = event.currentTarget as HTMLElement;
 		activeSection = activeSection === section ? '' : section;
+		
+		// Wait for DOM update before scrolling
+		setTimeout(() => {
+			const rect = button.getBoundingClientRect();
+			const navbarHeight = 80; // Approximate navbar height in pixels
+			const scrollPosition = window.pageYOffset + rect.top - navbarHeight;
+			window.scrollTo({
+				top: scrollPosition,
+				behavior: 'smooth'
+			});
+		}, 0);
 	}
 
 	onMount(() => {
@@ -80,6 +90,12 @@
 	}
 </script>
 
+<style>
+	button {
+		scroll-margin-top: 20rem; /* This accounts for the navbar height plus some padding */
+	}
+</style>
+
 <div class="card p-4">
 	<h2 class="text-2xl font-bold mb-4">Game Rules & Overview</h2>
 	
@@ -88,7 +104,7 @@
 		<div class="border rounded-lg overflow-hidden">
 			<button 
 				class="w-full p-4 text-left flex items-center justify-between bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-				on:click={() => toggleSection('prize-pool')}
+				on:click={(e) => toggleSection('prize-pool', e)}
 			>
 				<div class="flex items-center">
 					<i class="fas fa-trophy text-yellow-500 mr-2"></i>
@@ -134,7 +150,7 @@
 		<div class="border rounded-lg overflow-hidden">
 			<button 
 				class="w-full p-4 text-left flex items-center justify-between bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-				on:click={() => toggleSection('volume-profit')}
+				on:click={(e) => toggleSection('volume-profit', e)}
 			>
 				<div class="flex items-center">
 					<i class="fas fa-chart-line text-blue-500 mr-2"></i>
@@ -176,7 +192,7 @@
 		<div class="border rounded-lg overflow-hidden">
 			<button 
 				class="w-full p-4 text-left flex items-center justify-between bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-				on:click={() => toggleSection('creator-rules')}
+				on:click={(e) => toggleSection('creator-rules', e)}
 			>
 				<div class="flex items-center">
 					<i class="fas fa-paint-brush text-purple-500 mr-2"></i>
@@ -213,7 +229,7 @@
 		<div class="border rounded-lg overflow-hidden">
 			<button 
 				class="w-full p-4 text-left flex items-center justify-between bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-				on:click={() => toggleSection('prize-distribution')}
+				on:click={(e) => toggleSection('prize-distribution', e)}
 			>
 				<div class="flex items-center">
 					<i class="fas fa-gift text-green-500 mr-2"></i>

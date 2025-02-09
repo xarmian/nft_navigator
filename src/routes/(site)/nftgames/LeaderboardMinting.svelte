@@ -4,6 +4,7 @@
 	import { formatNumber } from '$lib/utils/format';
 	import { onMount } from 'svelte';
 	import { gameStats, mintingLeaderboard } from '../../../stores/gameStats';
+	import { getImageUrl } from '$lib/utils/functions';
 
 	export let collections: Collection[] = [];
 	export let startDate: Date;
@@ -79,25 +80,34 @@
 								</span>
 							</td>
 							<td class="px-6 py-4 whitespace-nowrap text-sm">
-								<div class="flex flex-col">
-									<div class="flex items-center space-x-2">
-										<a href="/collection/{stats.contractId}" class="hover:text-blue-500">
-											<span class="font-medium">
-												{collection?.highforgeData?.title ?? collection?.gameData?.title ?? `Collection #${stats.contractId}`}
-											</span>
+								<div class="flex items-center space-x-3">
+									{#if collection?.highforgeData?.coverImageURL}
+										<a href="/collection/{stats.contractId}">
+											<img src={getImageUrl(collection?.highforgeData?.coverImageURL)} alt={collection?.highforgeData?.title} class="w-10 h-10 rounded-full" />
 										</a>
-										<a href="/analytics/{stats.contractId}" class="text-xs text-gray-500 hover:text-blue-500">
-											<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-												Analytics
-											</span>
-										</a>
-									</div>
-									{#if collection}
-										<div class="text-xs text-gray-500 mt-1">
-											Created by {collection.creatorName ?? 
-												`${collection.creator.slice(0, 6)}...${collection.creator.slice(-4)}`}
-										</div>
+									{:else}
+										<img src="/blank_avatar_small.png" alt={collection?.highforgeData?.title ?? collection?.gameData?.title ?? `Collection #${stats.contractId}`} class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 dark:opacity-50" />
 									{/if}
+									<div class="flex flex-col">
+										<div class="flex items-center space-x-2">
+											<a href="/collection/{stats.contractId}" class="hover:text-blue-500">
+												<span class="font-medium">
+													{collection?.highforgeData?.title ?? collection?.gameData?.title ?? `Collection #${stats.contractId}`}
+												</span>
+											</a>
+											<a href="/analytics/{stats.contractId}" class="text-xs text-gray-500 hover:text-blue-500">
+												<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+													Analytics
+												</span>
+											</a>
+										</div>
+										{#if collection}
+											<div class="text-xs text-gray-500 mt-1">
+												Created by {collection.creatorName ?? 
+													`${collection.creator.slice(0, 6)}...${collection.creator.slice(-4)}`}
+											</div>
+										{/if}
+									</div>
 								</div>
 							</td>
 							<td class="px-6 py-4 whitespace-nowrap text-sm text-right">

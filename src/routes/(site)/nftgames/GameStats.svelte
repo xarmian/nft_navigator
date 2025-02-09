@@ -8,6 +8,7 @@
 	export let sales: Sale[];
 	export let startDate: Date;
 	export let endDate: Date;
+	export let activeTab: number;
 
 	const VOI_DECIMALS = 6;
 	const VOI_FACTOR = Math.pow(10, VOI_DECIMALS);
@@ -37,8 +38,8 @@
 	$: mintingPool = totalPool * 0.10;
 	$: socialPool = totalPool * 0.05;
 
-	// Progress towards 100M VOI goal
-	$: poolProgress = (totalPool / 100_000_000) * 100;
+	// Progress towards 1M VOI goal
+	$: poolProgress = (totalPool / 1_000_000) * 100;
 </script>
 
 <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
@@ -49,7 +50,7 @@
 			{#if isGameStarted}
 				<p class="text-lg mb-2">
 					<span class="font-bold">{formatNumber(totalPool)} VOI</span>
-					<span class="text-sm opacity-75"> of 100M goal</span>
+					<span class="text-sm opacity-75"> of 1M goal</span>
 				</p>
 				
 				<!-- Custom Progress Bar -->
@@ -87,28 +88,40 @@
 			{#if isGameStarted}
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div class="space-y-4">
-						<div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+						<button 
+							class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800/70 transition-colors duration-200 w-full"
+							on:click={() => activeTab = 1}
+						>
 							<h5 class="font-semibold text-blue-500 mb-2">Volume Trading</h5>
 							<p class="text-2xl font-bold">{formatNumber(volumePool)} VOI</p>
 							<p class="text-sm opacity-75">42.5% of total pool</p>
-						</div>
-						<div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+						</button>
+						<button 
+							class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800/70 transition-colors duration-200 w-full"
+							on:click={() => activeTab = 2}
+						>
 							<h5 class="font-semibold text-green-500 mb-2">Profit Trading</h5>
 							<p class="text-2xl font-bold">{formatNumber(profitPool)} VOI</p>
 							<p class="text-sm opacity-75">42.5% of total pool</p>
-						</div>
+						</button>
 					</div>
 					<div class="space-y-4">
-						<div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+						<button 
+							class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800/70 transition-colors duration-200 w-full"
+							on:click={() => activeTab = 3}
+						>
 							<h5 class="font-semibold text-amber-500 mb-2">Minting</h5>
 							<p class="text-2xl font-bold">{formatNumber(mintingPool)} VOI</p>
 							<p class="text-sm opacity-75">10% of total pool</p>
-						</div>
-						<div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+						</button>
+						<button 
+							class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800/70 transition-colors duration-200 w-full"
+							on:click={() => activeTab = 4}
+						>
 							<h5 class="font-semibold text-pink-500 mb-2">Social Media</h5>
 							<p class="text-2xl font-bold">{formatNumber(socialPool)} VOI</p>
 							<p class="text-sm opacity-75">5% of total pool</p>
-						</div>
+						</button>
 					</div>
 				</div>
 			{:else}

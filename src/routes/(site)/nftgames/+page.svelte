@@ -216,7 +216,7 @@
 
 		<!-- Custom Tab Navigation -->
 		<div class="bg-white dark:bg-gray-800 rounded-lg shadow relative">
-			<div class="flex border-b border-gray-200 dark:border-gray-700 overflow-x-auto relative z-10">
+			<div class="flex border-b border-gray-200 dark:border-gray-700 overflow-x-auto relative z-0">
 				{#each tabSet as tab, i}
 					<div class="flex-1 relative">
 						<button
@@ -245,7 +245,15 @@
 				{#if activeTab === 0}
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<RulesExplainer {startDate} {endDate} bind:activeTab />
-						<GameStats {totalVolume} {totalParticipants} {collections} sales={gameSales} {startDate} {endDate} />
+						<GameStats 
+							{totalVolume} 
+							{totalParticipants} 
+							{collections} 
+							sales={gameSales} 
+							{startDate} 
+							{endDate}
+							bind:activeTab
+						/>
 					</div>
 				{:else if activeTab === 1}
 					<LeaderboardVolume sales={gameSales} {startDate} {endDate} />
