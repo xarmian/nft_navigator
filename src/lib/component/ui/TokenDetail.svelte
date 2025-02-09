@@ -415,6 +415,9 @@
             {#if format === 'small'}
                 <a href="/collection/{token.contractId}/token/{token.tokenId}" class="relative overflow-hidden place-self-center rounded-t-xl">
                     <img src={imageUrl} class="w-72 h-72 object-contain" />
+                    {#if token.metadata?.envoiName && token.metadata?.image !== 'ipfs://QmcekfLHJqJfL1TqhMdGncyhfNJTx93ZqPikFsKKx4nUTi'}
+                        <img src="/icons/envoi_icon.png" class="absolute bottom-2 right-2 w-12 h-12 rounded-full shadow-lg opacity-80" alt="Envoi Logo" />
+                    {/if}
                     {#if listing && !listing.sale && !listing.delete}
                         {#if listing.source === 'arcpay'}
                             <button on:click|stopPropagation|preventDefault={buyArcpay} class="absolute top-0 right-0 p-1 text-white rounded-full text-nowrap" title="Buy on NFT Navigator">
@@ -443,6 +446,9 @@
             {:else}
                 <div class="relative overflow-hidden place-self-center">
                     <img src={imageUrl} class="w-96 object-contain" />
+                    {#if token.metadata?.envoiName && token.metadata?.image !== 'ipfs://QmcekfLHJqJfL1TqhMdGncyhfNJTx93ZqPikFsKKx4nUTi'}
+                        <img src="/icons/envoi_icon.png" class="absolute bottom-2 right-2 w-16 h-16 rounded-full shadow-lg opacity-80" alt="Envoi Logo" />
+                    {/if}
                     {#if listing && !listing.sale && !listing.delete}
                         {#if listing.source === 'arcpay'}
                             <button on:click|stopPropagation|preventDefault={buyArcpay} class="absolute top-0 right-0 p-1 text-white rounded-full text-nowrap" title="Buy on NFT Navigator">
