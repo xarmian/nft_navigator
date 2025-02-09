@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Chart, DoughnutController, ArcElement, Tooltip, Legend } from 'chart.js';
+	import { slide } from 'svelte/transition';
 
 	Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
 
@@ -68,17 +69,6 @@
 	function toggleSection(section: string, event: MouseEvent) {
 		const button = event.currentTarget as HTMLElement;
 		activeSection = activeSection === section ? '' : section;
-		
-		// Wait for DOM update before scrolling
-		setTimeout(() => {
-			const rect = button.getBoundingClientRect();
-			const navbarHeight = 80; // Approximate navbar height in pixels
-			const scrollPosition = window.pageYOffset + rect.top - navbarHeight;
-			window.scrollTo({
-				top: scrollPosition,
-				behavior: 'smooth'
-			});
-		}, 0);
 	}
 
 	onMount(() => {
@@ -114,7 +104,7 @@
 			</button>
 			
 			{#if activeSection === 'prize-pool'}
-				<div class="p-4 space-y-4">
+				<div transition:slide={{ duration: 300 }} class="p-4 space-y-4">
 					<p>Total potential pool: 100 Million VOI</p>
 					<ul class="list-disc list-inside space-y-1">
 						<li>10% fee on all transactions</li>
@@ -160,7 +150,7 @@
 			</button>
 			
 			{#if activeSection === 'volume-profit'}
-				<div class="p-4 space-y-4">
+				<div transition:slide={{ duration: 300 }} class="p-4 space-y-4">
 					<div>
 						<h4 class="font-bold mb-2">Volume Points</h4>
 						<ul class="list-disc list-inside">
@@ -202,7 +192,7 @@
 			</button>
 			
 			{#if activeSection === 'creator-rules'}
-				<div class="p-4 space-y-4">
+				<div transition:slide={{ duration: 300 }} class="p-4 space-y-4">
 					<div>
 						<h4 class="font-bold mb-2">Minting Points (10%)</h4>
 						<ul class="list-disc list-inside">
@@ -239,7 +229,7 @@
 			</button>
 			
 			{#if activeSection === 'prize-distribution'}
-				<div class="p-4 space-y-4">
+				<div transition:slide={{ duration: 300 }} class="p-4 space-y-4">
 					<ul class="list-disc list-inside">
 						<li>25 winners per category</li>
 						<li>Each winner receives 4% of category prize pool</li>
