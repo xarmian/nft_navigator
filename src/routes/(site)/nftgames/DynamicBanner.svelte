@@ -16,6 +16,7 @@
 		x: number;  // Store actual position
 		y: number;
 		contractId: number;
+		collection: Collection;  // Add reference to full collection
 	}
 
 	let displayImages: NFTImage[] = [];
@@ -24,6 +25,8 @@
 	let containerWidth = 1200;  // Default width for SSR
 	let isMounted = false;
 	let bannerOpacity = 1;  // New variable to control banner opacity
+	let hoveredImage: NFTImage | null = null;
+	let infoPosition = { x: 0, y: 0 };
 
 	// Update container width on mount and window resize
 	onMount(() => {
@@ -112,14 +115,48 @@
 			.slice(0, numImages);
 	}
 
+	// Function to handle mouse enter
+	function handleMouseEnter(image: NFTImage, event: MouseEvent) {
+		hoveredImage = image;
+		// Position info panel based on image position
+		const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+		const containerRect = (event.currentTarget as HTMLElement).closest('.relative')?.getBoundingClientRect();
+		if (containerRect) {
+			const panelWidth = 320; // w-80 = 20rem = 320px
+			const halfPanelWidth = panelWidth / 2;
+			
+			// Calculate initial x position
+			let x = rect.left - containerRect.left + rect.width / 2;
+			
+			// Adjust x if panel would go off screen
+			if (x - halfPanelWidth < 0) {
+				// Too far left, adjust to keep panel fully visible
+				x = halfPanelWidth;
+			} else if (x + halfPanelWidth > containerRect.width) {
+				// Too far right, adjust to keep panel fully visible
+				x = containerRect.width - halfPanelWidth;
+			}
+			
+			infoPosition = {
+				x,
+				y: rect.top - containerRect.top
+			};
+		}
+	}
+
+	// Function to handle mouse leave
+	function handleMouseLeave() {
+		hoveredImage = null;
+	}
+
 	// Function to update image positions
 	function updateImagePositions() {
 		if (selectedCollections.length === 0) return;
 		
 		const positions: Array<{x: number, y: number}> = [];
 		displayImages = selectedCollections
-			.map((c, index) => {
-				const metadata = JSON.parse(c.firstToken!.metadata);
+			.map((collection, index) => {
+				const metadata = JSON.parse(collection.firstToken!.metadata);
 				const imageUrl = metadata.image;
 				const name = metadata.name || 'Untitled';
 				
@@ -130,7 +167,8 @@
 				return {
 					url: getImageUrl(imageUrl, 480),
 					name,
-					contractId: c.contractId,
+					contractId: collection.contractId,
+					collection,  // Store the full collection
 					...transformData
 				};
 			});
@@ -161,12 +199,14 @@
 	<div class="absolute inset-0">
 		{#each displayImages as image, i (image.url)}
 			<a
-				class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 shadow-xl rounded-lg overflow-hidden transition-all duration-300 ease-in-out hover:z-50"
+				class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 shadow-xl rounded-lg overflow-hidden transition-all duration-300 ease-in-out hover:z-[45]"
 				style="
 					transform: {image.transform} scale({image.scale});
 					z-index: {image.zIndex};
 					opacity: {image.opacity};
 				"
+				on:mouseenter={(e) => handleMouseEnter(image, e)}
+				on:mouseleave={handleMouseLeave}
 				transition:fade={{duration: 300}}
 				href={`/collection/${image.contractId}`}
 			>
@@ -181,6 +221,53 @@
 				</div>
 			</a>
 		{/each}
+
+		<!-- Floating Info Panel -->
+		{#if hoveredImage}
+			<div
+				class="absolute z-[100] w-80 bg-gray-900/90 rounded-lg p-4 backdrop-blur-sm text-white shadow-2xl pointer-events-none"
+				style="left: {infoPosition.x}px; top: {Math.max(20, infoPosition.y - 220)}px; transform: translateX(-50%); max-width: calc(100% - 2rem);"
+				in:fly={{ y: 20, duration: 300 }}
+				out:fade
+			>
+				<div class="space-y-3">
+					<div class="flex items-center justify-between">
+						<h3 class="text-lg font-bold truncate flex-1 mr-2">{hoveredImage.collection.highforgeData?.title ?? hoveredImage.name}</h3>
+						<div class="text-sm text-blue-400 whitespace-nowrap">#{hoveredImage.collection.contractId}</div>
+					</div>
+					
+					<div class="grid grid-cols-2 gap-2 text-sm">
+						<div class="bg-gray-800/50 rounded p-2">
+							<div class="text-gray-400">Supply</div>
+							<div class="font-medium">{hoveredImage.collection.totalSupply}</div>
+						</div>
+						<div class="bg-gray-800/50 rounded p-2">
+							<div class="text-gray-400">Unique Owners</div>
+							<div class="font-medium">{hoveredImage.collection.uniqueOwners || 'N/A'}</div>
+						</div>
+					</div>
+
+					{#if hoveredImage.collection.firstToken?.metadata}
+						{@const metadata = JSON.parse(hoveredImage.collection.firstToken.metadata)}
+						{#if metadata.description}
+							<div class="text-sm text-gray-300 line-clamp-2">
+								{metadata.description}
+							</div>
+						{/if}
+					{/if}
+
+					{#if hoveredImage.collection.gameData?.description}
+						<div class="text-sm text-gray-300 line-clamp-2 border-t border-gray-700/50 pt-2">
+							{hoveredImage.collection.gameData.description}
+						</div>
+					{/if}
+
+					<div class="text-xs text-gray-400 truncate">
+						Created by {hoveredImage.collection.creatorName || hoveredImage.collection.creator}
+					</div>
+				</div>
+			</div>
+		{/if}
 	</div>
 
 	<!-- Overlay gradients for depth effect -->
