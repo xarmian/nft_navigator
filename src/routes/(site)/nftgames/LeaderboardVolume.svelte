@@ -23,7 +23,13 @@
 	let volumeLeaderboard: VolumeEntry[] = [];
 	let loading = true;
 
-	onMount(async () => {
+	$: {
+		if (sales.length > 0 && loading) {
+			calculateLeaderboard();
+		}
+	}
+
+	async function calculateLeaderboard() {
 		console.log('Total sales received:', sales.length);
 		console.log('Sample of first few sales:', sales.slice(0, 3));
 
@@ -113,7 +119,7 @@
 		});
 
 		loading = false;
-	});
+	}
 
 	function getPositionClass(index: number): string {
 		if (index === 0) return 'text-yellow-500';
@@ -131,7 +137,7 @@
 		</div>
 	</div>
 
-	{#if loading}
+	{#if loading || sales.length === 0}
 		<div class="flex justify-center p-4">
 			<span class="loading loading-spinner loading-lg"></span>
 		</div>
