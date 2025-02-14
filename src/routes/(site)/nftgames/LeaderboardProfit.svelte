@@ -135,7 +135,11 @@
 							<td class="p-2">
 								<a class="flex items-center gap-2 hover:underline" href={`/portfolio/${entry.address}`}>
 									{#if entry.nfd}
-										<img src={entry.nfd.avatar} alt={entry.nfd.replacementValue} class="w-10 h-10 rounded-full" />
+										{#if entry.nfd.avatar}
+											<img src={entry.nfd.avatar} alt={entry.nfd.replacementValue} class="w-10 h-10 rounded-full" />
+										{:else}
+											<img src="/blank_avatar_small.png" alt={entry.address} class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 dark:opacity-50" />
+										{/if}
 										<span class="font-medium">{entry.nfd.replacementValue}</span>
 									{:else}
 										<img src="/blank_avatar_small.png" alt={entry.address} class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 dark:opacity-50" />
