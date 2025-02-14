@@ -104,7 +104,7 @@
             );
 
         // Filter by listed status if enabled
-        const matchesListed = !showListedOnly || token.isListed;
+        const matchesListed = !showListedOnly || token.marketData;
 
         return matchesSearch && matchesListed;
     }).sort((a, b) => {
@@ -294,11 +294,12 @@
                                         on:click={() => sortDirection = sortDirection === 'asc' ? 'desc' : 'asc'}
                                         class="px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
                                         title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
+                                        aria-label={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
                                     >
                                         <i class="fas fa-sort-{sortDirection === 'asc' ? 'up' : 'down'}"></i>
                                     </button>
                                 </div>
-                                <label class="flex items-center gap-2">
+                                <label class="flex items-center gap-2 hidden">
                                     <input
                                         type="checkbox"
                                         bind:checked={showListedOnly}
