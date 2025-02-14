@@ -30,9 +30,6 @@
 	}
 
 	async function calculateLeaderboard() {
-		console.log('Total sales received:', sales.length);
-		console.log('Sample of first few sales:', sales.slice(0, 3));
-
 		// Calculate volume per address (combining buyer and seller volumes)
 		const volumeMap = new Map<string, VolumeEntry>();
 
@@ -45,11 +42,6 @@
 			// For mints (seller is zero address), only buyer gets volume points
 			if (sale.seller === ZERO_ADDRESS) {
 				mintCount++;
-				console.log('Found mint:', {
-					buyer: sale.buyer,
-					price: adjustedPrice,
-					timestamp: new Date(sale.timestamp * 1000)
-				});
 
 				if (!volumeMap.has(sale.buyer)) {
 					volumeMap.set(sale.buyer, {
@@ -93,19 +85,11 @@
 			}
 		});
 
-		console.log('Transaction breakdown:', {
-			mints: mintCount,
-			secondarySales: secondarySaleCount,
-			total: mintCount + secondarySaleCount
-		});
-
 		// Convert to array and sort by volume
 		volumeLeaderboard = Array.from(volumeMap.values())
 			.filter(entry => entry.address !== ZERO_ADDRESS) // Exclude zero address
 			.sort((a, b) => b.volume - a.volume)
 			.slice(0, 50); // Top 50 traders
-
-		console.log('Top 3 volume leaders:', volumeLeaderboard.slice(0, 3));
 
 		// Resolve NFDs for addresses
 		const addresses = volumeLeaderboard.map(entry => entry.address);

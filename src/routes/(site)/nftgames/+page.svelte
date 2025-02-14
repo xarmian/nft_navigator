@@ -45,11 +45,6 @@
 				maxTime: Math.floor(endTimestamp / 1000)
 			});
 
-			console.log('Game period:', new Date(startTimestamp), 'to', new Date(endTimestamp));
-			console.log('Number of sales:', allSales.length);
-			console.log('Sample sale:', allSales[0]);
-			console.log('Sales timestamps:', allSales.map(s => new Date(s.timestamp * 1000)));
-
 			// Get all mints during game period
 			const transfers = await getTransfers({ 
 				fetch,
@@ -114,11 +109,6 @@
 			// Calculate total volume from all sales plus mint volume
 			const secondaryVolume = allSales.reduce((acc, sale) => acc + sale.price, 0);
 			totalVolume = secondaryVolume + totalMintVolume;
-
-			console.log('Secondary market volume:', secondaryVolume / VOI_FACTOR, 'VOI');
-			console.log('Mint volume:', totalMintVolume / VOI_FACTOR, 'VOI');
-			console.log('Total volume:', totalVolume / VOI_FACTOR, 'VOI');
-			console.log('Total mints:', totalMints);
 
 			// Calculate participants (include both traders and minters)
 			const participants = new Set([
