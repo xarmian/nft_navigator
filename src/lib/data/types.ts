@@ -16,6 +16,7 @@ export interface Token {
     rank: number | null;
 	traits?: string[] | undefined;
     isBurned: boolean;
+    isListed?: boolean;
 }
 
 export interface Transfer {
@@ -86,6 +87,14 @@ export interface Metadata {
     properties: Record<string, string>;
     royalties: string;
     envoiName?: string;
+    collection?: {
+        name: string;
+        family?: string;
+    };
+    attributes?: Array<{
+        trait_type: string;
+        value: string | number;
+    }>;
 }
 
 export interface Listing {

@@ -36,6 +36,9 @@
     let didLongPress = false;
     $: selectedTokens = [] as Token[];
     $: showSendTokenModal = false;
+    let searchQuery = '';
+    let showListedOnly = false;
+    let sortDirection: 'asc' | 'desc' = 'asc';
 
     $: {
         if (tokens) {
@@ -83,10 +86,43 @@
         ? `${walletId.slice(0, (isMobile ? 4 : 6))}...${walletId.slice((isMobile ? -4 : -6))}`
         : walletId) : '';
 
+    // Filter and sort tokens based on user preferences
+    $: filteredTokens = tokens.filter(token => {
+        if (!token) return false;
+        
+        // Filter by search query
+        const searchLower = searchQuery.toLowerCase();
+        const matchesSearch = !searchQuery || 
+            token.metadata?.name?.toLowerCase().includes(searchLower) ||
+            token.metadata?.collection?.name?.toLowerCase().includes(searchLower) ||
+            // Search by token number if name contains a number
+            (token.metadata?.name && /\d+/.test(searchQuery) && token.metadata.name.includes(searchQuery)) ||
+            // Search by traits/properties
+            Object.entries(token.metadata?.properties || {}).some(([key, value]) => 
+                key.toLowerCase().includes(searchLower) ||
+                (typeof value === 'string' && value.toLowerCase().includes(searchLower))
+            );
+
+        // Filter by listed status if enabled
+        const matchesListed = !showListedOnly || token.isListed;
+
+        return matchesSearch && matchesListed;
+    }).sort((a, b) => {
+        let comparison = 0;
+        if (portfolioSort === 'name') {
+            comparison = (a.metadata?.name || '').localeCompare(b.metadata?.name || '');
+        } else if (portfolioSort === 'collection') {
+            comparison = (a.metadata?.collection?.name || '').localeCompare(b.metadata?.collection?.name || '');
+        } else {
+            comparison = a.mintRound - b.mintRound;
+        }
+        return sortDirection === 'asc' ? comparison : -comparison;
+    });
+
     let sortOptions = [
         { id: 'mint', name: 'Mint Date' },
-        { id: 'name', name: 'Name/Collection' },
-        //{ id: 'acquired', name: 'Acquired Date' }
+        { id: 'name', name: 'Name' },
+        { id: 'collection', name: 'Collection' }
     ];
 
     function showMore() {
@@ -230,14 +266,50 @@
                 <TabItem open>
                     <div slot="title">
                         <div class="inline">Portfolio</div>
-                        <Indicator color="blue" size="xl" class="text-xs font-bold text-white">{tokens.length}</Indicator>
+                        <Indicator color="blue" size="xl" class="text-xs font-bold text-white">
+                            {tokens.length}
+                        </Indicator>
                     </div>
                     <div class="flex flex-col">
-                        <!--<div class="flex justify-end">
-                            <Select bind:value={portfolioSort} options={sortOptions}></Select>
-                        </div>-->
+                        <div class="flex flex-col md:flex-row justify-between items-center gap-4 p-4">
+                            <div class="w-full md:w-1/3">
+                                <input
+                                    type="text"
+                                    placeholder="Search by name, collection, or traits..."
+                                    class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+                                    bind:value={searchQuery}
+                                />
+                            </div>
+                            <div class="flex flex-row gap-4 items-center">
+                                <div class="flex items-center gap-2">
+                                    <select
+                                        bind:value={portfolioSort}
+                                        class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+                                    >
+                                        {#each sortOptions as option}
+                                            <option value={option.id}>{option.name}</option>
+                                        {/each}
+                                    </select>
+                                    <button
+                                        on:click={() => sortDirection = sortDirection === 'asc' ? 'desc' : 'asc'}
+                                        class="px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                        title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
+                                    >
+                                        <i class="fas fa-sort-{sortDirection === 'asc' ? 'up' : 'down'}"></i>
+                                    </button>
+                                </div>
+                                <label class="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        bind:checked={showListedOnly}
+                                        class="form-checkbox h-5 w-5 text-blue-600"
+                                    />
+                                    <span>Listed Only</span>
+                                </label>
+                            </div>
+                        </div>
                         <div class="flex flex-row flex-wrap justify-center">
-                            {#each tokens.slice(0, displayCount) as token, i}
+                            {#each filteredTokens.slice(0, displayCount) as token, i}
                                 {#if token.owner === walletId}
                                     <div class="m-4 relative" 
                                         on:mousedown={handleLongPress} 
