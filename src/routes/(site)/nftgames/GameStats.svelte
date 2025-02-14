@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { Collection, Sale } from '$lib/data/types';
 	import { formatNumber } from '$lib/utils/format';
+	import { algodClient } from '$lib/utils/algod';
+	import { onMount } from 'svelte';
 
 	export let totalVolume: number;
 	export let totalParticipants: number;
@@ -13,6 +15,20 @@
 	const VOI_DECIMALS = 6;
 	const VOI_FACTOR = Math.pow(10, VOI_DECIMALS);
 
+	let poolBalance = 0;
+	
+	onMount(async () => {
+		try {
+			const poolAddress1 = 'GAMESB74MIL32A5FZTS2F4YYDGG6YQKBO6TDG6PHITCIIVQAA77GE253CQ';
+			const poolAddress2 = 'JFHP4IL4D3I4FDQFWGFDMCZLFSLGQAL4OZGQQKTPEE4SSW6JXSYQPZY2PM';
+			const poolAccount1 = await algodClient.accountInformation(poolAddress1).do();
+			const poolAccount2 = await algodClient.accountInformation(poolAddress2).do();
+			poolBalance = poolAccount1.amount + (poolAccount2.amount * .667);
+		} catch (error) {
+			console.error('Error fetching pool balance:', error);
+		}
+	});
+
 	// Check if game has started
 	$: now = new Date();
 	$: isGameStarted = now >= startDate;
@@ -24,7 +40,8 @@
 	$: participatingCollections = collections.length;
 
 	// Calculate additional statistics
-	$: prizePool = (totalVolume / VOI_FACTOR) * 0.1; // 10% of volume
+	// $: prizePool = (totalVolume / VOI_FACTOR) * 0.1; // 10% of volume
+	$: prizePool = poolBalance / VOI_FACTOR;
 	$: matchedPool = Math.min(prizePool, 50_000_000); // Max 50M VOI match
 	$: totalPool = prizePool + matchedPool;
 
