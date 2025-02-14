@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { getCollections, getSales } from '$lib/utils/indexer';
-	import type { Collection, Sale } from '$lib/data/types';
+	import { getCollections, getSales, getTransfers, getSalesAndTransfers } from '$lib/utils/indexer';
+	import type { Collection, Sale, Transfer } from '$lib/data/types';
 	import { formatNumber } from '$lib/utils/format';
 	import LeaderboardVolume from './LeaderboardVolume.svelte';
 	import LeaderboardProfit from './LeaderboardProfit.svelte';
@@ -29,6 +29,10 @@
 	let loading = true;
 	let totalVolume = 0;
 	let totalParticipants = 0;
+	let totalMintVolume = 0;
+	let totalMints = 0;
+
+	const ZERO_ADDRESS = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
 
 	onMount(async () => {
 		try {
@@ -41,14 +45,69 @@
 				maxTime: Math.floor(endTimestamp / 1000)
 			});
 
-			// No need to filter sales anymore since we're getting the correct date range from the API
+			console.log('Game period:', new Date(startTimestamp), 'to', new Date(endTimestamp));
+			console.log('Number of sales:', allSales.length);
+			console.log('Sample sale:', allSales[0]);
+			console.log('Sales timestamps:', allSales.map(s => new Date(s.timestamp * 1000)));
+
+			// Get all mints during game period
+			const transfers = await getTransfers({ 
+				fetch,
+				from: ZERO_ADDRESS,
+				minRound: "4801760"
+			});
+
+			// Filter transfers that occurred during game period
+			const gamePeriodMints = transfers.filter(transfer => {
+				const transferTime = transfer.timestamp;
+				return transferTime >= startTimestamp / 1000 && transferTime <= endTimestamp / 1000;
+			});
+
+			// Calculate mint volume using collection pricing
+			totalMints = gamePeriodMints.length;
+			totalMintVolume = gamePeriodMints.reduce((acc, transfer) => {
+				const collection = collections.find(c => c.contractId === transfer.contractId);
+				const globalState = collection?.globalState;
+				if (!globalState) return acc;
+
+				const getValue = (key: string): number => {
+					const value = globalState.find(gs => gs.key === key)?.value;
+					return value ? Number(value) : 0;
+				};
+
+				const pricing = {
+					wlPrice: getValue('wlPrice'),
+					publicPrice: getValue('price'),
+					launchStart: getValue('launchStart'),
+					wlLaunchStart: getValue('wlLaunchStart')
+				};
+
+				// Determine price based on timestamp
+				let price = pricing.publicPrice;
+				if (transfer.timestamp < pricing.launchStart && transfer.timestamp >= pricing.wlLaunchStart) {
+					price = pricing.wlPrice;
+				}
+
+				return acc + price;
+			}, 0);
+
+			// Get all secondary market sales during game period
 			gameSales = allSales;
 
-			// Calculate game statistics using filtered sales
-			totalVolume = gameSales.reduce((acc, sale) => acc + sale.price, 0);
+			// Calculate total volume from all sales plus mint volume
+			const secondaryVolume = gameSales.reduce((acc, sale) => acc + sale.price, 0);
+			totalVolume = secondaryVolume + totalMintVolume;
+
+			console.log('Secondary market volume:', secondaryVolume / VOI_FACTOR, 'VOI');
+			console.log('Mint volume:', totalMintVolume / VOI_FACTOR, 'VOI');
+			console.log('Total volume:', totalVolume / VOI_FACTOR, 'VOI');
+			console.log('Total mints:', totalMints);
+
+			// Calculate participants (include both traders and minters)
 			const participants = new Set([
 				...gameSales.map(s => s.buyer),
-				...gameSales.map(s => s.seller)
+				...gameSales.map(s => s.seller),
+				...gamePeriodMints.map(m => m.to) // Add minters to participants
 			]);
 			totalParticipants = participants.size;
 		} catch (error) {
@@ -140,7 +199,8 @@
 							Loading game statistics...
 						{:else}
 							<span class="font-bold">{formatNumber(totalVolume / VOI_FACTOR)} VOI</span> total volume • 
-							<span class="font-bold">{totalParticipants}</span> participants
+							<span class="font-bold">{totalParticipants}</span> participants • 
+							<span class="font-bold">{totalMints}</span> mints
 						{/if}
 					</p>
 				{/if}

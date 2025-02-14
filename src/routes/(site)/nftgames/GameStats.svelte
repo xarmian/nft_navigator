@@ -56,7 +56,7 @@
 	$: socialPool = totalPool * 0.05;
 
 	// Progress towards 1M VOI goal
-	$: poolProgress = (totalPool / 1_000_000) * 100;
+	$: poolProgress = (totalPool / 2_000_000) * 100;
 </script>
 
 <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
@@ -67,7 +67,7 @@
 			{#if isGameStarted}
 				<p class="text-lg mb-2">
 					<span class="font-bold">{formatNumber(totalPool)} VOI</span>
-					<span class="text-sm opacity-75"> of 1M goal</span>
+					<span class="text-sm opacity-75"> of 2M goal</span>
 				</p>
 				
 				<!-- Custom Progress Bar -->
