@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { Token, Collection, Listing, Currency } from '$lib/data/types';
+    import type { Token, Collection, Listing, Currency, Auction, Sale } from '$lib/data/types';
     import TokenName from '$lib/component/ui/TokenName.svelte';
     import { zeroAddress } from '$lib/data/constants';
     import { selectedWallet } from 'avm-wallet-svelte';
@@ -14,9 +14,10 @@
 	import BuyTokenModal from './BuyTokenModal.svelte';
     import ListTokenModal from './ListTokenModal.svelte';
     import NautilusLogo from '$lib/assets/nautilus.svg';
-    import { buyToken as buyTokenArcpay, getListings as getListingsArcpay, listToken as listTokenArcpay } from '$lib/arcpay';
+    import { buyToken as buyTokenArcpay, getListings as getListingsArcpay, listToken as listTokenArcpay, getTokenListing, cancelListing as cancelListingArcpay } from '$lib/arcpay';
     import type { Listing as AListing } from '$lib/arcpay';
     import Share from '$lib/component/ui/Share.svelte';
+    import { browser } from '$app/environment';
 
     export let token: Token;
     export let collection: Collection | undefined;
@@ -69,7 +70,7 @@
     onMount(() => {
         windowDefined = typeof window !== 'undefined';
 
-        token = token;
+        //token = token;
     });
 
     onDestroy(() => {
@@ -77,59 +78,38 @@
     });
 
     async function getMarketData() {
-        //if (listing == null) {
-            if (token?.marketData) {
-                listing = token.marketData;
+        if (!browser) return;
+
+        if (token?.marketData) {
+            listing = token.marketData;
+        } else {
+            const arcpayListing = token.approved !== zeroAddress ? await getTokenListing(token) : null;
+            
+            if (arcpayListing) {
+                const processedListing = await processArcpayListing(arcpayListing);
+                if (processedListing) {
+                    listing = processedListing;
+                }
             }
             else {
-                // get arcpay listings
-                const arcpayListings: AListing[] = await getListingsArcpay(token, true);
-                if (arcpayListings.length > 0) {
-                    //listing = arcpayListings[0];
-                    const l: AListing = arcpayListings[0];
-
-                    if (l.status === 'active' || l.status === 'pending') {
-                        let c = await getCurrency(Number(l.currency));
-                        
-                        if (c) {
-                            // map arcpay listing to marketData
-                            listing = {
-                                transactionId: l.id,
-                                mpContractId: l.app_id,
-                                mpListingId: 0,
-                                collectionId: Number(l.asset_id.split('/')[0]),
-                                tokenId: l.asset_id.split('/')[1],
-                                seller: '',
-                                price: l.sales[0].price * Math.pow(10, c.decimals),
-                                currency: Number(l.currency),
-                                sale: null,
-                                delete: null,
-                                createTimestamp: Math.floor(new Date(l.created_at).getTime() / 1000),
-                                source: 'arcpay',
-                            };
-                        }
-                    }
-                }
-                else {
-                    const marketUrl = `${indexerBaseURL}/mp/listings/?collectionId=${token.contractId}&tokenId=${token.tokenId}&active=true`;
-                    try {
-                        const marketData = await fetch(marketUrl).then((response) => response.json());
-                        if (marketData.listings.length > 0) {
-                            const marketToken = marketData.listings[0];
-                            if (marketToken && !marketToken.sale) {
-                                // check if token owner == marketToken.seller and mpContract id still approved to sell token
-                                if (token.owner === marketToken.seller && token.approved === algosdk.getApplicationAddress(Number(marketToken.mpContractId))) {
-                                    listing = marketToken;
-                                }
+                const marketUrl = `${indexerBaseURL}/mp/listings/?collectionId=${token.contractId}&tokenId=${token.tokenId}&active=true`;
+                try {
+                    const marketData = await fetch(marketUrl).then((response) => response.json());
+                    if (marketData.listings.length > 0) {
+                        const marketToken = marketData.listings[0];
+                        if (marketToken && !marketToken.sale) {
+                            // check if token owner == marketToken.seller and mpContract id still approved to sell token
+                            if (token.owner === marketToken.seller && token.approved === algosdk.getApplicationAddress(Number(marketToken.mpContractId))) {
+                                listing = marketToken;
                             }
                         }
                     }
-                    catch (e) {
-                        console.error(e);
-                    }
+                }
+                catch (e) {
+                    console.error(e);
                 }
             }
-        //}
+        }
 
         if (listing) {
             currency = await getCurrency(listing.currency);
@@ -228,8 +208,31 @@
         }
     }
 
-    function cancelListing() {
-        if (isTokenOwner) {
+    async function cancelListing() {
+        if (listing && listing.source === 'arcpay') {
+            const txId = await cancelListingArcpay(listing.transactionId);
+            waitingForConfirmationModal = true;
+
+            let count = 0;
+            const interval = setInterval(async () => {
+                const tokenChk = (await getTokens({ contractId: token.contractId, tokenId: token.tokenId, invalidate: true }))[0];
+                if (tokenChk.approved === zeroAddress) {
+                    token = tokenChk;
+                    // Clear listing after successful cancellation
+                    listing = null;
+                    waitingForConfirmationModal = false;
+                    clearInterval(interval);
+                } else {
+                    count++;
+                    if (count === 12) {
+                        token = tokenChk;
+                        waitingForConfirmationModal = false;
+                        clearInterval(interval);
+                    }
+                }
+            }, 2000);
+        }
+        else if (isTokenOwner) {
             sendTokenModalType = 'revoke';
             showSendTokenModal = true;
         }
@@ -248,6 +251,8 @@
     }
 
     async function listArcpay() {
+        if (!browser) return;
+
         const txId = await listTokenArcpay(token);
         waitingForConfirmationModal = true;
 
@@ -257,6 +262,14 @@
                 const tokenChk = (await getTokens({ contractId: token.contractId, tokenId: token.tokenId, invalidate: true }))[0];
                 if (tokenChk.approved !== zeroAddress) {
                     token = tokenChk;
+                    // Get fresh listing data
+                    const arcpayListing = await getTokenListing(tokenChk);
+                    if (arcpayListing) {
+                        const processedListing = await processArcpayListing(arcpayListing);
+                        if (processedListing) {
+                            listing = processedListing;
+                        }
+                    }
                     waitingForConfirmationModal = false;
                     clearInterval(interval);
                 } else {
@@ -272,6 +285,8 @@
     }
 
     async function buyArcpay(evt: Event) {
+        if (!browser) return;
+
         if (listing && listing.source === 'arcpay') {
             const txId = await buyTokenArcpay(listing?.transactionId);
             waitingForConfirmationModal = true;
@@ -282,6 +297,8 @@
                     const tokenChk = (await getTokens({ contractId: token.contractId, tokenId: token.tokenId, invalidate: true }))[0];
                     if (tokenChk.approved === zeroAddress) {
                         token = tokenChk;
+                        // Clear listing after successful purchase
+                        listing = null;
                         waitingForConfirmationModal = false;
                         clearInterval(interval);
                     } else {
@@ -298,6 +315,74 @@
 
         evt.preventDefault();
         return false;
+    }
+
+    async function processArcpayListing(arcpayListing: AListing): Promise<Listing | null> {
+        if (arcpayListing && (arcpayListing.status === 'active' || arcpayListing.status === 'pending')) {
+            let c = await getCurrency(Number(arcpayListing.currency));
+            
+            if (c) {
+                const price = arcpayListing.sales[0]?.price || 
+                            (arcpayListing.auctions[0]?.start_price ? arcpayListing.auctions[0].start_price * Math.pow(10, c.decimals) : 0);
+
+                // Create a base listing object that will be referenced by sales and auctions
+                const baseListing: Listing = {
+                    transactionId: arcpayListing.id,
+                    mpContractId: arcpayListing.app_id,
+                    mpListingId: 0,
+                    collectionId: Number(arcpayListing.asset_id.split('/')[0]),
+                    tokenId: arcpayListing.asset_id.split('/')[1],
+                    seller: arcpayListing.seller_address,
+                    price: price,
+                    currency: Number(arcpayListing.currency),
+                    sales: [],
+                    auctions: [],
+                    delete: null,
+                    createTimestamp: Math.floor(new Date(arcpayListing.created_at).getTime() / 1000),
+                    source: 'arcpay',
+                    type: arcpayListing.type,
+                    sale: null
+                };
+
+                // Map arcpay sales to our internal Sale type
+                const mappedSales = arcpayListing.sales.map(sale => ({
+                    transactionId: arcpayListing.id,
+                    seller: sale.seller_address || arcpayListing.seller_address,
+                    buyer: sale.buyer_address || '',
+                    price: sale.price,
+                    currency: Number(sale.currency || arcpayListing.currency),
+                    timestamp: Math.floor(new Date(arcpayListing.created_at).getTime() / 1000),
+                    round: 0,
+                    mpContractId: arcpayListing.app_id,
+                    mpListingId: 0,
+                    source: 'arcpay',
+                    tokenId: arcpayListing.asset_id.split('/')[1],
+                    collectionId: Number(arcpayListing.asset_id.split('/')[0]),
+                    listing: baseListing
+                }));
+
+                // Map arcpay auctions to our internal Auction type
+                const mappedAuctions = arcpayListing.auctions.map(auction => ({
+                    id: Number(arcpayListing.id),
+                    created_at: arcpayListing.created_at,
+                    updated_at: arcpayListing.updated_at || arcpayListing.created_at,
+                    duration: 0,
+                    start_price: auction.start_price,
+                    end_price: auction.end_price || 0,
+                    increment: 0,
+                    status: auction.status || 'active',
+                    type: arcpayListing.type,
+                    listing_id: arcpayListing.id
+                }));
+
+                // Update the base listing with the mapped sales and auctions
+                baseListing.sales = mappedSales;
+                baseListing.auctions = mappedAuctions;
+
+                return baseListing;
+            }
+        }
+        return null;
     }
 
 </script>
@@ -330,7 +415,7 @@
                         <i class="fas fa-tag mr-2"></i>
                         List
                     </button>
-                    {#if false && (!listing || (listing && listing?.source === 'arcpay'))}
+                    {#if (!listing || (listing && listing?.source === 'arcpay'))}
                         <button on:click={listArcpay} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14" class:rounded={format !== 'small'}>
                             <i class="fas fa-shopping-cart mr-2"></i>
                             <div class="flex-col">
@@ -338,7 +423,13 @@
                                     {#if listing}
                                         <div>Update Listing</div>
                                     {:else}
-                                        <div>Sell on NFT Navigator</div>
+                                        <div class="flex flex-col items-center justify-center text-sm">
+                                            <div>Sell on NFT Navigator</div>
+                                            <div class="flex flex-row items-center justify-center text-sm">
+                                                <span class="mr-1">with</span>
+                                                <img src="/logos/arcpay.png" alt="Arcpay Logo" class="h-7 opacity-50" />
+                                            </div>
+                                        </div>
                                     {/if}
                                 </div>
                             </div>
@@ -366,7 +457,7 @@
                                     {/if}
                                 </div>
                                 <div class="flex flex-row">
-                                    <img src={NautilusLogo} class="w-24 ml-1" />
+                                    <img src={NautilusLogo} alt="Nautilus Logo" class="w-24 ml-1" />
                                 </div>
                             </div>
                         </button>
@@ -382,7 +473,7 @@
                                         <div>Buy from</div>
                                     </div>
                                     <div class="flex flex-row">
-                                        <img src={NautilusLogo} class="w-24 ml-1" />
+                                        <img src={NautilusLogo} alt="Nautilus Logo" class="w-24 ml-1" />
                                     </div>
                                 </div>
                         </button>
@@ -422,9 +513,9 @@
                         {#if listing.source === 'arcpay'}
                             <button on:click|stopPropagation|preventDefault={buyArcpay} class="absolute top-0 right-0 p-1 text-white rounded-full text-nowrap" title="Buy on NFT Navigator">
                                 {#if currency}
-                                    <div class="badge top-right"><div>For Sale</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}</div></div>
+                                    <div class="badge top-right"><div>{listing?.type === 'sale' ? 'For Sale' : listing?.type === 'dutch_auction' ? 'Reverse Auction' : 'Starting At'}</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}</div></div>
                                 {:else}
-                                    <div class="badge top-right"><div>For Sale</div><div class="text-xxs">See Marketplace</div></div>
+                                    <div class="badge top-right"><div>{listing?.type === 'sale' ? 'For Sale' : listing?.type === 'dutch_auction' ? 'Reverse Auction' : 'Starting At'}</div><div class="text-xxs">See Marketplace</div></div>
                                 {/if}
                             </button>
                         {:else}
@@ -445,7 +536,7 @@
                 </a>
             {:else}
                 <div class="relative overflow-hidden place-self-center">
-                    <img src={imageUrl} class="w-96 object-contain" />
+                    <img src={imageUrl} alt="Token Image" class="w-96 object-contain" />
                     {#if token.metadata?.envoiName && token.metadata?.image !== 'ipfs://QmcekfLHJqJfL1TqhMdGncyhfNJTx93ZqPikFsKKx4nUTi'}
                         <img src="/icons/envoi_icon.png" class="absolute bottom-2 right-2 w-16 h-16 rounded-full shadow-lg opacity-80" alt="Envoi Logo" />
                     {/if}
@@ -453,9 +544,9 @@
                         {#if listing.source === 'arcpay'}
                             <button on:click|stopPropagation|preventDefault={buyArcpay} class="absolute top-0 right-0 p-1 text-white rounded-full text-nowrap" title="Buy on NFT Navigator">
                                 {#if currency}
-                                    <div class="badge top-right"><div>For Sale</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}</div></div>
+                                    <div class="badge top-right"><div>{listing?.type === 'sale' ? 'For Sale' : listing?.type === 'dutch_auction' ? 'Reverse Auction' : 'For Auction'}</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}</div></div>
                                 {:else}
-                                    <div class="badge top-right"><div>For Sale</div><div class="text-xxs">See Marketplace</div></div>
+                                    <div class="badge top-right"><div>{listing?.type === 'sale' ? 'For Sale' : listing?.type === 'dutch_auction' ? 'Reverse Auction' : 'For Auction'}</div><div class="text-xxs">See Marketplace</div></div>
                                 {/if}
                             </button>
                         {:else}
@@ -560,11 +651,14 @@
         </div>
     </div>
     {#if showMenuIcon && (isTokenOwner || isTokenApproved || (listing && !listing.sale && !listing.delete && $selectedWallet))}
-        <div class="absolute top-1 right-1 cursor-pointer" on:click|stopPropagation|preventDefault={toggleMenu}>
+        <button 
+            class="absolute top-1 right-1 cursor-pointer opacity-50" 
+            on:click|stopPropagation|preventDefault={toggleMenu}
+            aria-label="Menu">
             <div class="rounded-full w-10 h-10 bg-gray-200 dark:bg-gray-800 p-2 text-center border border-gray-500 hover:border-gray-300 dark:hover:bg-gray-700 shadow-md hover:shadow-lg transition duration-200 ease-in-out">
                 <i class="fas fa-ellipsis-v text-xl text-gray-500 dark:text-gray-300"></i>
             </div>
-        </div>
+        </button>
     {/if}
     {#if format !== 'small'}
         <div class="flex flex-wrap w-full justify-center md:justify-start">

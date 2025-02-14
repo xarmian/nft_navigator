@@ -54,7 +54,7 @@
 		"@types/chart.js": "^2.9.41",
 		"@vercel/analytics": "^1.2.2",
 		"algosdk": "^2.7.0",
-		"arcpay-sdk": "^0.0.6",
+		"arcpay-sdk": "^0.0.17",
 		"chart.js": "^4.4.7",
 		"compare-versions": "^6.1.0",
 		"d3": "^7.9.0",

@@ -98,9 +98,22 @@ export interface Listing {
     currency: number;
     seller: string;
     createTimestamp: number;
-    sale: null | Sale;
+    sales: null | Sale[];
+    auctions: null | Auction[];
     delete: null | object;
     source: string | null; // arcpay, nautilus, etc. null will be nautilus for now    
+    type: string | null; // sale, auction, dutch_auction
+    sale: null | Sale;
+}
+
+export interface Auction {
+    created_at: string;
+    duration: number;
+    id: number;
+    increment: number;
+    listing_id: string;
+    start_price: number;
+    updated_at: null | string;
 }
 
 export interface Sale {
