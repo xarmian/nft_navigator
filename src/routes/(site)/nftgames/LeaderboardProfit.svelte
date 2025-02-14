@@ -11,6 +11,7 @@
 
 	const VOI_DECIMALS = 6;
 	const VOI_FACTOR = Math.pow(10, VOI_DECIMALS);
+	const ZERO_ADDRESS = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
 
 	interface ProfitEntry {
 		address: string;
@@ -70,6 +71,7 @@
 
 		// Convert to array and sort by total profit
 		profitLeaderboard = Array.from(profitMap.values())
+			.filter(entry => entry.address !== ZERO_ADDRESS) // Exclude zero address
 			.sort((a, b) => b.totalProfit - a.totalProfit)
 			.slice(0, 50); // Top 50 traders
 

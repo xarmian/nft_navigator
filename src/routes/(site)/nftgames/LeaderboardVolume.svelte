@@ -6,9 +6,12 @@
 	import { onMount } from 'svelte';
 
 	export let sales: Sale[];
+	export let startDate: Date;
+	export let endDate: Date;
 
 	const VOI_DECIMALS = 6;
 	const VOI_FACTOR = Math.pow(10, VOI_DECIMALS);
+	const ZERO_ADDRESS = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
 
 	interface VolumeEntry {
 		address: string;
@@ -21,43 +24,82 @@
 	let loading = true;
 
 	onMount(async () => {
+		console.log('Total sales received:', sales.length);
+		console.log('Sample of first few sales:', sales.slice(0, 3));
+
 		// Calculate volume per address (combining buyer and seller volumes)
 		const volumeMap = new Map<string, VolumeEntry>();
+
+		let mintCount = 0;
+		let secondarySaleCount = 0;
 
 		sales.forEach(sale => {
 			const adjustedPrice = sale.price / VOI_FACTOR;
 			
-			// Add buyer volume
-			if (!volumeMap.has(sale.buyer)) {
-				volumeMap.set(sale.buyer, {
-					address: sale.buyer,
-					nfd: null,
-					volume: 0,
-					transactions: 0
+			// For mints (seller is zero address), only buyer gets volume points
+			if (sale.seller === ZERO_ADDRESS) {
+				mintCount++;
+				console.log('Found mint:', {
+					buyer: sale.buyer,
+					price: adjustedPrice,
+					timestamp: new Date(sale.timestamp * 1000)
 				});
-			}
-			const buyerEntry = volumeMap.get(sale.buyer)!;
-			buyerEntry.volume += adjustedPrice;
-			buyerEntry.transactions += 1;
 
-			// Add seller volume
-			if (!volumeMap.has(sale.seller)) {
-				volumeMap.set(sale.seller, {
-					address: sale.seller,
-					nfd: null,
-					volume: 0,
-					transactions: 0
-				});
+				if (!volumeMap.has(sale.buyer)) {
+					volumeMap.set(sale.buyer, {
+						address: sale.buyer,
+						nfd: null,
+						volume: 0,
+						transactions: 0
+					});
+				}
+				const buyerEntry = volumeMap.get(sale.buyer)!;
+				buyerEntry.volume += adjustedPrice;
+				buyerEntry.transactions += 1;
+			} else {
+				secondarySaleCount++;
+				// For secondary sales, both buyer and seller get volume points
+				// Add buyer volume
+				if (!volumeMap.has(sale.buyer)) {
+					volumeMap.set(sale.buyer, {
+						address: sale.buyer,
+						nfd: null,
+						volume: 0,
+						transactions: 0
+					});
+				}
+				const buyerEntry = volumeMap.get(sale.buyer)!;
+				buyerEntry.volume += adjustedPrice;
+				buyerEntry.transactions += 1;
+
+				// Add seller volume
+				if (!volumeMap.has(sale.seller)) {
+					volumeMap.set(sale.seller, {
+						address: sale.seller,
+						nfd: null,
+						volume: 0,
+						transactions: 0
+					});
+				}
+				const sellerEntry = volumeMap.get(sale.seller)!;
+				sellerEntry.volume += adjustedPrice;
+				sellerEntry.transactions += 1;
 			}
-			const sellerEntry = volumeMap.get(sale.seller)!;
-			sellerEntry.volume += adjustedPrice;
-			sellerEntry.transactions += 1;
+		});
+
+		console.log('Transaction breakdown:', {
+			mints: mintCount,
+			secondarySales: secondarySaleCount,
+			total: mintCount + secondarySaleCount
 		});
 
 		// Convert to array and sort by volume
 		volumeLeaderboard = Array.from(volumeMap.values())
+			.filter(entry => entry.address !== ZERO_ADDRESS) // Exclude zero address
 			.sort((a, b) => b.volume - a.volume)
 			.slice(0, 50); // Top 50 traders
+
+		console.log('Top 3 volume leaders:', volumeLeaderboard.slice(0, 3));
 
 		// Resolve NFDs for addresses
 		const addresses = volumeLeaderboard.map(entry => entry.address);

@@ -63,12 +63,15 @@
 				return transferTime >= startTimestamp / 1000 && transferTime <= endTimestamp / 1000;
 			});
 
-			// Calculate mint volume using collection pricing
+			// Calculate mint volume using collection pricing and convert mints to sales format
 			totalMints = gamePeriodMints.length;
-			totalMintVolume = gamePeriodMints.reduce((acc, transfer) => {
+			totalMintVolume = 0;
+			const mintSales: Sale[] = [];
+
+			for (const transfer of gamePeriodMints) {
 				const collection = collections.find(c => c.contractId === transfer.contractId);
 				const globalState = collection?.globalState;
-				if (!globalState) return acc;
+				if (!globalState) continue;
 
 				const getValue = (key: string): number => {
 					const value = globalState.find(gs => gs.key === key)?.value;
@@ -88,14 +91,28 @@
 					price = pricing.wlPrice;
 				}
 
-				return acc + price;
-			}, 0);
+				totalMintVolume += price;
+
+				// Convert mint transfer to sale format
+				mintSales.push({
+					transactionId: transfer.transactionId,
+					seller: ZERO_ADDRESS,
+					buyer: transfer.to,
+					price: price,
+					currency: 0, // VOI
+					timestamp: transfer.timestamp,
+					tokenId: transfer.tokenId,
+					collectionId: transfer.contractId,
+					round: transfer.round,
+					listing: null as any // Not needed for mints
+				});
+			}
 
 			// Get all secondary market sales during game period
-			gameSales = allSales;
+			gameSales = [...allSales, ...mintSales];
 
 			// Calculate total volume from all sales plus mint volume
-			const secondaryVolume = gameSales.reduce((acc, sale) => acc + sale.price, 0);
+			const secondaryVolume = allSales.reduce((acc, sale) => acc + sale.price, 0);
 			totalVolume = secondaryVolume + totalMintVolume;
 
 			console.log('Secondary market volume:', secondaryVolume / VOI_FACTOR, 'VOI');
