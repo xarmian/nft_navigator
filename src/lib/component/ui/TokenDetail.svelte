@@ -322,7 +322,7 @@
             let c = await getCurrency(Number(arcpayListing.currency));
             
             if (c) {
-                const price = arcpayListing.sales[0]?.price || 
+                const price = arcpayListing.sales[0]?.price * Math.pow(10, c.decimals) || 
                             (arcpayListing.auctions[0]?.start_price ? arcpayListing.auctions[0].start_price * Math.pow(10, c.decimals) : 0);
 
                 // Create a base listing object that will be referenced by sales and auctions
