@@ -504,7 +504,7 @@
                                 </button>
                             {/if}
                             {#if !listing || (listing && listing.source !== 'arcpay')}
-                                <button on:click={listToken} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14">
+                                <!--<button on:click={listToken} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14">
                                     <i class="fas fa-shopping-cart mr-2"></i>
                                     <div class="flex-col">
                                         <div class="flex flex-row place-content-center">
@@ -518,7 +518,20 @@
                                             <img src={NautilusLogo} alt="Nautilus Logo" class="w-24 ml-1" />
                                         </div>
                                     </div>
-                                </button>
+                                </button>-->
+                                <a href="https://nautilus.sh/#/collection/{token.contractId}/token/{token.tokenId}" target="_blank" class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14">
+                                    <i class="fas fa-shopping-cart mr-2"></i>
+                                    <div class="flex-col">
+                                        <div class="flex flex-row place-content-center">
+                                            {#if listing}
+                                                <div>Update/Cancel</div>
+                                            {:else}
+                                                <div>List on</div>
+                                            {/if}
+                                            <img src={NautilusLogo} alt="Nautilus Logo" class="w-24 ml-1" />
+                                        </div>
+                                    </div>
+                                </a>
                             {/if}
                             {#if listing}
                                 <button on:click={cancelListing} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14">
