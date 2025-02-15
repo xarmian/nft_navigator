@@ -9,6 +9,7 @@
 	import { getTokenImageUrl } from '$lib/utils/functions';
 	import { isLoading } from '../../../stores/loading';
 	import { goto } from '$app/navigation';
+    import { resolveEnvoiToken } from '$lib/utils/envoi';
 
     export let token: Token | null = null;
     export let listing: Listing | null = null;
@@ -66,6 +67,15 @@
                 token = tokens[0];
             });
         }
+
+        if (token && token.contractId === 797609) {
+            const envoiResults = await resolveEnvoiToken([token.tokenId]);
+            token.metadata = {
+                ...token.metadata,
+                envoiName: envoiResults[0].name || token.metadata.name,
+                image: envoiResults[0].metadata.avatar || token.metadata.image
+            };
+        }
     });
 
     function flip(node: any, {
@@ -98,7 +108,7 @@
 <div class="card-container">
     <div class="card">
         {#if token}
-            <a class="side cursor-pointer" on:click={handleClick}>
+            <button class="side cursor-pointer" on:click={handleClick}>
                 <Card padding="none">
                     <div class="image-container relative rounded-t-lg overflow-hidden flex justify-center">
                         {#if imageUrl}
@@ -111,7 +121,7 @@
                                 class:opacity-100={imageLoaded}
                             />
                             {#if !imageLoaded}
-                                <div class="absolute inset-0 bg-gray-100 dark:bg-gray-800 animate-pulse" />
+                                <div class="absolute inset-0 bg-gray-100 dark:bg-gray-800 animate-pulse"></div>
                             {/if}
                         {/if}
                         {#if token.rank}
@@ -137,9 +147,15 @@
                             {/if}
                         {/if}
                     </div>
-                    <div class="text-center"><TokenName name="{token.metadata?.name??String(token.tokenId)}" tokenId={token.tokenId}/></div>
+                    <div class="text-center">
+                        {#if token.contractId === 797609}
+                            {token.metadata?.envoiName}
+                        {:else}
+                            <TokenName name="{token.metadata?.name??String(token.tokenId)}" tokenId={token.tokenId}/>
+                        {/if}
+                    </div>
                 </Card>
-            </a>
+            </button>
         {/if}
     </div>
 </div>

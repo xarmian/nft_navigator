@@ -87,6 +87,14 @@ export interface Metadata {
     properties: Record<string, string>;
     royalties: string;
     envoiName?: string;
+    envoiMetadata?: {
+        url?: string;
+        avatar?: string;
+        location?: string;
+        'com.twitter'?: string;
+        'com.github'?: string;
+        [key: string]: string | undefined;
+    };
     collection?: {
         name: string;
         family?: string;

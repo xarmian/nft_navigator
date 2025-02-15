@@ -172,7 +172,7 @@
                             <div>
                                 <span class="font-semibold">From:</span> 
                                 {#if transfer.from == zeroAddress}
-                                    <span class="inline-block text-center text-xs bg-yellow-200 rounded-lg text-yellow-400 font-bold p-1">Minted</span>
+                                    <span class="inline-block text-center text-xs bg-yellow-200 rounded-lg text-yellow-700 font-bold p-1">Minted</span>
                                 {:else}
                                     <A href='/portfolio/{transfer.from}'>{nfdMap[transfer.from] ? nfdMap[transfer.from] : formatAddr(transfer.from)}</A>
                                 {/if}
@@ -180,7 +180,7 @@
                             <div>
                                 <span class="font-semibold">To:</span> 
                                 {#if transfer.to == zeroAddress}
-                                    <span class="inline-block text-center text-xs bg-yellow-200 rounded-lg text-yellow-400 font-bold p-1">Burned</span>
+                                    <span class="inline-block text-center text-xs bg-yellow-200 rounded-lg text-yellow-700 font-bold p-1">Burned</span>
                                 {:else}
                                     <A href='/portfolio/{transfer.to}'>{nfdMap[transfer.to] ? nfdMap[transfer.to] : formatAddr(transfer.to)}</A>
                                 {/if}
@@ -252,14 +252,14 @@
                             </td>
                             <td class="px-4 py-3">
                                 {#if transfer.from == zeroAddress}
-                                    <span class="text-center w-full text-sm bg-yellow-200 rounded-lg text-yellow-400 font-bold p-1 pl-2 pr-2">Minted</span>
+                                    <span class="text-center w-full text-sm bg-yellow-200 rounded-lg text-yellow-700 font-bold p-1 pl-2 pr-2">Minted</span>
                                 {:else}
                                     <A href='/portfolio/{transfer.from}'>{nfdMap[transfer.from] ? nfdMap[transfer.from] : formatAddr(transfer.from)}</A>
                                 {/if}
                             </td>
                             <td class="px-4 py-3">
                                 {#if transfer.to == zeroAddress}
-                                    <span class="text-center w-full text-sm bg-yellow-200 rounded-lg text-yellow-400 font-bold p-1 pl-2 pr-2">Burned</span>
+                                    <span class="text-center w-full text-sm bg-yellow-200 rounded-lg text-yellow-700 font-bold p-1 pl-2 pr-2">Burned</span>
                                 {:else}
                                     <A href='/portfolio/{transfer.to}'>{nfdMap[transfer.to] ? nfdMap[transfer.to] : formatAddr(transfer.to)}</A>
                                 {/if}

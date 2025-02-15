@@ -174,7 +174,8 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
                     token.metadata = {
                         ...token.metadata,
                         envoiName: envoiData.name || token.metadata.name,
-                        image: envoiData.metadata.avatar || token.metadata.image
+                        image: envoiData.metadata.avatar || token.metadata.image,
+                        envoiMetadata: envoiData.metadata
                     };
                 }
             });
