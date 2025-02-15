@@ -23,15 +23,17 @@
 			// Get all mints during game period in a single call
 			const transfers = await getTransfers({ 
 				fetch,
-				minRound: "3865654",
+				minRound: "4801760",
 				from: ZERO_ADDRESS
 			});
 
 			// Filter transfers that occurred during game period
-			const gamePeriodMints = transfers.filter(transfer => 
-				transfer.timestamp >= startTimestampNum && 
-				transfer.timestamp <= endTimestampNum
-			);
+			let gamePeriodMints = transfers.filter(transfer =>  {
+				const c = collections.find(c => c.contractId === transfer.contractId);
+				return transfer.timestamp >= startTimestampNum && 
+				transfer.timestamp <= endTimestampNum &&
+				c?.creator !== transfer.to;
+			});
 
 			// Update game stats with mint data
 			gameStats.updateMintStats(collections, gamePeriodMints);

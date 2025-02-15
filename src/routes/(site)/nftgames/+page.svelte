@@ -53,7 +53,7 @@
 			});
 
 			// Filter transfers that occurred during game period
-			const gamePeriodMints = transfers.filter(transfer => {
+			let gamePeriodMints = transfers.filter(transfer => {
 				const transferTime = transfer.timestamp;
 				return transferTime >= startTimestamp / 1000 && transferTime <= endTimestamp / 1000;
 			});
@@ -65,6 +65,12 @@
 
 			for (const transfer of gamePeriodMints) {
 				const collection = collections.find(c => c.contractId === transfer.contractId);
+				if (collection?.creator === transfer.to) {
+					// remove from gamePeriodMints
+					gamePeriodMints = gamePeriodMints.filter(m => m.transactionId !== transfer.transactionId);
+					continue;
+				}
+
 				const globalState = collection?.globalState;
 				if (!globalState) continue;
 
