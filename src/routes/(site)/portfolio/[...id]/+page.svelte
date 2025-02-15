@@ -207,58 +207,112 @@
                     {/if}
                 {/each}
             </div>
-            <div class="flex justify-center items-center w-full mx-2 absolute top-16">
-                <div class="flex flex-col p-4 md:p-8 mt-2 mb-2 bg-slate-100 dark:bg-slate-700 shadow-2xl rounded-2xl opacity-90 space-y-4">
-                    <div class="flex flex-row space-x-4">
-                        {#if walletAvatar}
-                            <img src={walletAvatar} alt={walletNFD??formattedWallet} class="h-24 w-24 rounded-full place-self-center mb-2" />
-                        {/if}
-                        <div class="flex flex-col">
-                            <div class="flex flex-row space-x-2 text-2xl font-bold mb-0">
-                                <div class="text-blue dark:text-blue-100">
-                                {walletNFD??formattedWallet}
-                                {#if !walletNFD}
-                                    <i use:copy={walletId} class="fas fa-copy pointer" on:svelte-copy={() => toast.push(`Wallet Copied to Clipboard:<br/> ${walletId.substring(0,20)}...`)}></i>
+            <div class="flex justify-center items-center w-full mx-2 absolute top-8">
+                <div class="flex flex-col p-4 md:p-8 mt-2 mb-2 bg-slate-100 dark:bg-slate-800/95 shadow-2xl rounded-2xl space-y-4 max-w-3xl w-full">
+                    <div class="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0 h-36">
+                        <div class="flex flex-row space-x-4 flex-grow">
+                            {#if walletAvatar}
+                                <img src={walletAvatar} alt={walletNFD??formattedWallet} class="h-24 w-24 rounded-full place-self-start" />
+                            {/if}
+                            <div class="flex flex-col flex-grow">
+                                <div class="flex flex-row space-x-2 text-2xl font-bold mb-0">
+                                    <div class="text-blue dark:text-blue-100">
+                                        {walletNFD??formattedWallet}
+                                        {#if !walletNFD}
+                                            <i use:copy={walletId} 
+                                               class="fas fa-copy ml-2 cursor-pointer transition-all duration-200 hover:text-blue-500 active:scale-125" 
+                                               on:svelte-copy={() => {
+                                                   toast.push({
+                                                       msg: `<div class="flex items-center"><i class="fas fa-check-circle text-green-500 mr-2"></i>Address copied to clipboard</div>`,
+                                                       theme: {
+                                                           '--toastBackground': '#48BB78',
+                                                           '--toastBarBackground': '#2F855A'
+                                                       }
+                                                   });
+                                               }}></i>
+                                        {/if}
+                                    </div>
+                                </div>
+                                {#if walletNFD}
+                                    <div class="text-sm font-bold mb-4 text-left">
+                                        {formattedWallet}
+                                        <i use:copy={walletId} 
+                                           class="fas fa-copy ml-2 cursor-pointer transition-all duration-200 hover:text-blue-500 active:scale-125" 
+                                           on:svelte-copy={() => {
+                                               toast.push({
+                                                   msg: `<div class="flex items-center"><i class="fas fa-check-circle text-green-500 mr-2"></i>Address copied to clipboard</div>`,
+                                                   theme: {
+                                                       '--toastBackground': '#48BB78',
+                                                       '--toastBarBackground': '#2F855A'
+                                                   }
+                                               });
+                                           }}></i>
+                                    </div>
                                 {/if}
-                                </div>
+                                <!-- Add Envoi metadata if available -->
+                                {#if tokens.some(t => t.metadata?.envoiName)}
+                                    {#each tokens.filter(t => t.metadata?.envoiName && t.metadata?.envoiMetadata) as envoiToken, i}
+                                        {#if i === 0}
+                                            <div class="flex flex-col space-y-2">
+                                                {#if envoiToken.metadata?.envoiMetadata?.url}
+                                                    <div class="flex items-center space-x-2">
+                                                        <i class="fas fa-globe text-gray-600 dark:text-gray-300"></i>
+                                                        <a href={envoiToken.metadata.envoiMetadata.url} target="_blank" rel="noopener noreferrer" 
+                                                           class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm">{envoiToken.metadata.envoiMetadata.url}</a>
+                                                    </div>
+                                                {/if}
+                                                {#if envoiToken.metadata?.envoiMetadata?.location}
+                                                    <div class="flex items-center space-x-2">
+                                                        <i class="fas fa-map-marker-alt text-gray-600 dark:text-gray-300"></i>
+                                                        <span class="text-gray-600 dark:text-gray-300 text-sm">{envoiToken.metadata.envoiMetadata.location}</span>
+                                                    </div>
+                                                {/if}
+                                                {#if envoiToken.metadata?.envoiMetadata?.['com.twitter']}
+                                                    <div class="flex items-center space-x-2">
+                                                        <i class="fab fa-twitter text-gray-600 dark:text-gray-300"></i>
+                                                        <a href="https://twitter.com/{envoiToken.metadata.envoiMetadata['com.twitter']}" target="_blank" 
+                                                           class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm">@{envoiToken.metadata.envoiMetadata['com.twitter']}</a>
+                                                    </div>
+                                                {/if}
+                                                {#if envoiToken.metadata?.envoiMetadata?.['com.github']}
+                                                    <div class="flex items-center space-x-2">
+                                                        <i class="fab fa-github text-gray-600 dark:text-gray-300"></i>
+                                                        <a href="https://github.com/{envoiToken.metadata.envoiMetadata['com.github']}" target="_blank" 
+                                                           class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm">{envoiToken.metadata.envoiMetadata['com.github']}</a>
+                                                    </div>
+                                                {/if}
+                                            </div>
+                                        {/if}
+                                    {/each}
+                                {/if}
                             </div>
-                            {#if walletNFD}
-                                <div class="text-sm font-bold mb-4 text-left">
-                                    {formattedWallet}
-                                    <i use:copy={walletId} class="fas fa-copy pointer" on:svelte-copy={() => toast.push(`Wallet Copied to Clipboard:<br/> ${walletId.substring(0,20)}...`)}></i>
-                                </div>
-                            {/if}
                         </div>
-                    </div>
-                    <div class="flex flex-row justify-between space-x-8">
-                        <div class="flex flex-col">
+                        <div class="flex flex-col justify-between space-y-2 md:w-48">
                             {#if voiBalance != undefined}
-                                <div class="flex flex-row w-full space-x-2 items-stretch">
+                                <div class="flex flex-row items-center justify-end space-x-2">
                                     <div class="text-lg font-bold text-green-500 dark:text-green-300">{(voiBalance / Math.pow(10,6)).toLocaleString()}</div>
-                                    <div class="text-md font-bold text-gray-500 dark:text-gray-300 mb-2">VOI</div>
+                                    <div class="text-md font-bold text-gray-500 dark:text-gray-300">VOI</div>
                                 </div>
                             {/if}
-                        </div>
-                        <div class="flex flex-col">
-                            <div class="text-sm font-bold mb-4 text-left">
-                                <a href="https://explorer.voi.network/explorer/account/{walletId}" target="_blank" class="text-blue-500 hover:text-blue-700 underline">
+                            <div class="flex flex-col space-y-2">
+                                <a href="https://explorer.voi.network/explorer/account/{walletId}" target="_blank" class="text-blue-500 hover:text-blue-700 underline text-sm text-right">
                                     Voi Explorer
                                     <i class="fas fa-external-link-alt"></i>
                                 </a>
-                            </div>
-                            <div class="text-sm font-bold mb-4 text-left hidden">
-                                <a href="https://shellyssandbox.xyz/#/account/{walletId}" target="_blank" class="text-blue-500 hover:text-blue-700 underline">
-                                    ARC-200 Balances
-                                    <i class="fas fa-external-link-alt"></i>
-                                </a>
+                                <div class="hidden">
+                                    <a href="https://shellyssandbox.xyz/#/account/{walletId}" target="_blank" class="text-blue-500 hover:text-blue-700 underline text-sm">
+                                        ARC-200 Balances
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="h-28"></div>
-        <div class="flex justify-center mb-4">
+        <div class="h-16"></div>
+        <div class="justify-center mb-4 hidden">
             <Share url={shareUrl} text={shareText} />
         </div>
         <div>
