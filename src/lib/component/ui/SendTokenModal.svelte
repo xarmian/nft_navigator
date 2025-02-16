@@ -352,9 +352,12 @@
         }
     }
 
-    function reset() {
-        transferTo = '';
-        transferToNFD = '';
+    function reset(preserveRecipient: boolean = false) {
+        if (!preserveRecipient) {
+            transferTo = '';
+            transferToNFD = '';
+            searchQuery = '';
+        }
         sendingError = '';
         sendingView = SendingView.Presend;
         isIndividualMode = false;
@@ -362,6 +365,13 @@
         individualNFDs = {};
         sentCount = 0;
         tokenTransactions = [];  // Also reset tokenTransactions when doing a full reset
+    }
+
+    function handleReset(preserveRecipient: boolean = false) {
+        return (e: MouseEvent) => {
+            e.preventDefault();
+            reset(preserveRecipient);
+        };
     }
 
     function afterClose() {
@@ -587,7 +597,7 @@
                                     <div class="flex flex-col items-center space-y-3">
                                         <img src={imageUrl} alt={tokenName} class="h-24 w-24 object-contain rounded-lg shadow-sm"/>
                                         <div class="text-lg font-medium">{tokenName}</div>
-                                        <div class="text-sm text-gray-600 dark:text-gray-300">{type == 'send' ? 'Send to' : 'Change Approval for'}</div>
+                                        <div class="text-sm text-gray-600 dark:text-gray-300">{type == 'send' ? 'Send to' : 'Change Approval to'}</div>
                                     </div>
                                 {:else}
                                     <div class="flex flex-col items-center space-y-3 w-full">
@@ -601,7 +611,11 @@
                                 {/if}
 
                                 <div class="flex flex-col items-center space-y-1 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg w-full">
-                                    <div class="text-sm font-medium">Recipient Address</div>
+                                    {#if type == 'send'}
+                                        <div class="text-sm font-medium">Recipient Address</div>
+                                    {:else}
+                                        <div class="text-sm font-medium">New Approved Spender</div>
+                                    {/if}
                                     <div class="text-sm text-gray-600 dark:text-gray-400 break-all text-center">{transferTo}</div>
                                     {#if transferToNFD.length > 0}
                                         <div class="text-sm text-blue-500">{transferToNFD}</div>
@@ -610,7 +624,7 @@
 
                                 <div class="flex justify-center space-x-6 w-full">
                                     <div class="flex-1 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-center">
-                                        <div class="text-sm font-medium mb-1">Recipient's Balance</div>
+                                        <div class="text-sm font-medium mb-1">{type == 'send' ? 'Recipient\'s Balance' : 'Spender\'s Balance'}</div>
                                         <div class="text-lg">{selectedVoiBalance ?? 0} VOI</div>
                                     </div>
                                     <div class="flex-1 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-center">
@@ -622,7 +636,13 @@
                                 {#if selectedVoiBalance == 0}
                                     <div class="p-4 bg-red-100 dark:bg-red-900 rounded-lg text-center w-full">
                                         <div class="text-lg font-bold text-red-600 dark:text-red-400 mb-1">Warning!</div>
-                                        <div class="text-sm text-red-600 dark:text-red-400">The selected address has no Voi. Please verify before sending.</div>
+                                        <div class="text-sm text-red-600 dark:text-red-400">
+                                            {#if type == 'send'}
+                                                The recipient address has no Voi. Please verify before sending.
+                                            {:else}
+                                                The approved spender address has no Voi. Please verify before approving.
+                                            {/if}
+                                        </div>
                                     </div>
                                 {/if}
                             </div>
@@ -638,7 +658,7 @@
                                         <div class="flex-grow">
                                             <div class="text-sm font-bold mb-2">{reformatTokenName(t.metadata?.name??'', t.tokenId)}</div>
                                             <div class="text-sm text-gray-600 dark:text-gray-400">
-                                                <div class="font-medium">Sending to:</div>
+                                                <div class="font-medium">{type == 'send' ? 'Sending to:' : 'Approving for:'}</div>
                                                 <div class="break-all">{individualAddresses[`${t.contractId}-${t.tokenId}`]}</div>
                                                 {#if individualNFDs[`${t.contractId}-${t.tokenId}`]}
                                                     <div class="text-sm text-blue-500 mt-1">{individualNFDs[`${t.contractId}-${t.tokenId}`]}</div>
@@ -652,7 +672,7 @@
                     </div>
                 {:else if sendingView === "sending"}
                     <div class="flex flex-col items-center space-y-4 py-10">
-                        <div class="text-xl font-bold">Processing Transaction{transactionIds.length > 1 ? ' Group' : ''}</div>
+                        <div class="text-xl font-bold">Processing {type == 'send' ? 'Transfer' : 'Approval'}{transactionIds.length > 1 ? ' Group' : ''}</div>
                         {#if tokens.length > MAX_GROUP_SIZE}
                             <div class="text-lg text-gray-600 dark:text-gray-300">
                                 Group {Math.floor(sentCount / MAX_GROUP_SIZE) + 1} of {Math.ceil(tokens.length / MAX_GROUP_SIZE)}
@@ -674,9 +694,15 @@
                                 {/each}
                             </div>
                             <div class="w-full text-center">
-                                <div class="text-sm font-bold mb-2">Sending {Math.min(MAX_GROUP_SIZE, tokens.length - sentCount)} Tokens</div>
+                                <div class="text-sm font-bold mb-2">
+                                    {#if type == 'send'}
+                                        Sending {Math.min(MAX_GROUP_SIZE, tokens.length - sentCount)} Tokens
+                                    {:else}
+                                        Changing Approval for {Math.min(MAX_GROUP_SIZE, tokens.length - sentCount)} Tokens
+                                    {/if}
+                                </div>
                                 <div class="text-sm text-gray-600 dark:text-gray-400">
-                                    <div class="font-medium">Recipients:</div>
+                                    <div class="font-medium">{type == 'send' ? 'Recipients:' : 'New Approved Spender:'}</div>
                                     {#if isIndividualMode}
                                         <div class="max-h-32 overflow-y-auto mt-2 space-y-2">
                                             {#each tokens.slice(sentCount, Math.min(sentCount + MAX_GROUP_SIZE, tokens.length)) as token}
@@ -699,7 +725,7 @@
                         </div>
                         <div class="mt-2 text-gray-400">Please sign the transaction{transactionIds.length > 1 ? ' group' : ''} in your wallet</div>
                         <div class="flex flex-col items-center mt-4">
-                            <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
+                            <button on:click={handleReset()} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
                         </div>
                     </div>
                 {:else if sendingView === "waiting"}
@@ -726,9 +752,15 @@
                                 {/each}
                             </div>
                             <div class="w-full text-center">
-                                <div class="text-sm font-bold mb-2">Confirming {Math.min(MAX_GROUP_SIZE, sentCount - Math.max(0, sentCount - MAX_GROUP_SIZE))} Tokens</div>
+                                <div class="text-sm font-bold mb-2">
+                                    {#if type == 'send'}
+                                        Confirming {Math.min(MAX_GROUP_SIZE, sentCount - Math.max(0, sentCount - MAX_GROUP_SIZE))} Tokens
+                                    {:else}
+                                        Confirming Approval for {Math.min(MAX_GROUP_SIZE, sentCount - Math.max(0, sentCount - MAX_GROUP_SIZE))} Tokens
+                                    {/if}
+                                </div>
                                 <div class="text-sm text-gray-600 dark:text-gray-400">
-                                    <div class="font-medium">Recipients:</div>
+                                    <div class="font-medium">{type == 'send' ? 'Recipients:' : 'New Approved Spender:'}</div>
                                     {#if isIndividualMode}
                                         <div class="max-h-32 overflow-y-auto mt-2 space-y-2">
                                             {#each tokens.slice(Math.max(0, sentCount - MAX_GROUP_SIZE), sentCount) as token}
@@ -768,7 +800,10 @@
                                 {#if transferTo === zeroAddress}
                                     Token approval has been revoked.
                                 {:else}
-                                    Token approval has been changed to {transferTo}
+                                    <div class="flex flex-col items-center">
+                                        <span>The token{tokens.length > 1 ? 's have' : ' has'} been approved for</span>
+                                        <span class="text-sm break-all">{transferTo}</span>
+                                    </div>
                                 {/if}
                             {/if}
                         </div>
@@ -791,7 +826,7 @@
                                         </div>
                                         {#if isIndividualMode}
                                             <div class="text-xs text-gray-500">
-                                                To: {individualAddresses[`${tx.contractId}-${tx.tokenId}`]}
+                                                {type == 'send' ? 'To:' : 'Approved For:'} {individualAddresses[`${tx.contractId}-${tx.tokenId}`]}
                                             </div>
                                         {/if}
                                     </div>
@@ -804,7 +839,7 @@
                     </div>
                 {:else if sendingView === "error"}
                     <div class="flex flex-col items-center space-y-4 py-10">
-                        <div class="text-xl font-bold">Error Processing Transaction Group</div>
+                        <div class="text-xl font-bold">Error Processing {type == 'send' ? 'Transfer' : 'Approval'} Group</div>
                         {#if tokens.length > MAX_GROUP_SIZE}
                             <div class="text-lg text-gray-600 dark:text-gray-300">
                                 Error in group {Math.floor(sentCount / MAX_GROUP_SIZE) + 1} of {Math.ceil(tokens.length / MAX_GROUP_SIZE)}
@@ -865,7 +900,7 @@
                                 {/if}
                             </div>
                             <div class="flex flex-row items-center mt-4 space-x-4">
-                                <button on:click={reset} class="w-52 h-10 bg-gray-500 text-white rounded-md">Start Over</button>
+                                <button on:click={handleReset()} class="w-52 h-10 bg-gray-500 text-white rounded-md">Start Over</button>
                                 <button on:click={afterClose} class="w-52 h-10 border border-gray-500 text-gray-700 dark:text-gray-300 rounded-md">Cancel</button>
                             </div>
                         </div>
@@ -884,7 +919,7 @@
                             class="flex-1 h-11 rounded-lg transition-colors {isNextEnabled ? 'bg-blue-500 hover:bg-blue-600 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}"
                         >Next</button>
                     {:else if sendingView === "confirm"}
-                        <button on:click={reset} class="flex-1 h-11 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">Back</button>
+                        <button on:click={handleReset(true)} class="flex-1 h-11 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">Back</button>
                         <button on:click={() => sendToken()} class="flex-1 h-11 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">Submit</button>
                     {/if}
                 </div>
