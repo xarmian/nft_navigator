@@ -41,6 +41,9 @@
     let transferTo = '';
     let transferToNFD = '';
     let tokenName = (tokens[0]) ? reformatTokenName(tokens[0].metadata?.name??'', tokens[0].tokenId) : ``;
+    let isIndividualMode = false; // Toggle for individual sending mode
+    let individualAddresses: { [key: string]: string } = {}; // Store addresses for individual tokens
+    let individualNFDs: { [key: string]: string } = {}; // Store NFDs for individual addresses
 
     let selectedVoiBalance: number;
     let selectedNFTCount: number;
@@ -53,6 +56,7 @@
     let isSearchOpen = false;
     let filteredWallets: EnvoiSearchResult[] = [];
     let selected = 0;
+    let isNextEnabled = false;
 
     $: {
         if (searchQuery.length == 58) {
@@ -68,7 +72,18 @@
         }
     }
 
-    $: if (transferTo && transferTo.length > 0) {
+    $: {
+        if (!isIndividualMode) {
+            isNextEnabled = transferTo.length > 0;
+        } else {
+            isNextEnabled = tokens.every(t => {
+                const addr = individualAddresses[`${t.contractId}-${t.tokenId}`];
+                return addr && addr.length > 0;
+            });
+        }
+    }
+
+    $: if (transferTo && transferTo.length > 0 && !isIndividualMode) {
         updateBalances();
 
         // get nfd for transferTo address
@@ -77,7 +92,7 @@
             if (nfd && nfd.length > 0) transferToNFD = nfd[0].replacementValue;
         });
     }
-    else {
+    else if (!isIndividualMode) {
         transferToNFD = '';
     }
     
@@ -99,9 +114,25 @@
         sendToken();
     }
 
+    // New function to handle individual address updates
+    async function updateIndividualAddress(tokenId: string, address: string) {
+        individualAddresses[tokenId] = address;
+        if (address && address.length > 0) {
+            const nfds = await getNFD([address]);
+            if (nfds && nfds.length > 0) {
+                individualNFDs[tokenId] = nfds[0].replacementValue;
+            } else {
+                individualNFDs[tokenId] = '';
+            }
+        } else {
+            individualNFDs[tokenId] = '';
+        }
+    }
+
     async function sendToken() {
-        console.log('send token to', transferTo);
-        if (transferTo.length === 0) return;
+        console.log('send token to', isIndividualMode ? 'multiple addresses' : transferTo);
+        if (!isIndividualMode && transferTo.length === 0) return;
+        if (isIndividualMode && Object.keys(individualAddresses).length !== tokens.length) return;
 
         const opts = {
             acc: {
@@ -118,13 +149,16 @@
             for (let i = 0; i < tokens.length; i++) {
                 sentCount++;
                 let resp;
+                const targetAddress = isIndividualMode ? 
+                    individualAddresses[`${tokens[i].contractId}-${tokens[i].tokenId}`] : 
+                    transferTo;
 
                 const contract = new Contract(tokens[i].contractId, algodClient, algodIndexer, opts);
                 if (type == 'send') {
-                    resp = await contract.arc72_transferFrom(tokens[i].owner, transferTo, BigInt(tokens[i].tokenId), true, true);
+                    resp = await contract.arc72_transferFrom(tokens[i].owner, targetAddress, BigInt(tokens[i].tokenId), true, true);
                 }
                 else {
-                    resp = await contract.arc72_approve(transferTo, Number(tokens[i].tokenId), true, true);
+                    resp = await contract.arc72_approve(targetAddress, Number(tokens[i].tokenId), true, true);
                 }
 
                 if (resp && resp.success) {
@@ -230,6 +264,9 @@
         transferToNFD = '';
         sendingError = '';
         sendingView = SendingView.Presend;
+        isIndividualMode = false;
+        individualAddresses = {};
+        individualNFDs = {};
     }
 
     function afterClose() {
@@ -242,11 +279,28 @@
         onClose();
     }
 
-    function handleWalletSelect(wallet: EnvoiSearchResult) {
-        transferTo = wallet.address;
-        searchQuery = wallet.name;
-        isSearchOpen = false;
-        if (transferTo) updateBalances();
+    function handleAddressSelect(address: string) {
+        if (!isIndividualMode) {
+            transferTo = address;
+            searchQuery = address;
+            if (transferTo) updateBalances();
+        }
+    }
+
+    function handleIndividualAddressSelect(tokenId: string, address: string) {
+        updateIndividualAddress(tokenId, address);
+    }
+
+    function handleSearchChange(value: string) {
+        searchQuery = value;
+        if (!value) {
+            transferTo = '';
+            transferToNFD = '';
+        }
+    }
+
+    function handleIndividualSearchChange(tokenId: string, value: string) {
+        updateIndividualAddress(tokenId, value);
     }
 
     function handleClickOutside(event: MouseEvent) {
@@ -265,7 +319,20 @@
         } else if (event.key === 'ArrowUp') {
             selected = Math.max(selected - 1, 0);
         } else if (event.key === 'Enter' && filteredWallets.length > 0) {
-            handleWalletSelect(filteredWallets[selected]);
+            handleAddressSelect(filteredWallets[selected].address);
+        }
+    }
+
+    function removeToken(tokenToRemove: Token) {
+        tokens = tokens.filter(t => !(t.contractId === tokenToRemove.contractId && t.tokenId === tokenToRemove.tokenId));
+        // Clean up individual addresses if in individual mode
+        if (isIndividualMode) {
+            delete individualAddresses[`${tokenToRemove.contractId}-${tokenToRemove.tokenId}`];
+            delete individualNFDs[`${tokenToRemove.contractId}-${tokenToRemove.tokenId}`];
+        }
+        // If no tokens left, close the modal
+        if (tokens.length === 0) {
+            afterClose();
         }
     }
 
@@ -298,15 +365,52 @@
                         <div class="text-xl font-bold">{tokenName}</div>
                     {:else if tokens.length > 1}
                         <div class="text-xl font-bold">Multiple Tokens ({tokens.length})</div>
-                        <div class="max-h-32 overflow-auto p-1 m-1 border-gray-500 bg-gray-200 dark:bg-gray-700 rounded-lg">
+                        <div class="flex items-center mt-2 mb-4">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" bind:checked={isIndividualMode} class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                <span class="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">Send to different addresses</span>
+                            </label>
+                        </div>
+                        <div class="max-h-96 overflow-auto p-1 m-1 border-gray-500 bg-gray-200 dark:bg-gray-700 rounded-lg w-full">
                             {#each tokens as t}
-                                <div class="text-sm text-gray-800 dark:text-gray-300">{reformatTokenName(t.metadata?.name??'', t.tokenId)}</div>
+                                <div class="flex items-center space-x-4 p-4 border-b border-gray-600">
+                                    <img 
+                                        src={t.metadataURI ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(t.metadataURI)}?w=240` : t.metadata?.image} 
+                                        alt={t.metadata?.name} 
+                                        class="h-16 w-16 object-contain rounded-md"
+                                    />
+                                    <div class="flex-grow">
+                                        <div class="text-sm font-bold mb-2 text-gray-800 dark:text-gray-300">{reformatTokenName(t.metadata?.name??'', t.tokenId)}</div>
+                                        {#if isIndividualMode}
+                                            <div class="relative walletSearchComponent w-full">
+                                                <WalletSearch
+                                                    onSubmit={(addr) => handleIndividualAddressSelect(`${t.contractId}-${t.tokenId}`, addr)}
+                                                    onChange={(value) => handleIndividualSearchChange(`${t.contractId}-${t.tokenId}`, value)}
+                                                    showSubmitButton={false}
+                                                />
+                                                {#if individualNFDs[`${t.contractId}-${t.tokenId}`]}
+                                                    <div class="text-xs text-gray-500 mt-1">{individualNFDs[`${t.contractId}-${t.tokenId}`]}</div>
+                                                {/if}
+                                            </div>
+                                        {/if}
+                                    </div>
+                                    <button 
+                                        on:click={() => removeToken(t)} 
+                                        class="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
+                                        title="Remove Token"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                </div>
                             {/each}
                         </div>
                     {/if}
                     <div class="text-sm text-gray-400">{token?.contractId??''}</div>
                 </div>
-                <div class="flex flex-col items-center mt-4">
+                <div class="flex flex-col items-center mt-4 w-full">
                     {#if type == 'approve'}
                         <div class="text-xs mb-2 text-gray-400 max-w-96">An approved spender can transfer a token on your behalf. This is often used when listing a token on a marketplace.</div>
                         <div class="mb-2">
@@ -314,45 +418,16 @@
                             <div class="text-sm text-gray-400">{token?.approved == zeroAddress ? 'None' : `${token?.approved.slice(0, 8)}...${token?.approved.slice(-8)}`}</div>
                         </div>
                     {/if}
-                    <div class="text-xl font-bold">{type == 'send' ? 'Send to' : 'Change Approved Spender to'}</div>
-                    <div class="relative walletSearchComponent w-full max-w-md">
-                        <input 
-                            type="text" 
-                            bind:value={searchQuery}
-                            on:focus={() => isSearchOpen = true}
-                            placeholder="Search by enVoi name or paste address..." 
-                            class="p-2 w-full border rounded-md bg-gray-100 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-400 text-black dark:text-white" 
-                        />
-                        {#if isSearchOpen && filteredWallets.length > 0}
-                            <ul class="absolute left-0 bg-white dark:bg-gray-800 border rounded-md mt-0.5 w-full max-h-80 overflow-auto shadow-md z-50">
-                                {#each filteredWallets as wallet, index}
-                                    <li class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer text-black dark:text-white {selected === index ? 'bg-blue-200 dark:bg-blue-700' : ''}">
-                                        <button on:click={() => handleWalletSelect(wallet)} class="w-full">
-                                            <div class="flex items-center gap-3">
-                                                {#if wallet.metadata?.avatar}
-                                                    <img 
-                                                        src={wallet.metadata.avatar} 
-                                                        alt={`${wallet.name} avatar`}
-                                                        class="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                                                    />
-                                                {:else}
-                                                    <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center flex-shrink-0">
-                                                        <span class="text-gray-600 dark:text-gray-300 text-base">
-                                                            {wallet.name.charAt(0).toUpperCase()}
-                                                        </span>
-                                                    </div>
-                                                {/if}
-                                                <div class="flex flex-col flex-grow min-w-0">
-                                                    <span class="text-lg font-medium truncate self-start">{wallet.name}</span>
-                                                    <span class="text-sm text-gray-500 dark:text-gray-400 font-mono truncate">{wallet.address}</span>
-                                                </div>
-                                            </div>
-                                        </button>
-                                    </li>
-                                {/each}
-                            </ul>
-                        {/if}
-                    </div>
+                    {#if !isIndividualMode}
+                        <div class="text-xl font-bold">{type == 'send' ? 'Send to' : 'Change Approved Spender to'}</div>
+                        <div class="relative walletSearchComponent w-full max-w-md">
+                            <WalletSearch
+                                onSubmit={handleAddressSelect}
+                                onChange={handleSearchChange}
+                                showSubmitButton={false}
+                            />
+                        </div>
+                    {/if}
                 </div>
                 {#if type == 'approve' && token?.approved !== zeroAddress}
                     <div class="flex flex-col items-center mt-4">
@@ -362,46 +437,81 @@
                 {/if}
                 <div class="flex flex-row justify-between mt-4 space-x-2">
                     <button on:click={afterClose} class="w-52 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
-                    <button on:click={() => { if (transferTo.length > 0) sendingView = SendingView.Confirm; }} class="w-52 h-10 bg-blue-500 text-white rounded-md {transferTo.length == 0 ? 'bg-gray-400 cursor-default' : ''}">Next</button>
+                    <button 
+                        on:click={() => { if (isNextEnabled) sendingView = SendingView.Confirm; }} 
+                        class="w-52 h-10 bg-blue-500 text-white rounded-md {!isNextEnabled ? 'bg-gray-400 cursor-default' : ''}"
+                    >Next</button>
                 </div>
             {:else if sendingView === "confirm"}
                 <div class="flex flex-col items-center m-2">
-                    <div class="text-lg font-bold">Please confirm the following transaction:</div>
-                    <div class="mt-2 flex flex-col items-center">
-                        {#if tokens.length == 1}
-                            <img src={imageUrl} alt={tokenName} class="h-20 w-20 object-contain rounded-md"/>
-                            <div class="text-sm text-gray-800 dark:text-gray-200">{type == 'send' ? 'Send' : 'Change Approval for'} {tokenName} to</div>
-                        {:else}
-                            <div class="text-sm text-gray-800 dark:text-gray-200">{type == 'send' ? 'Send' : 'Change Approval for'} Multiple Tokens ({tokens.length})</div>
-                            {#each tokens as t}
-                                <div class="text-sm text-gray-400">{reformatTokenName(t.metadata?.name??'', t.tokenId)}</div>
-                            {/each}
-                            <div>to</div>
+                    <div class="text-lg font-bold">Please confirm the following transaction{tokens.length > 1 ? 's' : ''}:</div>
+                    {#if !isIndividualMode}
+                        <div class="mt-2 flex flex-col items-center">
+                            {#if tokens.length == 1}
+                                <img src={imageUrl} alt={tokenName} class="h-20 w-20 object-contain rounded-md"/>
+                                <div class="text-sm text-gray-800 dark:text-gray-200">{type == 'send' ? 'Send' : 'Change Approval for'} {tokenName} to</div>
+                            {:else}
+                                <div class="text-sm text-gray-800 dark:text-gray-200">{type == 'send' ? 'Send' : 'Change Approval for'} Multiple Tokens ({tokens.length})</div>
+                                {#each tokens as t}
+                                    <div class="text-sm text-gray-400">{reformatTokenName(t.metadata?.name??'', t.tokenId)}</div>
+                                {/each}
+                                <div>to</div>
+                            {/if}
+                        </div>
+                        <div class="flex flex-col items-center mt-2">
+                            <div class="text-sm text-gray-400">{transferTo}</div>
+                            {#if transferToNFD.length > 0}
+                                <div class="text-sm text-gray-400">{transferToNFD}</div>
+                            {/if}
+                        </div>
+                        <div class="flex flex-row justify-center">
+                            <div class="m-1 p-3">
+                                <div class="text-sm font-bold">Recipient's Voi Balance</div>
+                                <div class="text-sm text-gray-400">{selectedVoiBalance??''}</div>
+                            </div>
+                            <div class="m-1 p-3">
+                                <div class="text-sm font-bold"># NFTs</div>
+                                <div class="text-sm text-gray-400">{selectedNFTCount??''}</div>
+                            </div>
+                        </div>
+                        {#if selectedVoiBalance == 0}
+                            <div class="flex flex-col items-center">
+                                <div class="text-xl font-bold text-red-500">Warning!</div>
+                                <div class="text-sm text-gray-400">The selected address has no Voi. Please verify before sending.</div>
+                            </div>
                         {/if}
-                    </div>
-                </div>
-                <div class="flex flex-col items-center mt-2">
-                    <div class="text-sm text-gray-400">{transferTo}</div>
-                    {#if transferToNFD.length > 0}
-                        <div class="text-sm text-gray-400">{transferToNFD}</div>
+                    {:else}
+                        <div class="w-full max-w-2xl mt-4 max-h-96 overflow-auto">
+                            {#each tokens as t}
+                                <div class="flex items-center space-x-4 mb-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                                    <img 
+                                        src={t.metadataURI ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(t.metadataURI)}?w=240` : t.metadata?.image} 
+                                        alt={t.metadata?.name} 
+                                        class="h-16 w-16 object-contain rounded-md"
+                                    />
+                                    <div class="flex-grow">
+                                        <div class="text-sm font-bold mb-2">{reformatTokenName(t.metadata?.name??'', t.tokenId)}</div>
+                                        <div class="text-sm text-gray-600 dark:text-gray-400">
+                                            Sending to: {individualAddresses[`${t.contractId}-${t.tokenId}`]}
+                                            {#if individualNFDs[`${t.contractId}-${t.tokenId}`]}
+                                                <div class="text-xs text-gray-500">{individualNFDs[`${t.contractId}-${t.tokenId}`]}</div>
+                                            {/if}
+                                        </div>
+                                    </div>
+                                    <button 
+                                        on:click={() => removeToken(t)} 
+                                        class="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
+                                        title="Remove Token"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            {/each}
+                        </div>
                     {/if}
                 </div>
-                <div class="flex flex-row justify-center">
-                    <div class="m-1 p-3">
-                        <div class="text-sm font-bold">Voi Balance</div>
-                        <div class="text-sm text-gray-400">{selectedVoiBalance??''}</div>
-                    </div>
-                    <div class="m-1 p-3">
-                        <div class="text-sm font-bold"># NFTs</div>
-                        <div class="text-sm text-gray-400">{selectedNFTCount??''}</div>
-                    </div>
-                </div>
-                {#if selectedVoiBalance == 0}
-                    <div class="flex flex-col items-center">
-                        <div class="text-xl font-bold text-red-500">Warning!</div>
-                        <div class="text-sm text-gray-400">The selected address has no Voi. Please verify before sending.</div>
-                    </div>
-                {/if}
                 <div class="flex flex-row justify-between mt-4 space-x-2">
                     <button on:click={reset} class="w-52 h-10 bg-blue-500 text-white rounded-md">Back</button>
                     <button on:click={sendToken} class="w-52 h-10 bg-blue-500 text-white rounded-md">Submit</button>
@@ -469,12 +579,14 @@
                     <div class="max-w-96">
                         <div class="mt-2 text-gray-400">{sendingError}</div>
                     </div>
-                    <div class="flex flex-col items-center mt-4">
+                    <div class="flex flex-row items-center mt-4 space-x-4">
                         {#if type == 'revoke'}
-                            <button on:click={revokeApproval} class="w-64 h-10 bg-blue-500 text-white rounded-md">Try Again</button>
+                            <button on:click={revokeApproval} class="w-52 h-10 bg-blue-500 text-white rounded-md">Try Again</button>
                         {:else}
-                            <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Start Over</button>
+                            <button on:click={sendToken} class="w-52 h-10 bg-blue-500 text-white rounded-md">Try Again</button>
                         {/if}
+                        <button on:click={reset} class="w-52 h-10 bg-gray-500 text-white rounded-md">Start Over</button>
+                        <button on:click={afterClose} class="w-52 h-10 border border-gray-500 text-gray-700 dark:text-gray-300 rounded-md">Cancel</button>
                     </div>
                 </div>
             {/if}

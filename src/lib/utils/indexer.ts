@@ -181,8 +181,8 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
             });
         }
 
-        // filter tokens with contractId 797610
-        tokens = tokens.filter(token => token.contractId !== 797610);
+        // filter tokens with contractId 797610 or 846601
+        tokens = tokens.filter(token => token.contractId !== 797610 && token.contractId !== 846601);
         return tokens;
     } catch (err) {
         console.error('Error fetching tokens:', err);
