@@ -35,6 +35,8 @@
         Sent: "sent",
     } as const;
 
+    const MAX_GROUP_SIZE = 16; // Maximum number of transactions in a group
+
     let sendingView: typeof SendingView[keyof typeof SendingView] = SendingView.Presend;
     if (tokens.length == 0 && token) tokens = [token];
     
@@ -50,6 +52,8 @@
     let selectedNFTCount: number;
     let sendingError: string = '';
     let transactionId: string = '';
+    let transactionIds: string[] = [];
+    let tokenTransactions: { tokenId: string; txId: string; contractId: number }[] = [];
     let sentCount = 0;
     $: imageUrl = (tokens[0] && tokens[0].metadataURI) ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(tokens[0].metadataURI)}?w=240` : tokens[0]?.metadata?.image;
 
@@ -159,9 +163,10 @@
         if (!isIndividualMode && transferTo.length === 0) return;
         if (isIndividualMode && Object.keys(individualAddresses).length !== tokens.length) return;
 
-        // Reset sentCount when starting a new send attempt, unless skipping or retrying
+        // Reset sentCount and tokenTransactions when starting a new send attempt, unless skipping or retrying
         if (!skipReset && !retryCurrentToken) {
             sentCount = 0;
+            tokenTransactions = [];
         }
 
         const opts = {
@@ -176,57 +181,143 @@
         sendingView = SendingView.Sending;
 
         try {
-            // If retrying current token, only process that one
             const startIndex = retryCurrentToken ? sentCount : 0;
             const endIndex = retryCurrentToken ? sentCount + 1 : tokens.length;
+            
+            // Process tokens in groups of MAX_GROUP_SIZE
+            for (let groupStart = startIndex; groupStart < endIndex; groupStart += MAX_GROUP_SIZE) {
+                const groupEnd = Math.min(groupStart + MAX_GROUP_SIZE, endIndex);
+                const currentGroupTokens = tokens.slice(groupStart, groupEnd);
+                
+                // Collect all transactions for the current group
+                const groupTransactions: algosdk.Transaction[] = [];
+                
+                // First pass: collect all transactions
+                for (const token of currentGroupTokens) {
+                    const targetAddress = isIndividualMode ? 
+                        individualAddresses[`${token.contractId}-${token.tokenId}`] : 
+                        transferTo;
 
-            for (let i = startIndex; i < endIndex; i++) {
-                let resp;
-                const targetAddress = isIndividualMode ? 
-                    individualAddresses[`${tokens[i].contractId}-${tokens[i].tokenId}`] : 
-                    transferTo;
+                    const contract = new Contract(token.contractId, algodClient, algodIndexer, opts);
+                    const resp = type == 'send' 
+                        ? await contract.arc72_transferFrom(token.owner, targetAddress, BigInt(token.tokenId), true, true)
+                        : await contract.arc72_approve(targetAddress, Number(token.tokenId), true, true);
 
-                const contract = new Contract(tokens[i].contractId, algodClient, algodIndexer, opts);
-                if (type == 'send') {
-                    resp = await contract.arc72_transferFrom(tokens[i].owner, targetAddress, BigInt(tokens[i].tokenId), true, true);
-                }
-                else {
-                    resp = await contract.arc72_approve(targetAddress, Number(tokens[i].tokenId), true, true);
-                }
-
-                if (resp && resp.success) {
-                    const decodedTxns: algosdk.Transaction[] = [];
-                    const txnsForSigning = resp.txns;
-
-                    // base64 decode signed transactions
-                    for (let i = 0; i < txnsForSigning.length; i++) {
-                        const bytes = Buffer.from(txnsForSigning[i],'base64');
-                        let tx = algosdk.decodeUnsignedTransaction(bytes);
-                        transactionId = tx.txID();
-                        decodedTxns.push(tx);
-                    }
-
-                    const status = await signAndSendTransactions([decodedTxns]);
-                    if (!status) {
-                        sendingError = 'Failed to sign transaction';
+                    if (!resp || !resp.success) {
+                        sendingError = resp?.error || 'Failed to prepare transaction';
                         sendingView = SendingView.Error;
                         return;
                     }
-                    console.log('signing status', status);
-                    sentCount++; // Only increment after successful transaction
-                    sendingView = SendingView.Waiting;
+
+                    // Decode and collect transactions for this token
+                    const suggestedParams = await algodClient.getTransactionParams().do();
+                    
+                    const tokenTransactions = resp.txns.map(txnB64 => {
+                        const txnBytes = Buffer.from(txnB64, 'base64');
+                        const decodedTxn = algosdk.decodeUnsignedTransaction(txnBytes);
+                        
+                        if (!decodedTxn.from) {
+                            throw new Error('Transaction missing required from address');
+                        }
+
+                        // Create a new transaction while preserving all original parameters
+                        let txn;
+                        if (decodedTxn.type === algosdk.TransactionType.appl) {
+                            // Format box references correctly
+                            const formattedBoxes = decodedTxn.boxes?.map(box => ({
+                                appIndex: box.appIndex || decodedTxn.appIndex || 0,
+                                name: new Uint8Array(box.name)
+                            }));
+
+                            txn = algosdk.makeApplicationCallTxnFromObject({
+                                from: algosdk.encodeAddress(decodedTxn.from.publicKey),
+                                suggestedParams: suggestedParams,
+                                appIndex: decodedTxn.appIndex,
+                                appArgs: decodedTxn.appArgs,
+                                boxes: formattedBoxes,
+                                accounts: decodedTxn.appAccounts?.map(acc => algosdk.encodeAddress(acc.publicKey)),
+                                foreignApps: decodedTxn.appForeignApps,
+                                foreignAssets: decodedTxn.appForeignAssets,
+                                note: decodedTxn.note,
+                                onComplete: decodedTxn.appOnComplete || algosdk.OnApplicationComplete.NoOpOC
+                            });
+                        } else {
+                            txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+                                from: algosdk.encodeAddress(decodedTxn.from.publicKey),
+                                to: decodedTxn.to ? algosdk.encodeAddress(decodedTxn.to.publicKey) : algosdk.encodeAddress(decodedTxn.from.publicKey),
+                                amount: decodedTxn.amount || 0,
+                                suggestedParams: suggestedParams,
+                                note: decodedTxn.note
+                            });
+                        }
+
+                        return txn;
+                    });
+                    
+                    groupTransactions.push(...tokenTransactions);
                 }
-                else {
-                    sendingError = resp.error;
+
+                // Assign group ID to the entire batch
+                if (groupTransactions.length > 1) {
+                    algosdk.assignGroupID(groupTransactions);
+                }
+
+                // Validate final group structure
+                // After assigning group ID, verify all transactions have matching group
+                if (groupTransactions.length > 1) {
+                    const expectedGroup = groupTransactions[0].group;
+                    const allSameGroup = expectedGroup && groupTransactions.every(t => 
+                        t.group && Buffer.from(t.group).equals(Buffer.from(expectedGroup))
+                    );
+                    
+                    if (!allSameGroup) {
+                        sendingError = 'Transaction group validation failed';
+                        sendingView = SendingView.Error;
+                        return;
+                    }
+                }
+
+                // Get transaction IDs before sending
+                const currentTxIds = groupTransactions.map(txn => txn.txID());
+
+                // Map transactions to tokens
+                const newTransactions = currentGroupTokens.map((token, index) => {
+                    // Each token operation requires 2 transactions (app call + payment)
+                    // In a group, transactions alternate: [token1_app, token1_pay, token2_app, token2_pay, ...]
+                    // For a single token, we get [app_call, payment]
+                    // For two tokens, we get [token1_app, token1_pay]
+                    const txIndex = index;  // Just use the index directly since we get one app call per token
+                    return {
+                        tokenId: String(token.tokenId),
+                        contractId: token.contractId,
+                        txId: currentTxIds[txIndex]
+                    };
+                });
+                tokenTransactions = [...tokenTransactions, ...newTransactions];
+
+                // Send the grouped transactions
+                const status = await signAndSendTransactions([groupTransactions]);
+                
+                if (status === true) {
+                    // If the transactions were successful, add their IDs
+                    transactionIds.push(...currentTxIds);
+                } else {
+                    sendingError = 'Transaction failed';
                     sendingView = SendingView.Error;
                     return;
                 }
+                
+                // Update sent count based on number of tokens processed
+                sentCount += currentGroupTokens.length;
             }
 
-            let t = null;
+            sendingView = SendingView.Waiting;
 
+            // Wait for the last token's transaction to be confirmed
             if (tokens.length > 0) {
                 const lastToken = tokens[tokens.length - 1];
+                let t = null;
+
                 if (type == 'send') {
                     let owner = lastToken.owner;
                     let newOwner = owner;
@@ -237,8 +328,7 @@
                         newOwner = t[0].owner;
                         i++;
                     }
-                }
-                else {
+                } else {
                     let approved = lastToken.approved;
                     let newApproved = approved;
                     let i = 0;
@@ -253,41 +343,9 @@
                 if (t && t.length > 0) token = t[0];
                 sendingView = SendingView.Sent;
 
-                // submit POST to /api/quests to record action
-                /*const response = await fetch('/api/quests', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: type == 'send' ? 'token_transfer' : 'token_approve',
-                        detail: {
-                            from: fromAddr,
-                            to: transferTo,
-                            token: String(lastToken.contractId)+'-'+String(lastToken.tokenId),
-                            transactionId: transactionId,
-                        }
-                    }),
-                });
-
-                if (!response.ok) {
-                    console.error('Failed to send wallet data to backend', await response.text());
-                }
-                else {
-                    const data = await response.json();
-                    if (data.isFirstAction) {
-                        showConfetti.set(true);
-                        toast.push(`Congratulations! The ${type === 'send' ? 'Transfer' : 'Approve'} Token Quest has been Completed!`);
-                        setTimeout(() => {
-                            showConfetti.set(false)
-                        }, 10000);
-                    }
-                }*/
-                
                 invalidateAll();
             }
-        }
-        catch(err) {
+        } catch(err) {
             console.error('error sending token', err);
             sendingError = (err instanceof Error) ? err.message : 'Unknown error';
             sendingView = SendingView.Error;
@@ -302,7 +360,8 @@
         isIndividualMode = false;
         individualAddresses = {};
         individualNFDs = {};
-        sentCount = 0;  // Also reset sentCount when doing a full reset
+        sentCount = 0;
+        tokenTransactions = [];  // Also reset tokenTransactions when doing a full reset
     }
 
     function afterClose() {
@@ -311,7 +370,9 @@
             onAfterSend(token??tokens[0]);
         }
         showModal = false;
-        reset();
+        if (sendingView !== SendingView.Sent) {
+            reset();
+        }
         onClose();
     }
 
@@ -319,6 +380,7 @@
         if (!isIndividualMode) {
             transferTo = address;
             searchQuery = address;
+            isSearchOpen = false;  // Close the search dropdown
             if (transferTo) updateBalances();
         }
     }
@@ -342,10 +404,12 @@
 
     function handleSearchChange(value: string) {
         searchQuery = value;
-        if (!value) {
+        // Only clear transferTo if the search query is empty or doesn't match the current transferTo
+        if (!value || !transferTo.toLowerCase().includes(value.toLowerCase())) {
             transferTo = '';
             transferToNFD = '';
         }
+        isSearchOpen = value.length > 0;
     }
 
     async function handleIndividualSearchChange(tokenId: string, value: string) {
@@ -501,6 +565,7 @@
                                         onSubmit={handleAddressSelect}
                                         onChange={handleSearchChange}
                                         showSubmitButton={false}
+                                        value={searchQuery}
                                     />
                                 </div>
                             </div>
@@ -587,47 +652,52 @@
                     </div>
                 {:else if sendingView === "sending"}
                     <div class="flex flex-col items-center space-y-4 py-10">
-                        <div class="text-xl font-bold">Processing Transaction</div>
-                        {#if tokens.length > 1}
-                            <div class="text-lg text-gray-600 dark:text-gray-300">Sending {sentCount + 1} of {tokens.length} tokens</div>
-                            <div class="flex flex-col items-center space-y-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg w-full max-w-md">
-                                <img 
-                                    src={tokens[sentCount].metadataURI ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(tokens[sentCount].metadataURI)}?w=240` : tokens[sentCount].metadata?.image} 
-                                    alt={tokens[sentCount].metadata?.name} 
-                                    class="h-24 w-24 object-contain rounded-lg shadow-sm"
-                                />
-                                <div class="w-full text-center">
-                                    <div class="text-sm font-bold mb-2">{reformatTokenName(tokens[sentCount].metadata?.name??'', tokens[sentCount].tokenId)}</div>
-                                    <div class="text-sm text-gray-600 dark:text-gray-400">
-                                        <div class="font-medium">Sending to:</div>
-                                        <div class="break-all">
-                                            {isIndividualMode 
-                                                ? individualAddresses[`${tokens[sentCount].contractId}-${tokens[sentCount].tokenId}`]
-                                                : transferTo
-                                            }
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        {:else}
-                            <div class="flex flex-col items-center space-y-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg w-full max-w-md">
-                                <img src={imageUrl} alt={tokenName} class="h-24 w-24 object-contain rounded-lg shadow-sm"/>
-                                <div class="w-full text-center">
-                                    <div class="text-sm font-bold mb-2">{tokenName}</div>
-                                    <div class="text-sm text-gray-600 dark:text-gray-400">
-                                        <div class="font-medium">Sending to:</div>
-                                        <div class="break-all">{transferTo}</div>
-                                    </div>
-                                </div>
+                        <div class="text-xl font-bold">Processing Transaction{transactionIds.length > 1 ? ' Group' : ''}</div>
+                        {#if tokens.length > MAX_GROUP_SIZE}
+                            <div class="text-lg text-gray-600 dark:text-gray-300">
+                                Group {Math.floor(sentCount / MAX_GROUP_SIZE) + 1} of {Math.ceil(tokens.length / MAX_GROUP_SIZE)}
                             </div>
                         {/if}
+                        <div class="flex flex-col items-center space-y-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg w-full max-w-md">
+                            <div class="flex flex-wrap gap-2">
+                                {#each tokens.slice(sentCount, Math.min(sentCount + MAX_GROUP_SIZE, tokens.length)) as token}
+                                    <div class="relative">
+                                        <img 
+                                            src={token.metadataURI ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(token.metadataURI)}?w=240` : token.metadata?.image} 
+                                            alt={token.metadata?.name} 
+                                            class="h-12 w-12 object-contain rounded-lg shadow-sm"
+                                        />
+                                        <div class="absolute -top-2 -right-2 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                            {token.tokenId}
+                                        </div>
+                                    </div>
+                                {/each}
+                            </div>
+                            <div class="w-full text-center">
+                                <div class="text-sm font-bold mb-2">Sending {Math.min(MAX_GROUP_SIZE, tokens.length - sentCount)} Tokens</div>
+                                <div class="text-sm text-gray-600 dark:text-gray-400">
+                                    <div class="font-medium">Recipients:</div>
+                                    {#if isIndividualMode}
+                                        <div class="max-h-32 overflow-y-auto mt-2 space-y-2">
+                                            {#each tokens.slice(sentCount, Math.min(sentCount + MAX_GROUP_SIZE, tokens.length)) as token}
+                                                <div class="text-xs break-all bg-gray-200 dark:bg-gray-700 p-2 rounded">
+                                                    Token #{token.tokenId} → {individualAddresses[`${token.contractId}-${token.tokenId}`]}
+                                                </div>
+                                            {/each}
+                                        </div>
+                                    {:else}
+                                        <div class="break-all">{transferTo}</div>
+                                    {/if}
+                                </div>
+                            </div>
+                        </div>
                         <div class="mt-2">
                             <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l1.414-1.414C2.56 15.88 1.5 14.02 1.5 12H4c0 1.116.224 2.195.668 3.207l1.414-1.414zM12 20c-3.042 0-5.824-1.135-7.938-3l1.414-1.414C9.12 16.56 10.98 15.5 13 15.5V18c-1.116 0-2.195.224-3.207.668l-1.414-1.414A7.962 7.962 0 0112 20zm5.291-6H12v-2h5.291l1.414 1.414-1.414 1.414zM12 4c3.042 0 5.824 1.135 7.938 3l-1.414 1.414C14.88 7.44 13.02 6.5 11 6.5V4c1.116 0 2.195.224 3.207.668l1.414-1.414A7.962 7.962 0 0012 4zm-5.291 6H12V8H6.709l-1.414 1.414L6.709 11zM12 12c-1.116 0-2.195-.224-3.207-.668l-1.414 1.414A7.962 7.962 0 0012 12zm0-8c1.116 0 2.195.224 3.207.668l1.414-1.414A7.962 7.962 0 0012 4zm0 16c-3.042 0-5.824-1.135-7.938-3l1.414-1.414C7.44 16.88 6.5 15.02 6.5 13H4c0 1.116.224 2.195.668 3.207l1.414-1.414A7.962 7.962 0 0112 20zm5.291-6H12v-2h5.291l1.414 1.414-1.414 1.414z"></path>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l1.414-1.414C2.56 15.88 1.5 14.02 1.5 12H4c0 1.116.224 2.195.668 3.207l1.414-1.414zM12 20c-3.042 0-5.824-1.135-7.938-3l1.414-1.414C9.12 16.56 10.98 15.5 13 15.5V18c-1.116 0-2.195.224-3.207.668l-1.414-1.414A7.962 7.962 0 0112 20zm5.291-6H12v-2h5.291l1.414 1.414-1.414 1.414z"></path>
                             </svg>
                         </div>
-                        <div class="mt-2 text-gray-400">Please sign the transaction in your wallet.</div>
+                        <div class="mt-2 text-gray-400">Please sign the transaction{transactionIds.length > 1 ? ' group' : ''} in your wallet</div>
                         <div class="flex flex-col items-center mt-4">
                             <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
                         </div>
@@ -635,56 +705,65 @@
                 {:else if sendingView === "waiting"}
                     <div class="flex flex-col items-center space-y-4 py-10">
                         <div class="text-xl font-bold">Waiting for Confirmation</div>
-                        {#if tokens.length > 1}
-                            <div class="text-lg text-gray-600 dark:text-gray-300">Sending {sentCount} of {tokens.length} tokens</div>
-                            <div class="flex flex-col items-center space-y-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg w-full max-w-md">
-                                <img 
-                                    src={tokens[sentCount - 1].metadataURI ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(tokens[sentCount - 1].metadataURI)}?w=240` : tokens[sentCount - 1].metadata?.image} 
-                                    alt={tokens[sentCount - 1].metadata?.name} 
-                                    class="h-24 w-24 object-contain rounded-lg shadow-sm"
-                                />
-                                <div class="w-full text-center">
-                                    <div class="text-sm font-bold mb-2">{reformatTokenName(tokens[sentCount - 1].metadata?.name??'', tokens[sentCount - 1].tokenId)}</div>
-                                    <div class="text-sm text-gray-600 dark:text-gray-400">
-                                        <div class="font-medium">Sending to:</div>
-                                        <div class="break-all">
-                                            {isIndividualMode 
-                                                ? individualAddresses[`${tokens[sentCount - 1].contractId}-${tokens[sentCount - 1].tokenId}`]
-                                                : transferTo
-                                            }
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        {:else}
-                            <div class="flex flex-col items-center space-y-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg w-full max-w-md">
-                                <img src={imageUrl} alt={tokenName} class="h-24 w-24 object-contain rounded-lg shadow-sm"/>
-                                <div class="w-full text-center">
-                                    <div class="text-sm font-bold mb-2">{tokenName}</div>
-                                    <div class="text-sm text-gray-600 dark:text-gray-400">
-                                        <div class="font-medium">Sending to:</div>
-                                        <div class="break-all">{transferTo}</div>
-                                    </div>
-                                </div>
+                        {#if tokens.length > MAX_GROUP_SIZE}
+                            <div class="text-lg text-gray-600 dark:text-gray-300">
+                                Processing group {Math.floor((sentCount - 1) / MAX_GROUP_SIZE) + 1} of {Math.ceil(tokens.length / MAX_GROUP_SIZE)}
                             </div>
                         {/if}
+                        <div class="flex flex-col items-center space-y-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg w-full max-w-md">
+                            <div class="flex flex-wrap gap-2">
+                                {#each tokens.slice(Math.max(0, sentCount - MAX_GROUP_SIZE), sentCount) as token}
+                                    <div class="relative">
+                                        <img 
+                                            src={token.metadataURI ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(token.metadataURI)}?w=240` : token.metadata?.image} 
+                                            alt={token.metadata?.name} 
+                                            class="h-12 w-12 object-contain rounded-lg shadow-sm"
+                                        />
+                                        <div class="absolute -top-2 -right-2 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                            {token.tokenId}
+                                        </div>
+                                    </div>
+                                {/each}
+                            </div>
+                            <div class="w-full text-center">
+                                <div class="text-sm font-bold mb-2">Confirming {Math.min(MAX_GROUP_SIZE, sentCount - Math.max(0, sentCount - MAX_GROUP_SIZE))} Tokens</div>
+                                <div class="text-sm text-gray-600 dark:text-gray-400">
+                                    <div class="font-medium">Recipients:</div>
+                                    {#if isIndividualMode}
+                                        <div class="max-h-32 overflow-y-auto mt-2 space-y-2">
+                                            {#each tokens.slice(Math.max(0, sentCount - MAX_GROUP_SIZE), sentCount) as token}
+                                                <div class="text-xs break-all bg-gray-200 dark:bg-gray-700 p-2 rounded">
+                                                    Token #{token.tokenId} → {individualAddresses[`${token.contractId}-${token.tokenId}`]}
+                                                </div>
+                                            {/each}
+                                        </div>
+                                    {:else}
+                                        <div class="break-all">{transferTo}</div>
+                                    {/if}
+                                </div>
+                            </div>
+                        </div>
                         <div class="mt-2">
                             <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l1.414-1.414C2.56 15.88 1.5 14.02 1.5 12H4c0 1.116.224 2.195.668 3.207l1.414-1.414zM12 20c-3.042 0-5.824-1.135-7.938-3l1.414-1.414C9.12 16.56 10.98 15.5 13 15.5V18c-1.116 0-2.195.224-3.207.668l-1.414-1.414A7.962 7.962 0 0112 20zm5.291-6H12v-2h5.291l1.414 1.414-1.414 1.414zM12 4c3.042 0 5.824 1.135 7.938 3l-1.414 1.414C14.88 7.44 13.02 6.5 11 6.5V4c1.116 0 2.195.224 3.207.668l1.414-1.414A7.962 7.962 0 0012 4zm-5.291 6H12V8H6.709l-1.414 1.414L6.709 11zM12 12c-1.116 0-2.195-.224-3.207-.668l-1.414 1.414A7.962 7.962 0 0012 12zm0-8c1.116 0 2.195.224 3.207.668l1.414-1.414A7.962 7.962 0 0012 4zm0 16c-3.042 0-5.824-1.135-7.938-3l1.414-1.414C7.44 16.88 6.5 15.02 6.5 13H4c0 1.116.224 2.195.668 3.207l1.414-1.414A7.962 7.962 0 0112 20zm5.291-6H12v-2h5.291l1.414 1.414-1.414 1.414z"></path>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l1.414-1.414C2.56 15.88 1.5 14.02 1.5 12H4c0 1.116.224 2.195.668 3.207l1.414-1.414zM12 20c-3.042 0-5.824-1.135-7.938-3l1.414-1.414C9.12 16.56 10.98 15.5 13 15.5V18c-1.116 0-2.195.224-3.207.668l-1.414-1.414A7.962 7.962 0 0112 20zm5.291-6H12v-2h5.291l1.414 1.414-1.414 1.414z"></path>
                             </svg>
                         </div>
-                        <div class="mt-2 text-gray-400">Transaction signed, awaiting confirmation.</div>
-                        <div class="flex flex-col items-center mt-4">
-                            <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
-                        </div>
+                        <div class="mt-2 text-gray-400">Transaction group signed, awaiting confirmation</div>
                     </div>
                 {:else if sendingView === "sent"}
                     <div class="flex flex-col items-center space-y-4 py-20">
                         <div class="text-xl font-bold">{type == 'send' ? 'Token Sent' : 'Token Approval Changed'}</div>
                         <div class="mt-2 text-gray-400">
                             {#if type == 'send'}
-                                The token has been sent to {transferTo}
+                                {#if isIndividualMode}
+                                    All tokens have been sent to their respective addresses
+                                {:else}
+                                    <div class="flex flex-col items-center">
+                                        <span>The token{tokens.length > 1 ? 's have' : ' has'} been sent to</span>
+                                        <span class="text-sm break-all">{transferTo}</span>
+                                    </div>
+                                {/if}
                             {:else}
                                 {#if transferTo === zeroAddress}
                                     Token approval has been revoked.
@@ -693,59 +772,94 @@
                                 {/if}
                             {/if}
                         </div>
-                        <div class="mt-2 text-gray-400 flex flex-col">
-                            <div class="font-bold">Transaction ID</div>
-                            <a href={"https://explorer.voi.network/explorer/transaction/" + transactionId} target="_blank" class="text-xs underline text-blue-500 hover:text-blue-600">{transactionId}</a>
+                        <div class="mt-2 text-gray-400 flex flex-col items-center">
+                            <div class="font-bold mb-2">Transactions</div>
+                            <div class="max-w-md w-full space-y-1">
+                                {#each tokenTransactions as tx}
+                                    <div class="flex flex-col bg-gray-100 dark:bg-gray-800 rounded-lg">
+                                        <div class="flex items-center justify-between gap-2">
+                                            {#if tokens.find(t => String(t.tokenId) === tx.tokenId && t.contractId === tx.contractId)?.metadata?.name}
+                                                <div class="text-xs text-gray-500">
+                                                    {tokens.find(t => String(t.tokenId) === tx.tokenId && t.contractId === tx.contractId)?.metadata?.name}
+                                                </div>
+                                            {/if}
+                                            <a href={"https://explorer.voi.network/explorer/transaction/" + tx.txId} 
+                                            target="_blank" 
+                                            class="text-xs underline text-blue-500 hover:text-blue-600">
+                                                {tx.txId ? `${tx.txId.slice(0, 8)}...${tx.txId.slice(-8)}` : 'Unknown'}
+                                            </a>
+                                        </div>
+                                        {#if isIndividualMode}
+                                            <div class="text-xs text-gray-500">
+                                                To: {individualAddresses[`${tx.contractId}-${tx.tokenId}`]}
+                                            </div>
+                                        {/if}
+                                    </div>
+                                {/each}
+                            </div>
                         </div>
                         <div class="flex flex-row items-center mt-4 space-x-4">
                             <button on:click={afterClose} class="w-64 h-10 bg-blue-500 text-white rounded-md">Close</button>
                         </div>
                     </div>
                 {:else if sendingView === "error"}
-                    <div class="flex flex-col items-center space-y-4 py-20">
-                        <div class="text-xl font-bold">Error Sending Token</div>
-                        {#if tokens.length > 1}
-                            <div class="text-lg text-gray-600 dark:text-gray-300">Error on token {sentCount + 1} of {tokens.length}</div>
-                            <div class="flex items-center space-x-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg w-full max-w-md">
-                                <img 
-                                    src={tokens[sentCount].metadataURI ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(tokens[sentCount].metadataURI)}?w=240` : tokens[sentCount].metadata?.image} 
-                                    alt={tokens[sentCount].metadata?.name} 
-                                    class="h-16 w-16 object-contain rounded-lg shadow-sm"
-                                />
-                                <div class="flex-grow">
-                                    <div class="text-sm font-bold">{reformatTokenName(tokens[sentCount].metadata?.name??'', tokens[sentCount].tokenId)}</div>
-                                    <div class="text-sm text-gray-600 dark:text-gray-400">
-                                        <div class="font-medium mt-1">Failed sending to:</div>
-                                        <div class="break-all">
-                                            {isIndividualMode 
-                                                ? individualAddresses[`${tokens[sentCount].contractId}-${tokens[sentCount].tokenId}`]
-                                                : transferTo
-                                            }
-                                        </div>
-                                    </div>
-                                </div>
+                    <div class="flex flex-col items-center space-y-4 py-10">
+                        <div class="text-xl font-bold">Error Processing Transaction Group</div>
+                        {#if tokens.length > MAX_GROUP_SIZE}
+                            <div class="text-lg text-gray-600 dark:text-gray-300">
+                                Error in group {Math.floor(sentCount / MAX_GROUP_SIZE) + 1} of {Math.ceil(tokens.length / MAX_GROUP_SIZE)}
                             </div>
                         {/if}
-                        <div class="mt-2 text-gray-400">There was an error sending the token.</div>
-                        <div class="max-w-96">
-                            <div class="mt-2 text-gray-400">{sendingError}</div>
+                        <div class="flex flex-col items-center space-y-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg w-full max-w-md">
+                            <div class="grid grid-cols-4 gap-2">
+                                {#each tokens.slice(sentCount, Math.min(sentCount + MAX_GROUP_SIZE, tokens.length)) as token}
+                                    <div class="relative">
+                                        <img 
+                                            src={token.metadataURI ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(token.metadataURI)}?w=240` : token.metadata?.image} 
+                                            alt={token.metadata?.name} 
+                                            class="h-12 w-12 object-contain rounded-lg shadow-sm opacity-50"
+                                        />
+                                        <div class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                            {token.tokenId}
+                                        </div>
+                                    </div>
+                                {/each}
+                            </div>
+                            <div class="w-full text-center">
+                                <div class="text-sm font-bold mb-2 text-red-500">Failed to Process {Math.min(MAX_GROUP_SIZE, tokens.length - sentCount)} Tokens</div>
+                                <div class="text-sm text-gray-600 dark:text-gray-400">
+                                    <div class="font-medium">Recipients:</div>
+                                    {#if isIndividualMode}
+                                        <div class="max-h-32 overflow-y-auto mt-2 space-y-2">
+                                            {#each tokens.slice(sentCount, Math.min(sentCount + MAX_GROUP_SIZE, tokens.length)) as token}
+                                                <div class="text-xs break-all bg-gray-200 dark:bg-gray-700 p-2 rounded">
+                                                    Token #{token.tokenId} → {individualAddresses[`${token.contractId}-${token.tokenId}`]}
+                                                </div>
+                                            {/each}
+                                        </div>
+                                    {:else}
+                                        <div class="break-all">{transferTo}</div>
+                                    {/if}
+                                </div>
+                            </div>
                         </div>
+                        <div class="mt-2 text-red-500">Error: {sendingError}</div>
                         <div class="flex flex-col items-center mt-4 space-y-4">
                             <div class="flex space-x-4">
                                 {#if type == 'revoke'}
                                     <button on:click={revokeApproval} class="w-52 h-10 bg-blue-500 text-white rounded-md">Try Again</button>
                                 {:else}
-                                    <button on:click={() => sendToken(false, true)} class="w-52 h-10 bg-blue-500 text-white rounded-md">Try Again</button>
-                                    {#if tokens.length > 1}
+                                    <button on:click={() => sendToken(false, true)} class="w-52 h-10 bg-blue-500 text-white rounded-md">Retry Group</button>
+                                    {#if tokens.length > sentCount + MAX_GROUP_SIZE}
                                         <button 
                                             on:click={() => {
-                                                sentCount++;
+                                                sentCount += MAX_GROUP_SIZE;
                                                 sendingView = SendingView.Sending;
                                                 sendToken(true);
                                             }} 
                                             class="w-52 h-10 bg-gray-500 text-white rounded-md"
                                         >
-                                            Skip Token
+                                            Skip to Next Group
                                         </button>
                                     {/if}
                                 {/if}
@@ -771,7 +885,7 @@
                         >Next</button>
                     {:else if sendingView === "confirm"}
                         <button on:click={reset} class="flex-1 h-11 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">Back</button>
-                        <button on:click={sendToken} class="flex-1 h-11 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">Submit</button>
+                        <button on:click={() => sendToken()} class="flex-1 h-11 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">Submit</button>
                     {/if}
                 </div>
             </div>

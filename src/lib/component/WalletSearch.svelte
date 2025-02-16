@@ -41,11 +41,152 @@
     export let autoFocus: boolean = false;
     export let value: string = '';
 
-    $: if (value !== searchText) {
-        searchText = value;
+    function init(el: HTMLInputElement) {
+        inputElement = el;
+        if (autoFocus) {
+            el.focus();
+        }
     }
 
-	function updateDropdownPosition() {
+	// Function to handle text input changes
+	async function handleInput(event: Event) {
+        const target = event.target as HTMLInputElement;
+        searchText = target.value;
+        onChange(searchText);
+        filteredWallets = [];
+        addressList = [];
+
+		if (searchText.includes('.algo')) {
+			const addresses = await getAddressesForNFD(searchText);
+            addressList = addresses;
+		}
+        else if (searchText.length == 58) {
+            filteredWallets = [{ address: searchText, name: searchText, metadata: {} }];
+        }
+        else if (searchText.length >= 2) {
+            const results = await searchEnvoi(searchText);
+            filteredWallets = results;
+        }
+    }
+
+	// Function to handle address selection or submit
+	function handleSubmit(addr?: string) {
+        if (loadPreviousValue) {
+            localStorage.setItem('searchText', searchText);
+        }
+
+        if (selectedAddressIndex >= 0) {
+            if (selectedAddressIndex < addressList.length) {
+                addr = addressList[selectedAddressIndex];
+            } else if (filteredWallets.length > 0) {
+                addr = filteredWallets[selectedAddressIndex - addressList.length].address;
+            }
+        }
+
+        if (!addr && searchText.length != 58) {
+            if (addressList.length == 0 && filteredWallets.length == 0) {
+                toast.push('Invalid address');
+            }
+            else {
+                toast.push('Please select an address');
+            }
+            return;
+        }
+
+        if (searchText.length == 0 && addr) {
+            searchText = addr;
+        }
+
+        searchText = addr ?? searchText;
+        onSubmit(addr ?? searchText);
+        addressList = [];
+        filteredWallets = [];
+        isOpen = false;
+	}
+
+    function handleClickOutside(event: MouseEvent) {
+        if (!componentElement.contains(event.target)) {
+            addressList = [];
+            filteredWallets = [];
+            isOpen = false;
+        }
+    }
+
+    function handleClick() {
+        if (document.activeElement !== inputElement) return;
+        isOpen = true;
+        if (searchText.length == 0) {
+            addressList = [...new Set($connectedWallets.map((wallet) => wallet.address))];
+            filteredWallets = [];
+        }
+        else {
+            selectedAddressIndex = -1;
+            onChange(searchText);
+            filteredWallets = [];
+            addressList = [];
+            if (searchText.includes('.algo')) {
+                getAddressesForNFD(searchText).then(addresses => {
+                    addressList = addresses;
+                });
+            }
+            else if (searchText.length == 58) {
+                filteredWallets = [{ address: searchText, name: searchText, metadata: {} }];
+            }
+            else if (searchText.length >= 2) {
+                searchEnvoi(searchText).then(results => {
+                    filteredWallets = results;
+                });
+            }
+        }
+        setTimeout(updateDropdownPosition, 0);
+    }
+
+    function handleKeydown(event: KeyboardEvent) {
+        if (document.activeElement !== inputElement) return;
+        
+        const totalResults = addressList.length + filteredWallets.length;
+        
+        if (event.key === 'Escape') {
+            addressList = [];
+            filteredWallets = [];
+            selectedAddressIndex = -1;
+            isOpen = false;
+        } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+            if (searchText && totalResults === 0) {
+                handleInput(event);
+            } else {
+                selectedAddressIndex = event.key === 'ArrowUp'
+                    ? Math.max(0, selectedAddressIndex - 1)
+                    : Math.min(totalResults - 1, selectedAddressIndex + 1);
+            }
+            event.preventDefault();
+        } else if (event.key === 'Enter') {
+            let addr;
+            if (selectedAddressIndex >= 0) {
+                if (selectedAddressIndex < addressList.length) {
+                    addr = addressList[selectedAddressIndex];
+                } else {
+                    addr = filteredWallets[selectedAddressIndex - addressList.length].address;
+                }
+            }
+            else if (addressList.length > 0) {
+                addr = addressList[0];
+            }
+            else if (filteredWallets.length > 0) {
+                addr = filteredWallets[0].address;
+            }
+            else {
+                addr = searchText;
+            }
+            handleSubmit(addr);
+            event.preventDefault();
+        } else if (event.key === 'f' && event.ctrlKey) {
+            inputElement.focus();
+            event.preventDefault();
+        }
+    }
+
+    function updateDropdownPosition() {
         if (!isOpen || !componentElement || !dropdownElement) return;
         
         const rect = componentElement.getBoundingClientRect();
@@ -123,134 +264,6 @@
 		}
 	});
 
-	// Function to handle text input changes
-	async function handleInput() {
-        onChange(searchText);
-        filteredWallets = [];
-        addressList = [];
-
-		if (searchText.includes('.algo')) {
-			const addresses = await getAddressesForNFD(searchText);
-            addressList = addresses;
-		}
-        else if (searchText.length == 58) {
-            filteredWallets = [{ address: searchText, name: searchText, metadata: {} }];
-        }
-        else if (searchText.length >= 2) {
-            const results = await searchEnvoi(searchText);
-            filteredWallets = results;
-        }
-    }
-
-	// Function to handle address selection or submit
-	function handleSubmit(addr?: string) {
-        if (loadPreviousValue) {
-            localStorage.setItem('searchText', searchText);
-        }
-
-        if (selectedAddressIndex >= 0) {
-            if (selectedAddressIndex < addressList.length) {
-                addr = addressList[selectedAddressIndex];
-            } else if (filteredWallets.length > 0) {
-                addr = filteredWallets[selectedAddressIndex - addressList.length].address;
-            }
-        }
-
-        if (!addr && searchText.length != 58) {
-            if (addressList.length == 0 && filteredWallets.length == 0) {
-                toast.push('Invalid address');
-            }
-            else {
-                toast.push('Please select an address');
-            }
-            return;
-        }
-
-        if (searchText.length == 0 && addr) {
-            searchText = addr;
-        }
-
-        searchText = addr ?? searchText;
-        onSubmit(addr ?? searchText);
-        addressList = [];
-        filteredWallets = [];
-        isOpen = false;
-	}
-
-    function handleClickOutside(event: MouseEvent) {
-        if (!componentElement.contains(event.target)) {
-            addressList = [];
-            filteredWallets = [];
-            isOpen = false;
-        }
-    }
-
-    function handleClick() {
-        if (document.activeElement !== inputElement) return;
-        isOpen = true;
-        if (searchText.length == 0) {
-            addressList = [...new Set($connectedWallets.map((wallet) => wallet.address))];
-            filteredWallets = [];
-        }
-        else {
-            selectedAddressIndex = -1;
-            handleInput();
-        }
-        setTimeout(updateDropdownPosition, 0);
-    }
-
-    function handleKeydown(event: KeyboardEvent) {
-        if (document.activeElement !== inputElement) return;
-        
-        const totalResults = addressList.length + filteredWallets.length;
-        
-        if (event.key === 'Escape') {
-            addressList = [];
-            filteredWallets = [];
-            selectedAddressIndex = -1;
-            isOpen = false;
-        } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-            if (searchText && totalResults === 0) {
-                handleInput();
-            } else {
-                selectedAddressIndex = event.key === 'ArrowUp'
-                    ? Math.max(0, selectedAddressIndex - 1)
-                    : Math.min(totalResults - 1, selectedAddressIndex + 1);
-            }
-            event.preventDefault();
-        } else if (event.key === 'Enter') {
-            let addr;
-            if (selectedAddressIndex >= 0) {
-                if (selectedAddressIndex < addressList.length) {
-                    addr = addressList[selectedAddressIndex];
-                } else {
-                    addr = filteredWallets[selectedAddressIndex - addressList.length].address;
-                }
-            }
-            else if (addressList.length > 0) {
-                addr = addressList[0];
-            }
-            else if (filteredWallets.length > 0) {
-                addr = filteredWallets[0].address;
-            }
-            else {
-                addr = searchText;
-            }
-            handleSubmit(addr);
-            event.preventDefault();
-        } else if (event.key === 'f' && event.ctrlKey) {
-            inputElement.focus();
-            event.preventDefault();
-        }
-    }
-
-    function init(el: HTMLInputElement) {
-        inputElement = el;
-        if (autoFocus) {
-            el.focus();
-        }
-    }
-
     function handlePaste(event: ClipboardEvent) {
         const pastedText = event.clipboardData?.getData('text');
         if (!pastedText) return;
@@ -293,7 +306,7 @@
         <input
             type="text"
             use:init
-            bind:value={searchText}
+            value={value}
             on:input={handleInput}
             on:click={handleClick}
             on:paste={handlePaste}
