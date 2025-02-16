@@ -44,6 +44,7 @@
     let isIndividualMode = false; // Toggle for individual sending mode
     let individualAddresses: { [key: string]: string } = {}; // Store addresses for individual tokens
     let individualNFDs: { [key: string]: string } = {}; // Store NFDs for individual addresses
+    let pastedAddresses: string[] = []; // Store list of pasted addresses
 
     let selectedVoiBalance: number;
     let selectedNFTCount: number;
@@ -114,19 +115,43 @@
         sendToken();
     }
 
-    // New function to handle individual address updates
-    async function updateIndividualAddress(tokenId: string, address: string) {
-        individualAddresses[tokenId] = address;
-        if (address && address.length > 0) {
-            const nfds = await getNFD([address]);
-            if (nfds && nfds.length > 0) {
-                individualNFDs[tokenId] = nfds[0].replacementValue;
-            } else {
-                individualNFDs[tokenId] = '';
+    function handlePastedAddresses(addresses: string[], currentTokenId: string) {
+        console.log('Modal received pasted addresses:', addresses, 'for current token:', currentTokenId);
+        if (!isIndividualMode) return;
+        
+        // Find the index of the current token
+        const currentIndex = tokens.findIndex(t => `${t.contractId}-${t.tokenId}` === currentTokenId);
+        if (currentIndex === -1) return;
+        
+        console.log('Current token index:', currentIndex);
+        
+        // Keep existing addresses for tokens before the current one
+        const updatedAddresses = { ...individualAddresses };
+        const updatedNFDs = { ...individualNFDs };
+        
+        // Populate addresses starting from the current token
+        for (let i = 0; i < addresses.length; i++) {
+            const tokenIndex = currentIndex + i;
+            if (tokenIndex < tokens.length) {
+                const token = tokens[tokenIndex];
+                const key = `${token.contractId}-${token.tokenId}`;
+                console.log(`Setting address for token ${tokenIndex}:`, addresses[i]);
+                updatedAddresses[key] = addresses[i];
+                
+                // Update NFDs asynchronously
+                getNFD([addresses[i]]).then((nfd) => {
+                    if (nfd && nfd.length > 0) {
+                        individualNFDs[key] = nfd[0].replacementValue;
+                        // Force a UI update for NFDs
+                        individualNFDs = { ...individualNFDs };
+                    }
+                });
             }
-        } else {
-            individualNFDs[tokenId] = '';
         }
+
+        console.log('Updated individualAddresses:', updatedAddresses);
+        // Update the addresses state
+        individualAddresses = updatedAddresses;
     }
 
     async function sendToken() {
@@ -287,8 +312,21 @@
         }
     }
 
-    function handleIndividualAddressSelect(tokenId: string, address: string) {
-        updateIndividualAddress(tokenId, address);
+    async function handleIndividualAddressSelect(tokenId: string, address: string) {
+        individualAddresses[tokenId] = address;
+        if (address && address.length > 0) {
+            const nfds = await getNFD([address]);
+            if (nfds && nfds.length > 0) {
+                individualNFDs[tokenId] = nfds[0].replacementValue;
+            } else {
+                individualNFDs[tokenId] = '';
+            }
+        } else {
+            individualNFDs[tokenId] = '';
+        }
+        // Force a UI update
+        individualAddresses = { ...individualAddresses };
+        individualNFDs = { ...individualNFDs };
     }
 
     function handleSearchChange(value: string) {
@@ -299,8 +337,21 @@
         }
     }
 
-    function handleIndividualSearchChange(tokenId: string, value: string) {
-        updateIndividualAddress(tokenId, value);
+    async function handleIndividualSearchChange(tokenId: string, value: string) {
+        individualAddresses[tokenId] = value;
+        if (value && value.length > 0) {
+            const nfds = await getNFD([value]);
+            if (nfds && nfds.length > 0) {
+                individualNFDs[tokenId] = nfds[0].replacementValue;
+            } else {
+                individualNFDs[tokenId] = '';
+            }
+        } else {
+            individualNFDs[tokenId] = '';
+        }
+        // Force a UI update
+        individualAddresses = { ...individualAddresses };
+        individualNFDs = { ...individualNFDs };
     }
 
     function handleClickOutside(event: MouseEvent) {
@@ -347,249 +398,274 @@
     });
 </script>
 <Modal title="{type == 'send' ? 'Transfer NFT Token' : 'Change NFT Token Approval'}" bind:showModal onClose={afterClose} showTopCloseButton={true} showBottomCloseButton={false}>
-    <Breadcrumb class="w-full">
-        <BreadcrumbItem><span class={sendingView === SendingView.Presend ? 'font-bold underline text-orange-500' : ''}>Select Wallet</span></BreadcrumbItem>
-        <span class="mx-2">&gt;</span>
-        <BreadcrumbItem><span class={sendingView === SendingView.Confirm ? 'font-bold underline text-orange-500' : ''}>Confirm</span></BreadcrumbItem>
-        <span class="mx-2">&gt;</span>
-        <BreadcrumbItem><span class={sendingView === SendingView.Sending || sendingView === SendingView.Waiting ? 'font-bold underline text-orange-500' : ''}>Sign</span></BreadcrumbItem>
-        <span class="mx-2">&gt;</span>
-        <BreadcrumbItem><span class={sendingView === SendingView.Sent ? 'font-bold underline text-orange-500' : ''}>Complete</span></BreadcrumbItem>
-    </Breadcrumb>
-    <div class="min-h-96 flex items-center w-full">
-        <div class="flex flex-col w-full">
-            {#if sendingView === "presend"}
-                <div class="flex flex-col items-center m-2">
-                    {#if tokens.length == 1}
-                        <img src={imageUrl} alt={tokens[0].metadata?.name} class="h-20 w-20 object-contain rounded-md"/>
-                        <div class="text-xl font-bold">{tokenName}</div>
-                    {:else if tokens.length > 1}
-                        <div class="text-xl font-bold">Multiple Tokens ({tokens.length})</div>
-                        <div class="flex items-center mt-2 mb-4">
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" bind:checked={isIndividualMode} class="sr-only peer">
-                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                                <span class="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">Send to different addresses</span>
-                            </label>
-                        </div>
-                        <div class="max-h-96 overflow-auto p-1 m-1 border-gray-500 bg-gray-200 dark:bg-gray-700 rounded-lg w-full">
-                            {#each tokens as t}
-                                <div class="flex items-center space-x-4 p-4 border-b border-gray-600">
-                                    <img 
-                                        src={t.metadataURI ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(t.metadataURI)}?w=240` : t.metadata?.image} 
-                                        alt={t.metadata?.name} 
-                                        class="h-16 w-16 object-contain rounded-md"
-                                    />
-                                    <div class="flex-grow">
-                                        <div class="text-sm font-bold mb-2 text-gray-800 dark:text-gray-300">{reformatTokenName(t.metadata?.name??'', t.tokenId)}</div>
-                                        {#if isIndividualMode}
-                                            <div class="relative walletSearchComponent w-full">
-                                                <WalletSearch
-                                                    onSubmit={(addr) => handleIndividualAddressSelect(`${t.contractId}-${t.tokenId}`, addr)}
-                                                    onChange={(value) => handleIndividualSearchChange(`${t.contractId}-${t.tokenId}`, value)}
-                                                    showSubmitButton={false}
-                                                />
-                                                {#if individualNFDs[`${t.contractId}-${t.tokenId}`]}
-                                                    <div class="text-xs text-gray-500 mt-1">{individualNFDs[`${t.contractId}-${t.tokenId}`]}</div>
+    <div class="w-full max-w-2xl mx-auto flex flex-col min-h-[400px]">
+        <div class="flex-1 overflow-y-auto">
+            <Breadcrumb class="w-full mb-6">
+                <BreadcrumbItem><span class={sendingView === SendingView.Presend ? 'font-bold underline text-orange-500' : ''}>Select Wallet</span></BreadcrumbItem>
+                <span class="mx-2">&gt;</span>
+                <BreadcrumbItem><span class={sendingView === SendingView.Confirm ? 'font-bold underline text-orange-500' : ''}>Confirm</span></BreadcrumbItem>
+                <span class="mx-2">&gt;</span>
+                <BreadcrumbItem><span class={sendingView === SendingView.Sending || sendingView === SendingView.Waiting ? 'font-bold underline text-orange-500' : ''}>Sign</span></BreadcrumbItem>
+                <span class="mx-2">&gt;</span>
+                <BreadcrumbItem><span class={sendingView === SendingView.Sent ? 'font-bold underline text-orange-500' : ''}>Complete</span></BreadcrumbItem>
+            </Breadcrumb>
+            
+            <div class="w-full max-w-xl mx-auto">
+                {#if sendingView === "presend"}
+                    <div class="flex flex-col items-center space-y-4 mb-4">
+                        {#if tokens.length == 1}
+                            <div class="flex flex-col items-center space-y-2">
+                                <img src={imageUrl} alt={tokens[0].metadata?.name} class="h-24 w-24 object-contain rounded-lg shadow-sm"/>
+                                <div class="text-xl font-bold">{tokenName}</div>
+                                <div class="text-sm text-gray-500 dark:text-gray-400">{token?.contractId??''}</div>
+                            </div>
+                        {:else if tokens.length > 1}
+                            <div class="w-full space-y-4">
+                                <div class="text-xl font-bold text-center">Multiple Tokens ({tokens.length})</div>
+                                <div class="flex items-center justify-center">
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" bind:checked={isIndividualMode} class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                        <span class="ms-3 text-sm font-medium">Send to different addresses</span>
+                                    </label>
+                                </div>
+                                <div class="max-h-[300px] overflow-auto p-4 bg-gray-100 dark:bg-gray-800 rounded-lg w-full">
+                                    {#each tokens as t}
+                                        <div class="flex items-center space-x-4 p-4 mb-3 bg-white dark:bg-gray-700 rounded-lg shadow-sm">
+                                            <img 
+                                                src={t.metadataURI ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(t.metadataURI)}?w=240` : t.metadata?.image} 
+                                                alt={t.metadata?.name} 
+                                                class="h-16 w-16 object-contain rounded-md"
+                                            />
+                                            <div class="flex-grow">
+                                                <div class="text-sm font-bold mb-2">{reformatTokenName(t.metadata?.name??'', t.tokenId)}</div>
+                                                {#if isIndividualMode}
+                                                    <div class="relative walletSearchComponent w-full">
+                                                        <WalletSearch
+                                                            onSubmit={(addr) => handleIndividualAddressSelect(`${t.contractId}-${t.tokenId}`, addr)}
+                                                            onChange={(value) => handleIndividualSearchChange(`${t.contractId}-${t.tokenId}`, value)}
+                                                            onPasteAddresses={(addresses) => handlePastedAddresses(addresses, `${t.contractId}-${t.tokenId}`)}
+                                                            showSubmitButton={false}
+                                                            autoFocus={false}
+                                                            value={individualAddresses[`${t.contractId}-${t.tokenId}`] ?? ''}
+                                                        />
+                                                        {#if individualNFDs[`${t.contractId}-${t.tokenId}`]}
+                                                            <div class="text-xs text-gray-500 mt-1">{individualNFDs[`${t.contractId}-${t.tokenId}`]}</div>
+                                                        {/if}
+                                                    </div>
                                                 {/if}
                                             </div>
-                                        {/if}
-                                    </div>
-                                    <button 
-                                        on:click={() => removeToken(t)} 
-                                        class="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
-                                        title="Remove Token"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                    </button>
+                                            <button 
+                                                on:click={() => removeToken(t)} 
+                                                class="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
+                                                title="Remove Token"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    {/each}
                                 </div>
-                            {/each}
-                        </div>
-                    {/if}
-                    <div class="text-sm text-gray-400">{token?.contractId??''}</div>
-                </div>
-                <div class="flex flex-col items-center mt-4 w-full">
-                    {#if type == 'approve'}
-                        <div class="text-xs mb-2 text-gray-400 max-w-96">An approved spender can transfer a token on your behalf. This is often used when listing a token on a marketplace.</div>
-                        <div class="mb-2">
-                            <div class="text-lg">Current Approved Spender</div>
-                            <div class="text-sm text-gray-400">{token?.approved == zeroAddress ? 'None' : `${token?.approved.slice(0, 8)}...${token?.approved.slice(-8)}`}</div>
-                        </div>
-                    {/if}
-                    {#if !isIndividualMode}
-                        <div class="text-xl font-bold">{type == 'send' ? 'Send to' : 'Change Approved Spender to'}</div>
-                        <div class="relative walletSearchComponent w-full max-w-md">
-                            <WalletSearch
-                                onSubmit={handleAddressSelect}
-                                onChange={handleSearchChange}
-                                showSubmitButton={false}
-                            />
-                        </div>
-                    {/if}
-                </div>
-                {#if type == 'approve' && token?.approved !== zeroAddress}
-                    <div class="flex flex-col items-center mt-4">
-                        <div class="mb-4">or</div>
-                        <button on:click={() => revokeApproval()} class="w-64 h-10 bg-blue-500 text-white rounded-md">Revoke Approval</button>
-                    </div>
-                {/if}
-                <div class="flex flex-row justify-between mt-4 space-x-2">
-                    <button on:click={afterClose} class="w-52 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
-                    <button 
-                        on:click={() => { if (isNextEnabled) sendingView = SendingView.Confirm; }} 
-                        class="w-52 h-10 bg-blue-500 text-white rounded-md {!isNextEnabled ? 'bg-gray-400 cursor-default' : ''}"
-                    >Next</button>
-                </div>
-            {:else if sendingView === "confirm"}
-                <div class="flex flex-col items-center m-2">
-                    <div class="text-lg font-bold">Please confirm the following transaction{tokens.length > 1 ? 's' : ''}:</div>
-                    {#if !isIndividualMode}
-                        <div class="mt-2 flex flex-col items-center">
-                            {#if tokens.length == 1}
-                                <img src={imageUrl} alt={tokenName} class="h-20 w-20 object-contain rounded-md"/>
-                                <div class="text-sm text-gray-800 dark:text-gray-200">{type == 'send' ? 'Send' : 'Change Approval for'} {tokenName} to</div>
-                            {:else}
-                                <div class="text-sm text-gray-800 dark:text-gray-200">{type == 'send' ? 'Send' : 'Change Approval for'} Multiple Tokens ({tokens.length})</div>
-                                {#each tokens as t}
-                                    <div class="text-sm text-gray-400">{reformatTokenName(t.metadata?.name??'', t.tokenId)}</div>
-                                {/each}
-                                <div>to</div>
-                            {/if}
-                        </div>
-                        <div class="flex flex-col items-center mt-2">
-                            <div class="text-sm text-gray-400">{transferTo}</div>
-                            {#if transferToNFD.length > 0}
-                                <div class="text-sm text-gray-400">{transferToNFD}</div>
-                            {/if}
-                        </div>
-                        <div class="flex flex-row justify-center">
-                            <div class="m-1 p-3">
-                                <div class="text-sm font-bold">Recipient's Voi Balance</div>
-                                <div class="text-sm text-gray-400">{selectedVoiBalance??''}</div>
-                            </div>
-                            <div class="m-1 p-3">
-                                <div class="text-sm font-bold"># NFTs</div>
-                                <div class="text-sm text-gray-400">{selectedNFTCount??''}</div>
-                            </div>
-                        </div>
-                        {#if selectedVoiBalance == 0}
-                            <div class="flex flex-col items-center">
-                                <div class="text-xl font-bold text-red-500">Warning!</div>
-                                <div class="text-sm text-gray-400">The selected address has no Voi. Please verify before sending.</div>
                             </div>
                         {/if}
-                    {:else}
-                        <div class="w-full max-w-2xl mt-4 max-h-96 overflow-auto">
-                            {#each tokens as t}
-                                <div class="flex items-center space-x-4 mb-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                                    <img 
-                                        src={t.metadataURI ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(t.metadataURI)}?w=240` : t.metadata?.image} 
-                                        alt={t.metadata?.name} 
-                                        class="h-16 w-16 object-contain rounded-md"
+                    </div>
+
+                    <div class="flex flex-col items-center space-y-4 w-full">
+                        {#if type == 'approve'}
+                            <div class="text-center space-y-4 w-full max-w-md">
+                                <div class="text-sm text-gray-500">An approved spender can transfer a token on your behalf. This is often used when listing a token on a marketplace.</div>
+                                <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                                    <div class="text-lg font-medium mb-1">Current Approved Spender</div>
+                                    <div class="text-sm text-gray-500">{token?.approved == zeroAddress ? 'None' : `${token?.approved.slice(0, 8)}...${token?.approved.slice(-8)}`}</div>
+                                </div>
+                            </div>
+                        {/if}
+
+                        {#if !isIndividualMode}
+                            <div class="w-full max-w-md space-y-3">
+                                <div class="text-lg font-bold text-center">{type == 'send' ? 'Send to' : 'Change Approved Spender to'}</div>
+                                <div class="relative walletSearchComponent w-full">
+                                    <WalletSearch
+                                        onSubmit={handleAddressSelect}
+                                        onChange={handleSearchChange}
+                                        showSubmitButton={false}
                                     />
-                                    <div class="flex-grow">
-                                        <div class="text-sm font-bold mb-2">{reformatTokenName(t.metadata?.name??'', t.tokenId)}</div>
-                                        <div class="text-sm text-gray-600 dark:text-gray-400">
-                                            Sending to: {individualAddresses[`${t.contractId}-${t.tokenId}`]}
-                                            {#if individualNFDs[`${t.contractId}-${t.tokenId}`]}
-                                                <div class="text-xs text-gray-500">{individualNFDs[`${t.contractId}-${t.tokenId}`]}</div>
-                                            {/if}
+                                </div>
+                            </div>
+                        {/if}
+                    </div>
+
+                    {#if type == 'approve' && token?.approved !== zeroAddress}
+                        <div class="flex flex-col items-center mt-6 space-y-4">
+                            <div class="text-gray-500">or</div>
+                            <button on:click={() => revokeApproval()} class="w-64 h-10 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors">Revoke Approval</button>
+                        </div>
+                    {/if}
+                {:else if sendingView === "confirm"}
+                    <div class="flex flex-col items-center w-full space-y-6">
+                        <div class="text-xl font-bold">Please confirm the following transaction{tokens.length > 1 ? 's' : ''}</div>
+                        {#if !isIndividualMode}
+                            <div class="flex flex-col items-center space-y-4 w-full max-w-md max-h-[300px] overflow-auto">
+                                {#if tokens.length == 1}
+                                    <div class="flex flex-col items-center space-y-3">
+                                        <img src={imageUrl} alt={tokenName} class="h-24 w-24 object-contain rounded-lg shadow-sm"/>
+                                        <div class="text-lg font-medium">{tokenName}</div>
+                                        <div class="text-sm text-gray-600 dark:text-gray-300">{type == 'send' ? 'Send to' : 'Change Approval for'}</div>
+                                    </div>
+                                {:else}
+                                    <div class="flex flex-col items-center space-y-3 w-full">
+                                        <div class="text-lg font-medium">{type == 'send' ? 'Send' : 'Change Approval for'} Multiple Tokens ({tokens.length})</div>
+                                        <div class="w-full p-4 bg-gray-100 dark:bg-gray-800 rounded-lg space-y-2">
+                                            {#each tokens as t}
+                                                <div class="text-sm text-gray-600 dark:text-gray-300">{reformatTokenName(t.metadata?.name??'', t.tokenId)}</div>
+                                            {/each}
                                         </div>
                                     </div>
-                                    <button 
-                                        on:click={() => removeToken(t)} 
-                                        class="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
-                                        title="Remove Token"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                    </button>
+                                {/if}
+
+                                <div class="flex flex-col items-center space-y-1 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg w-full">
+                                    <div class="text-sm font-medium">Recipient Address</div>
+                                    <div class="text-sm text-gray-600 dark:text-gray-400 break-all text-center">{transferTo}</div>
+                                    {#if transferToNFD.length > 0}
+                                        <div class="text-sm text-blue-500">{transferToNFD}</div>
+                                    {/if}
                                 </div>
-                            {/each}
+
+                                <div class="flex justify-center space-x-6 w-full">
+                                    <div class="flex-1 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-center">
+                                        <div class="text-sm font-medium mb-1">Recipient's Balance</div>
+                                        <div class="text-lg">{selectedVoiBalance ?? 0} VOI</div>
+                                    </div>
+                                    <div class="flex-1 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-center">
+                                        <div class="text-sm font-medium mb-1">NFTs Owned</div>
+                                        <div class="text-lg">{selectedNFTCount ?? 0}</div>
+                                    </div>
+                                </div>
+
+                                {#if selectedVoiBalance == 0}
+                                    <div class="p-4 bg-red-100 dark:bg-red-900 rounded-lg text-center w-full">
+                                        <div class="text-lg font-bold text-red-600 dark:text-red-400 mb-1">Warning!</div>
+                                        <div class="text-sm text-red-600 dark:text-red-400">The selected address has no Voi. Please verify before sending.</div>
+                                    </div>
+                                {/if}
+                            </div>
+                        {:else}
+                            <div class="w-full max-w-xl space-y-3 max-h-[300px] overflow-auto">
+                                {#each tokens as t}
+                                    <div class="flex items-center space-x-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                                        <img 
+                                            src={t.metadataURI ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(t.metadataURI)}?w=240` : t.metadata?.image} 
+                                            alt={t.metadata?.name} 
+                                            class="h-16 w-16 object-contain rounded-lg shadow-sm"
+                                        />
+                                        <div class="flex-grow">
+                                            <div class="text-sm font-bold mb-2">{reformatTokenName(t.metadata?.name??'', t.tokenId)}</div>
+                                            <div class="text-sm text-gray-600 dark:text-gray-400">
+                                                <div class="font-medium">Sending to:</div>
+                                                <div class="break-all">{individualAddresses[`${t.contractId}-${t.tokenId}`]}</div>
+                                                {#if individualNFDs[`${t.contractId}-${t.tokenId}`]}
+                                                    <div class="text-sm text-blue-500 mt-1">{individualNFDs[`${t.contractId}-${t.tokenId}`]}</div>
+                                                {/if}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {/each}
+                            </div>
+                        {/if}
+                    </div>
+                {:else if sendingView === "sending"}
+                    <div class="flex flex-col items-center space-y-4 py-20">
+                        <div class="text-xl font-bold">Processing Transaction</div>
+                        <div class="mt-2">
+                            <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l1.414-1.414C2.56 15.88 1.5 14.02 1.5 12H4c0 1.116.224 2.195.668 3.207l1.414-1.414zM12 20c-3.042 0-5.824-1.135-7.938-3l1.414-1.414C9.12 16.56 10.98 15.5 13 15.5V18c-1.116 0-2.195.224-3.207.668l-1.414-1.414A7.962 7.962 0 0112 20zm5.291-6H12v-2h5.291l1.414 1.414-1.414 1.414zM12 4c3.042 0 5.824 1.135 7.938 3l-1.414 1.414C14.88 7.44 13.02 6.5 11 6.5V4c1.116 0 2.195.224 3.207.668l1.414-1.414A7.962 7.962 0 0012 4zm-5.291 6H12V8H6.709l-1.414 1.414L6.709 11zM12 12c-1.116 0-2.195-.224-3.207-.668l-1.414 1.414A7.962 7.962 0 0012 12zm0-8c1.116 0 2.195.224 3.207.668l1.414-1.414A7.962 7.962 0 0012 4zm0 16c-3.042 0-5.824-1.135-7.938-3l1.414-1.414C7.44 16.88 6.5 15.02 6.5 13H4c0 1.116.224 2.195.668 3.207l1.414-1.414A7.962 7.962 0 0112 20zm5.291-6H12v-2h5.291l1.414 1.414-1.414 1.414z"></path>
+                            </svg>
                         </div>
-                    {/if}
-                </div>
-                <div class="flex flex-row justify-between mt-4 space-x-2">
-                    <button on:click={reset} class="w-52 h-10 bg-blue-500 text-white rounded-md">Back</button>
-                    <button on:click={sendToken} class="w-52 h-10 bg-blue-500 text-white rounded-md">Submit</button>
-                </div>
-            {:else if sendingView === "sending"}
-                <div class="flex flex-col items-center m-2 h-full place-content-center">
-                    <div class="text-xl font-bold">Processing Transaction</div>
-                    <div class="mt-2">
-                        <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l1.414-1.414C2.56 15.88 1.5 14.02 1.5 12H4c0 1.116.224 2.195.668 3.207l1.414-1.414zM12 20c-3.042 0-5.824-1.135-7.938-3l1.414-1.414C9.12 16.56 10.98 15.5 13 15.5V18c-1.116 0-2.195.224-3.207.668l-1.414-1.414A7.962 7.962 0 0112 20zm5.291-6H12v-2h5.291l1.414 1.414-1.414 1.414zM12 4c3.042 0 5.824 1.135 7.938 3l-1.414 1.414C14.88 7.44 13.02 6.5 11 6.5V4c1.116 0 2.195.224 3.207.668l1.414-1.414A7.962 7.962 0 0012 4zm-5.291 6H12V8H6.709l-1.414 1.414L6.709 11zM12 12c-1.116 0-2.195-.224-3.207-.668l-1.414 1.414A7.962 7.962 0 0012 12zm0-8c1.116 0 2.195.224 3.207.668l1.414-1.414A7.962 7.962 0 0012 4zm0 16c-3.042 0-5.824-1.135-7.938-3l1.414-1.414C7.44 16.88 6.5 15.02 6.5 13H4c0 1.116.224 2.195.668 3.207l1.414-1.414A7.962 7.962 0 0112 20zm5.291-6H12v-2h5.291l1.414 1.414-1.414 1.414z"></path>
-                        </svg>
+                        <div class="mt-2 text-gray-400">Please sign the transaction in your wallet.</div>
+                        {#if sentCount > 0}
+                            <div class="mt-2 text-gray-400">Sending {sentCount} of {tokens.length} tokens.</div>
+                        {/if}
+                        <div class="flex flex-col items-center mt-4">
+                            <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
+                        </div>
                     </div>
-                    <div class="mt-2 text-gray-400">Please sign the transaction in your wallet.</div>
-                    {#if sentCount > 0}
-                        <div class="mt-2 text-gray-400">Sending {sentCount} of {tokens.length} tokens.</div>
-                    {/if}
-                    <div class="flex flex-col items-center mt-4">
-                        <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
+                {:else if sendingView === "waiting"}
+                    <div class="flex flex-col items-center space-y-4 py-20">
+                        <div class="text-xl font-bold">Waiting for Confirmation</div>
+                        <div class="mt-2">
+                            <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l1.414-1.414C2.56 15.88 1.5 14.02 1.5 12H4c0 1.116.224 2.195.668 3.207l1.414-1.414zM12 20c-3.042 0-5.824-1.135-7.938-3l1.414-1.414C9.12 16.56 10.98 15.5 13 15.5V18c-1.116 0-2.195.224-3.207.668l-1.414-1.414A7.962 7.962 0 0112 20zm5.291-6H12v-2h5.291l1.414 1.414-1.414 1.414zM12 4c3.042 0 5.824 1.135 7.938 3l-1.414 1.414C14.88 7.44 13.02 6.5 11 6.5V4c1.116 0 2.195.224 3.207.668l1.414-1.414A7.962 7.962 0 0012 4zm-5.291 6H12V8H6.709l-1.414 1.414L6.709 11zM12 12c-1.116 0-2.195-.224-3.207-.668l-1.414 1.414A7.962 7.962 0 0012 12zm0-8c1.116 0 2.195.224 3.207.668l1.414-1.414A7.962 7.962 0 0012 4zm0 16c-3.042 0-5.824-1.135-7.938-3l1.414-1.414C7.44 16.88 6.5 15.02 6.5 13H4c0 1.116.224 2.195.668 3.207l1.414-1.414A7.962 7.962 0 0112 20zm5.291-6H12v-2h5.291l1.414 1.414-1.414 1.414z"></path>
+                            </svg>
+                        </div>
+                        <div class="mt-2 text-gray-400">Transaction signed, awaiting confirmation.</div>
+                        {#if sentCount > 0}
+                            <div class="mt-2 text-gray-400">Sending {sentCount} of {tokens.length} tokens.</div>
+                        {/if}
+                        <div class="flex flex-col items-center mt-4">
+                            <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
+                        </div>
                     </div>
-                </div>
-            {:else if sendingView === "waiting"}
-                <div class="flex flex-col items-center m-2 h-full place-content-center">
-                    <div class="text-xl font-bold">Waiting for Confirmation</div>
-                    <div class="mt-2">
-                        <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l1.414-1.414C2.56 15.88 1.5 14.02 1.5 12H4c0 1.116.224 2.195.668 3.207l1.414-1.414zM12 20c-3.042 0-5.824-1.135-7.938-3l1.414-1.414C9.12 16.56 10.98 15.5 13 15.5V18c-1.116 0-2.195.224-3.207.668l-1.414-1.414A7.962 7.962 0 0112 20zm5.291-6H12v-2h5.291l1.414 1.414-1.414 1.414zM12 4c3.042 0 5.824 1.135 7.938 3l-1.414 1.414C14.88 7.44 13.02 6.5 11 6.5V4c1.116 0 2.195.224 3.207.668l1.414-1.414A7.962 7.962 0 0012 4zm-5.291 6H12V8H6.709l-1.414 1.414L6.709 11zM12 12c-1.116 0-2.195-.224-3.207-.668l-1.414 1.414A7.962 7.962 0 0012 12zm0-8c1.116 0 2.195.224 3.207.668l1.414-1.414A7.962 7.962 0 0012 4zm0 16c-3.042 0-5.824-1.135-7.938-3l1.414-1.414C7.44 16.88 6.5 15.02 6.5 13H4c0 1.116.224 2.195.668 3.207l1.414-1.414A7.962 7.962 0 0112 20zm5.291-6H12v-2h5.291l1.414 1.414-1.414 1.414z"></path>
-                        </svg>
-                    </div>
-                    <div class="mt-2 text-gray-400">Transaction signed, awaiting confirmation.</div>
-                    {#if sentCount > 0}
-                        <div class="mt-2 text-gray-400">Sending {sentCount} of {tokens.length} tokens.</div>
-                    {/if}
-                    <div class="flex flex-col items-center mt-4">
-                        <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
-                    </div>
-                </div>
-            {:else if sendingView === "sent"}
-                <div class="flex flex-col items-center m-2">
-                    <div class="text-xl font-bold">{type == 'send' ? 'Token Sent' : 'Token Approval Changed'}</div>
-                    <div class="mt-2 text-gray-400">
-                        {#if type == 'send'}
-                            The token has been sent to {transferTo}
-                        {:else}
-                            {#if transferTo === zeroAddress}
-                                Token approval has been revoked.
+                {:else if sendingView === "sent"}
+                    <div class="flex flex-col items-center space-y-4 py-20">
+                        <div class="text-xl font-bold">{type == 'send' ? 'Token Sent' : 'Token Approval Changed'}</div>
+                        <div class="mt-2 text-gray-400">
+                            {#if type == 'send'}
+                                The token has been sent to {transferTo}
                             {:else}
-                                Token approval has been changed to {transferTo}
+                                {#if transferTo === zeroAddress}
+                                    Token approval has been revoked.
+                                {:else}
+                                    Token approval has been changed to {transferTo}
+                                {/if}
                             {/if}
-                        {/if}
+                        </div>
+                        <div class="mt-2 text-gray-400 flex flex-col">
+                            <div class="font-bold">Transaction ID</div>
+                            <a href={"https://explorer.voi.network/explorer/transaction/" + transactionId} target="_blank" class="text-xs underline text-blue-500 hover:text-blue-600">{transactionId}</a>
+                        </div>
+                        <div class="flex flex-row items-center mt-4 space-x-4">
+                            <button on:click={afterClose} class="w-64 h-10 bg-blue-500 text-white rounded-md">Close</button>
+                        </div>
                     </div>
-                    <div class="mt-2 text-gray-400 flex flex-col">
-                        <div class="font-bold">Transaction ID</div>
-                        <a href={"https://explorer.voi.network/explorer/transaction/" + transactionId} target="_blank" class="text-xs underline text-blue-500 hover:text-blue-600">{transactionId}</a>
+                {:else if sendingView === "error"}
+                    <div class="flex flex-col items-center space-y-4 py-20">
+                        <div class="text-xl font-bold">Error Sending Token</div>
+                        <div class="mt-2 text-gray-400">There was an error sending the token.</div>
+                        <div class="max-w-96">
+                            <div class="mt-2 text-gray-400">{sendingError}</div>
+                        </div>
+                        <div class="flex flex-row items-center mt-4 space-x-4">
+                            {#if type == 'revoke'}
+                                <button on:click={revokeApproval} class="w-52 h-10 bg-blue-500 text-white rounded-md">Try Again</button>
+                            {:else}
+                                <button on:click={sendToken} class="w-52 h-10 bg-blue-500 text-white rounded-md">Try Again</button>
+                            {/if}
+                            <button on:click={reset} class="w-52 h-10 bg-gray-500 text-white rounded-md">Start Over</button>
+                            <button on:click={afterClose} class="w-52 h-10 border border-gray-500 text-gray-700 dark:text-gray-300 rounded-md">Cancel</button>
+                        </div>
                     </div>
-                    <div class="flex flex-row items-center mt-4 space-x-4">
-                        <button on:click={afterClose} class="w-64 h-10 bg-blue-500 text-white rounded-md">Close</button>
-                    </div>
-                </div>
-            {:else if sendingView === "error"}
-                <div class="flex flex-col items-center m-2">
-                    <div class="text-xl font-bold">Error Sending Token</div>
-                    <div class="mt-2 text-gray-400">There was an error sending the token.</div>
-                    <div class="max-w-96">
-                        <div class="mt-2 text-gray-400">{sendingError}</div>
-                    </div>
-                    <div class="flex flex-row items-center mt-4 space-x-4">
-                        {#if type == 'revoke'}
-                            <button on:click={revokeApproval} class="w-52 h-10 bg-blue-500 text-white rounded-md">Try Again</button>
-                        {:else}
-                            <button on:click={sendToken} class="w-52 h-10 bg-blue-500 text-white rounded-md">Try Again</button>
-                        {/if}
-                        <button on:click={reset} class="w-52 h-10 bg-gray-500 text-white rounded-md">Start Over</button>
-                        <button on:click={afterClose} class="w-52 h-10 border border-gray-500 text-gray-700 dark:text-gray-300 rounded-md">Cancel</button>
-                    </div>
-                </div>
-            {/if}
+                {/if}
+            </div>
         </div>
+
+        {#if sendingView === "presend" || sendingView === "confirm"}
+            <div class="mt-auto border-t border-gray-200 dark:border-gray-700 py-4">
+                <div class="flex justify-between max-w-md mx-auto w-full space-x-4">
+                    {#if sendingView === "presend"}
+                        <button on:click={afterClose} class="flex-1 h-11 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">Cancel</button>
+                        <button 
+                            on:click={() => { if (isNextEnabled) sendingView = SendingView.Confirm; }} 
+                            class="flex-1 h-11 rounded-lg transition-colors {isNextEnabled ? 'bg-blue-500 hover:bg-blue-600 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}"
+                        >Next</button>
+                    {:else if sendingView === "confirm"}
+                        <button on:click={reset} class="flex-1 h-11 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">Back</button>
+                        <button on:click={sendToken} class="flex-1 h-11 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">Submit</button>
+                    {/if}
+                </div>
+            </div>
+        {/if}
     </div>
 </Modal>

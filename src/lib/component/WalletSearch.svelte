@@ -37,6 +37,13 @@
     export let onChange: (addr: string) => void = () => {};
     export let loadPreviousValue: boolean = false;
     export let showSubmitButton: boolean = true;
+    export let onPasteAddresses: (addresses: string[]) => void = () => {};
+    export let autoFocus: boolean = false;
+    export let value: string = '';
+
+    $: if (value !== searchText) {
+        searchText = value;
+    }
 
 	function updateDropdownPosition() {
         if (!isOpen || !componentElement || !dropdownElement) return;
@@ -237,19 +244,59 @@
         }
     }
 
-    function init(el: any) {
-        el.focus();
+    function init(el: HTMLInputElement) {
+        inputElement = el;
+        if (autoFocus) {
+            el.focus();
+        }
+    }
+
+    function handlePaste(event: ClipboardEvent) {
+        const pastedText = event.clipboardData?.getData('text');
+        if (!pastedText) return;
+
+        console.log('Raw pasted text:', pastedText);
+
+        // Split by newlines first, then try other delimiters if we don't get valid addresses
+        let potentialAddresses = pastedText
+            .split(/[\n\r]+/) // Split by newlines first
+            .map(line => line.trim())
+            .filter(line => line.length > 0);
+
+        console.log('After newline split:', potentialAddresses);
+
+        // If we don't have multiple lines, try splitting by other delimiters
+        if (potentialAddresses.length <= 1) {
+            potentialAddresses = pastedText
+                .split(/[,\t\s]+/)
+                .map(addr => addr.trim())
+                .filter(addr => addr.length > 0);
+            console.log('After delimiter split:', potentialAddresses);
+        }
+
+        // Filter for valid Algorand addresses
+        const validAddresses = potentialAddresses.filter(addr => addr.length === 58);
+        console.log('Valid addresses:', validAddresses);
+
+        if (validAddresses.length > 0) {
+            event.preventDefault();
+            onPasteAddresses(validAddresses);
+            searchText = validAddresses[0];
+            onChange(validAddresses[0]);
+            isOpen = false;
+        }
     }
 </script>
 
 <div class="mx-auto relative" bind:this={componentElement}>
     <div class="bg-white dark:bg-gray-800 flex relative rounded-md border border-gray-200 dark:border-gray-700">
-        <input bind:this={inputElement}
+        <input
             type="text"
             use:init
             bind:value={searchText}
             on:input={handleInput}
             on:click={handleClick}
+            on:paste={handlePaste}
             class="bg-white dark:bg-gray-800 flex-grow text-gray-900 dark:text-white p-2 w-full pr-9 rounded-l-md focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 focus:outline-none border-0"
             placeholder="Select wallet by Address or enVoi name"
         />
