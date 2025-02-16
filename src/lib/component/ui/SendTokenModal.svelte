@@ -154,10 +154,15 @@
         individualAddresses = updatedAddresses;
     }
 
-    async function sendToken() {
+    async function sendToken(skipReset: boolean = false, retryCurrentToken: boolean = false) {
         console.log('send token to', isIndividualMode ? 'multiple addresses' : transferTo);
         if (!isIndividualMode && transferTo.length === 0) return;
         if (isIndividualMode && Object.keys(individualAddresses).length !== tokens.length) return;
+
+        // Reset sentCount when starting a new send attempt, unless skipping or retrying
+        if (!skipReset && !retryCurrentToken) {
+            sentCount = 0;
+        }
 
         const opts = {
             acc: {
@@ -171,8 +176,11 @@
         sendingView = SendingView.Sending;
 
         try {
-            for (let i = 0; i < tokens.length; i++) {
-                sentCount++;
+            // If retrying current token, only process that one
+            const startIndex = retryCurrentToken ? sentCount : 0;
+            const endIndex = retryCurrentToken ? sentCount + 1 : tokens.length;
+
+            for (let i = startIndex; i < endIndex; i++) {
                 let resp;
                 const targetAddress = isIndividualMode ? 
                     individualAddresses[`${tokens[i].contractId}-${tokens[i].tokenId}`] : 
@@ -199,12 +207,14 @@
                     }
 
                     const status = await signAndSendTransactions([decodedTxns]);
-                    sendingView = status ? SendingView.Waiting : SendingView.Error;
                     if (!status) {
                         sendingError = 'Failed to sign transaction';
+                        sendingView = SendingView.Error;
                         return;
                     }
                     console.log('signing status', status);
+                    sentCount++; // Only increment after successful transaction
+                    sendingView = SendingView.Waiting;
                 }
                 else {
                     sendingError = resp.error;
@@ -292,6 +302,7 @@
         isIndividualMode = false;
         individualAddresses = {};
         individualNFDs = {};
+        sentCount = 0;  // Also reset sentCount when doing a full reset
     }
 
     function afterClose() {
@@ -575,8 +586,41 @@
                         {/if}
                     </div>
                 {:else if sendingView === "sending"}
-                    <div class="flex flex-col items-center space-y-4 py-20">
+                    <div class="flex flex-col items-center space-y-4 py-10">
                         <div class="text-xl font-bold">Processing Transaction</div>
+                        {#if tokens.length > 1}
+                            <div class="text-lg text-gray-600 dark:text-gray-300">Sending {sentCount + 1} of {tokens.length} tokens</div>
+                            <div class="flex flex-col items-center space-y-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg w-full max-w-md">
+                                <img 
+                                    src={tokens[sentCount].metadataURI ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(tokens[sentCount].metadataURI)}?w=240` : tokens[sentCount].metadata?.image} 
+                                    alt={tokens[sentCount].metadata?.name} 
+                                    class="h-24 w-24 object-contain rounded-lg shadow-sm"
+                                />
+                                <div class="w-full text-center">
+                                    <div class="text-sm font-bold mb-2">{reformatTokenName(tokens[sentCount].metadata?.name??'', tokens[sentCount].tokenId)}</div>
+                                    <div class="text-sm text-gray-600 dark:text-gray-400">
+                                        <div class="font-medium">Sending to:</div>
+                                        <div class="break-all">
+                                            {isIndividualMode 
+                                                ? individualAddresses[`${tokens[sentCount].contractId}-${tokens[sentCount].tokenId}`]
+                                                : transferTo
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {:else}
+                            <div class="flex flex-col items-center space-y-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg w-full max-w-md">
+                                <img src={imageUrl} alt={tokenName} class="h-24 w-24 object-contain rounded-lg shadow-sm"/>
+                                <div class="w-full text-center">
+                                    <div class="text-sm font-bold mb-2">{tokenName}</div>
+                                    <div class="text-sm text-gray-600 dark:text-gray-400">
+                                        <div class="font-medium">Sending to:</div>
+                                        <div class="break-all">{transferTo}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        {/if}
                         <div class="mt-2">
                             <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -584,16 +628,46 @@
                             </svg>
                         </div>
                         <div class="mt-2 text-gray-400">Please sign the transaction in your wallet.</div>
-                        {#if sentCount > 0}
-                            <div class="mt-2 text-gray-400">Sending {sentCount} of {tokens.length} tokens.</div>
-                        {/if}
                         <div class="flex flex-col items-center mt-4">
                             <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
                         </div>
                     </div>
                 {:else if sendingView === "waiting"}
-                    <div class="flex flex-col items-center space-y-4 py-20">
+                    <div class="flex flex-col items-center space-y-4 py-10">
                         <div class="text-xl font-bold">Waiting for Confirmation</div>
+                        {#if tokens.length > 1}
+                            <div class="text-lg text-gray-600 dark:text-gray-300">Sending {sentCount} of {tokens.length} tokens</div>
+                            <div class="flex flex-col items-center space-y-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg w-full max-w-md">
+                                <img 
+                                    src={tokens[sentCount - 1].metadataURI ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(tokens[sentCount - 1].metadataURI)}?w=240` : tokens[sentCount - 1].metadata?.image} 
+                                    alt={tokens[sentCount - 1].metadata?.name} 
+                                    class="h-24 w-24 object-contain rounded-lg shadow-sm"
+                                />
+                                <div class="w-full text-center">
+                                    <div class="text-sm font-bold mb-2">{reformatTokenName(tokens[sentCount - 1].metadata?.name??'', tokens[sentCount - 1].tokenId)}</div>
+                                    <div class="text-sm text-gray-600 dark:text-gray-400">
+                                        <div class="font-medium">Sending to:</div>
+                                        <div class="break-all">
+                                            {isIndividualMode 
+                                                ? individualAddresses[`${tokens[sentCount - 1].contractId}-${tokens[sentCount - 1].tokenId}`]
+                                                : transferTo
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {:else}
+                            <div class="flex flex-col items-center space-y-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg w-full max-w-md">
+                                <img src={imageUrl} alt={tokenName} class="h-24 w-24 object-contain rounded-lg shadow-sm"/>
+                                <div class="w-full text-center">
+                                    <div class="text-sm font-bold mb-2">{tokenName}</div>
+                                    <div class="text-sm text-gray-600 dark:text-gray-400">
+                                        <div class="font-medium">Sending to:</div>
+                                        <div class="break-all">{transferTo}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        {/if}
                         <div class="mt-2">
                             <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -601,9 +675,6 @@
                             </svg>
                         </div>
                         <div class="mt-2 text-gray-400">Transaction signed, awaiting confirmation.</div>
-                        {#if sentCount > 0}
-                            <div class="mt-2 text-gray-400">Sending {sentCount} of {tokens.length} tokens.</div>
-                        {/if}
                         <div class="flex flex-col items-center mt-4">
                             <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
                         </div>
@@ -633,18 +704,56 @@
                 {:else if sendingView === "error"}
                     <div class="flex flex-col items-center space-y-4 py-20">
                         <div class="text-xl font-bold">Error Sending Token</div>
+                        {#if tokens.length > 1}
+                            <div class="text-lg text-gray-600 dark:text-gray-300">Error on token {sentCount + 1} of {tokens.length}</div>
+                            <div class="flex items-center space-x-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg w-full max-w-md">
+                                <img 
+                                    src={tokens[sentCount].metadataURI ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(tokens[sentCount].metadataURI)}?w=240` : tokens[sentCount].metadata?.image} 
+                                    alt={tokens[sentCount].metadata?.name} 
+                                    class="h-16 w-16 object-contain rounded-lg shadow-sm"
+                                />
+                                <div class="flex-grow">
+                                    <div class="text-sm font-bold">{reformatTokenName(tokens[sentCount].metadata?.name??'', tokens[sentCount].tokenId)}</div>
+                                    <div class="text-sm text-gray-600 dark:text-gray-400">
+                                        <div class="font-medium mt-1">Failed sending to:</div>
+                                        <div class="break-all">
+                                            {isIndividualMode 
+                                                ? individualAddresses[`${tokens[sentCount].contractId}-${tokens[sentCount].tokenId}`]
+                                                : transferTo
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {/if}
                         <div class="mt-2 text-gray-400">There was an error sending the token.</div>
                         <div class="max-w-96">
                             <div class="mt-2 text-gray-400">{sendingError}</div>
                         </div>
-                        <div class="flex flex-row items-center mt-4 space-x-4">
-                            {#if type == 'revoke'}
-                                <button on:click={revokeApproval} class="w-52 h-10 bg-blue-500 text-white rounded-md">Try Again</button>
-                            {:else}
-                                <button on:click={sendToken} class="w-52 h-10 bg-blue-500 text-white rounded-md">Try Again</button>
-                            {/if}
-                            <button on:click={reset} class="w-52 h-10 bg-gray-500 text-white rounded-md">Start Over</button>
-                            <button on:click={afterClose} class="w-52 h-10 border border-gray-500 text-gray-700 dark:text-gray-300 rounded-md">Cancel</button>
+                        <div class="flex flex-col items-center mt-4 space-y-4">
+                            <div class="flex space-x-4">
+                                {#if type == 'revoke'}
+                                    <button on:click={revokeApproval} class="w-52 h-10 bg-blue-500 text-white rounded-md">Try Again</button>
+                                {:else}
+                                    <button on:click={() => sendToken(false, true)} class="w-52 h-10 bg-blue-500 text-white rounded-md">Try Again</button>
+                                    {#if tokens.length > 1}
+                                        <button 
+                                            on:click={() => {
+                                                sentCount++;
+                                                sendingView = SendingView.Sending;
+                                                sendToken(true);
+                                            }} 
+                                            class="w-52 h-10 bg-gray-500 text-white rounded-md"
+                                        >
+                                            Skip Token
+                                        </button>
+                                    {/if}
+                                {/if}
+                            </div>
+                            <div class="flex flex-row items-center mt-4 space-x-4">
+                                <button on:click={reset} class="w-52 h-10 bg-gray-500 text-white rounded-md">Start Over</button>
+                                <button on:click={afterClose} class="w-52 h-10 border border-gray-500 text-gray-700 dark:text-gray-300 rounded-md">Cancel</button>
+                            </div>
                         </div>
                     </div>
                 {/if}
