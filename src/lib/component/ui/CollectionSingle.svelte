@@ -128,7 +128,7 @@
         </div>
     </div>
 {:else}
-    <div class="shadow-md rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 relative overflow-hidden">
+    <div class="shadow-md rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 relative overflow-hidden w-72 h-72 place-self-center">
         <div class="relative overflow-hidden place-self-center rounded-xl group block w-72 h-72">
             <div class="w-72 h-72 relative">
                 <a href="/collection/{collection.contractId}" 

@@ -2,12 +2,29 @@
     import * as echarts from 'echarts';
     import { onMount, afterUpdate } from 'svelte';
     import { format } from 'date-fns';
-    import { Button, ButtonGroup } from 'flowbite-svelte';
 
     export let data: any[] = [];
-    let view = 'volume';
+    export let view: 'volume' | 'sales' = 'volume';
+    export let chartType: 'bar' | 'line' = 'bar';
+    export let showMA: boolean = false;
     let chartDiv: HTMLElement;
     let chart: echarts.ECharts;
+
+    function calculateMA(data: number[], days: number) {
+        const result = [];
+        for (let i = 0; i < data.length; i++) {
+            if (i < days - 1) {
+                result.push('-');
+                continue;
+            }
+            let sum = 0;
+            for (let j = 0; j < days; j++) {
+                sum += data[i - j];
+            }
+            result.push((sum / days).toFixed(2));
+        }
+        return result;
+    }
 
     function initChart() {
         if (chart) {
@@ -20,27 +37,58 @@
     function updateChart() {
         if (!chart || !data.length) return;
 
+        const dates = data.map(d => d.date);
+        const values = data.map(d => view === 'volume' ? d.value : d.salesCount);
+        const voiValues = data.map(d => d.voi || 0);
+
+        const maData = showMA ? calculateMA(values, 7) : [];
+
         const option = {
+            animation: true,
             tooltip: {
                 trigger: 'axis',
-                formatter: (params: any) => {
-                    const date = format(new Date(params[0].name), 'M/d haaa');
-                    const value = view === 'volume' 
-                        ? params[0].value.toLocaleString()
-                        : params[0].value;
-                    return `${date}<br/>${view === 'volume' ? 'Volume: ' : 'Sales: '}${value}`;
+                axisPointer: {
+                    type: 'cross',
+                    label: {
+                        backgroundColor: '#6a7985'
+                    }
+                },
+                formatter: (params: any[]) => {
+                    const date = format(new Date(params[0].name), 'MMM d, yyyy h:mm aaa');
+                    let result = `<div class="font-bold">${date}</div>`;
+                    params.forEach(param => {
+                        if (param.value !== '-') {
+                            result += `<div style="color: ${param.color}">${param.seriesName}: ${Number(param.value).toLocaleString()}</div>`;
+                        }
+                    });
+                    return result;
+                }
+            },
+            toolbox: {
+                feature: {
+                    restore: {},
+                    saveAsImage: {}
                 }
             },
             grid: {
                 left: '3%',
                 right: '4%',
-                bottom: '12%',
+                bottom: '15%',
                 top: '3%',
                 containLabel: true
             },
+            dataZoom: [
+                {
+                    type: 'slider',
+                    show: true,
+                    start: 0,
+                    end: 100
+                }
+            ],
             xAxis: {
                 type: 'category',
-                data: data.map(d => d.date),
+                boundaryGap: chartType === 'bar',
+                data: dates,
                 axisLabel: {
                     formatter: (value: string) => format(new Date(value), 'M/d haaa'),
                     rotate: 45
@@ -52,21 +100,68 @@
                     formatter: (value: number) => value.toLocaleString()
                 }
             },
-            series: [{
-                data: data.map(d => view === 'volume' ? d.value : d.salesCount),
-                type: 'bar',
-                itemStyle: {
-                    color: 'var(--color-accent-500, #6366f1)'
-                },
-                emphasis: {
+            series: view === 'volume' ? [
+                {
+                    name: 'VOI',
+                    type: chartType,
+                    data: voiValues,
                     itemStyle: {
-                        color: 'var(--color-gray-300, #d1d5db)'
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: '#6366f1' },
+                            { offset: 1, color: '#818cf8' }
+                        ])
+                    },
+                    emphasis: {
+                        focus: 'series'
+                    },
+                    stack: 'Total'
+                },
+                ...(showMA ? [{
+                    name: '7-day MA',
+                    type: 'line',
+                    smooth: true,
+                    showSymbol: false,
+                    data: maData,
+                    lineStyle: {
+                        opacity: 0.5,
+                        width: 2
                     }
-                }
-            }]
+                }] : [])
+            ] : [
+                {
+                    name: 'Sales',
+                    type: chartType,
+                    data: values,
+                    itemStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: '#6366f1' },
+                            { offset: 1, color: '#818cf8' }
+                        ])
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: '#4f46e5' },
+                                { offset: 1, color: '#6366f1' }
+                            ])
+                        }
+                    }
+                },
+                ...(showMA ? [{
+                    name: '7-day MA',
+                    type: 'line',
+                    smooth: true,
+                    showSymbol: false,
+                    data: maData,
+                    lineStyle: {
+                        opacity: 0.5,
+                        width: 2
+                    }
+                }] : [])
+            ]
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
     }
 
     onMount(() => {
@@ -88,19 +183,13 @@
         updateChart();
     });
 
-    $: if (view) {
-        updateChart();
+    $: if (data || view || chartType || showMA) {
+        if (chart) {
+            updateChart();
+        }
     }
 </script>
 
-<div>
-    <div class="flex flex-row justify-end mb-2">
-        <ButtonGroup class="space-x-px">
-            <Button on:click={() => view = 'volume'} class={view == 'volume' ? 'outline' : ''}>Volume</Button>
-            <Button on:click={() => view = 'sales'} class={view == 'sales' ? 'outline' : ''}>Sales</Button>
-        </ButtonGroup>
-    </div>
-    <div class="h-[300px] p-4 border rounded w-full bg-gray-100 dark:bg-gray-700 shadow-lg">
-        <div bind:this={chartDiv} class="w-full h-full"></div>
-    </div>
+<div class="h-full w-full">
+    <div bind:this={chartDiv} class="w-full h-full"></div>
 </div>
