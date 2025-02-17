@@ -590,6 +590,16 @@
                                 </div>
                             </div>
                         {/if}
+
+                        <!-- More Info Link -->
+                        <div class="transform {isExpanded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'} transition-all duration-300 delay-500">
+                            <button on:click|stopPropagation|preventDefault={() => goto(`/collection/${token.contractId}/token/${token.tokenId}`)}
+                                aria-label="View Full Details"
+                               class="inline-flex items-center gap-2 px-4 py-2 bg-white/15 hover:bg-white/20 text-white rounded-lg transition-colors backdrop-blur-sm">
+                                <i class="fas fa-info-circle"></i>
+                                <span class="text-sm font-medium">View Full Details</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

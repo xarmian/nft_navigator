@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageData } from '../$types';
-    import type { Token, Collection } from '$lib/data/types';
+    import type { Token, Collection, Metadata } from '$lib/data/types';
 	import Switch from '$lib/component/ui/Switch.svelte';
     import { inview } from 'svelte-inview';
     import Select from '$lib/component/ui/Select.svelte';
@@ -18,6 +18,7 @@
     import { onMount, onDestroy } from 'svelte';
     import { tokenCache } from '$lib/stores/tokenCache';
     import { algodIndexer } from '$lib/utils/algod';
+    import { getEnvoiNames } from '$lib/utils/envoi';
 
     //const forsale = $page.url.searchParams.get('forsale');
 
@@ -46,6 +47,35 @@
     $: sortDirection = tabSortDirections[displayTab] || 'asc';
     let mintDate: string | null = null;
     let mintDateTime: string | null = null;
+
+    // Creator Envoi metadata
+    let creatorEnvoiMetadata: { url?: string; avatar?: string; location?: string; 'com.twitter'?: string; 'com.github'?: string; } | null = null;
+
+    // Function to safely parse metadata string
+    function parseMetadata(metadataStr: string | undefined): Metadata | null {
+        if (!metadataStr) return null;
+        try {
+            return JSON.parse(metadataStr) as Metadata;
+        } catch (e) {
+            console.error('Error parsing metadata:', e);
+            return null;
+        }
+    }
+
+    // Parse the metadata once for the collection's first token
+    $: firstTokenMetadata = collection?.firstToken?.metadata ? parseMetadata(collection.firstToken.metadata) : null;
+    $: collectionDescription = data.collection?.highforgeData?.description || firstTokenMetadata?.description || '';
+
+    // Fetch creator's Envoi metadata when collection changes
+    $: {
+        if (collection?.creator && collection.creatorName?.endsWith('.voi')) {
+            getEnvoiNames([collection.creator]).then(results => {
+                if (results.length > 0) {
+                    creatorEnvoiMetadata = results[0].metadata;
+                }
+            });
+        }
+    }
 
     // Calculate counts for tabs
     $: forSaleCount = tokens?.filter(t => t.marketData && !t.marketData.sale && !t.marketData.delete)?.length ?? 0;
@@ -211,21 +241,6 @@
             getMintDate();
         }
     }
-
-    // Function to safely parse JSON metadata
-    function getDescriptionFromMetadata(metadata: string | undefined | null): string | null {
-        if (!metadata) return null;
-        try {
-            const parsed = JSON.parse(metadata);
-            return parsed.description || null;
-        } catch (e) {
-            return null;
-        }
-    }
-
-    $: collectionDescription = data.collection?.highforgeData?.description || 
-        getDescriptionFromMetadata(data.collection?.firstToken?.metadata) || 
-        '';
 </script>
 
 {#if collection}
@@ -241,6 +256,38 @@
                         {#if collectionDescription}
                             <div class="text-4xl font-bold md:text-left text-center">{data.collection?.highforgeData?.title??collectionName}</div>
                             <div class="text-md md:text-left text-center">{collectionDescription}</div>
+                        {/if}
+                        <!-- Add creator's Envoi metadata if available -->
+                        {#if collection?.creatorName?.endsWith('.voi') && creatorEnvoiMetadata}
+                            <div class="flex flex-col space-y-2 mt-4">
+                                {#if creatorEnvoiMetadata.url}
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-globe text-gray-300"></i>
+                                        <a href={creatorEnvoiMetadata.url} target="_blank" rel="noopener noreferrer" 
+                                           class="text-blue-400 hover:text-blue-300 text-sm">{creatorEnvoiMetadata.url}</a>
+                                    </div>
+                                {/if}
+                                {#if creatorEnvoiMetadata.location}
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-map-marker-alt text-gray-300"></i>
+                                        <span class="text-gray-300 text-sm">{creatorEnvoiMetadata.location}</span>
+                                    </div>
+                                {/if}
+                                {#if creatorEnvoiMetadata['com.twitter']}
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fab fa-twitter text-gray-300"></i>
+                                        <a href="https://twitter.com/{creatorEnvoiMetadata['com.twitter']}" target="_blank" 
+                                           class="text-blue-400 hover:text-blue-300 text-sm">@{creatorEnvoiMetadata['com.twitter']}</a>
+                                    </div>
+                                {/if}
+                                {#if creatorEnvoiMetadata['com.github']}
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fab fa-github text-gray-300"></i>
+                                        <a href="https://github.com/{creatorEnvoiMetadata['com.github']}" target="_blank" 
+                                           class="text-blue-400 hover:text-blue-300 text-sm">{creatorEnvoiMetadata['com.github']}</a>
+                                    </div>
+                                {/if}
+                            </div>
                         {/if}
                     </div>
                 <!-- Integrated buttons section for desktop -->
@@ -330,7 +377,12 @@
             <select
                 class="flex-1 p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600"
                 value={displayTab}
-                on:change={(e) => onSubpageChange(e.target.value)}
+                on:change={(e) => {
+                    const target = e.target as HTMLSelectElement;
+                    if (target) {
+                        onSubpageChange(target.value);
+                    }
+                }}
             >
                 {#each tabs as tab}
                     <option value={tab.id}>

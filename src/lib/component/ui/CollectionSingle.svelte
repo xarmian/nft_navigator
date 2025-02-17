@@ -265,9 +265,9 @@
                                 on:click={handleLinkClick}
                                 class="text-purple-400 hover:text-purple-300 text-sm inline-block">
                             {#if description && description.length > 150}
-                                Read more
+                                Read more <i class="fas fa-arrow-right"></i>
                             {:else}
-                                View collection
+                                View collection <i class="fas fa-arrow-right"></i>
                             {/if}
                         </a>
                     </div>

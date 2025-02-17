@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Token, Collection, Listing, Currency, Auction, Sale } from '$lib/data/types';
-    import TokenName from '$lib/component/ui/TokenName.svelte';
+    import { reformatTokenName } from '$lib/utils/indexer';
     import { zeroAddress } from '$lib/data/constants';
     import { selectedWallet } from 'avm-wallet-svelte';
 	import SendTokenModal from './SendTokenModal.svelte';
@@ -539,7 +539,7 @@
                             {#if token.contractId === 797609}
                                 {token.metadata?.envoiName}
                             {:else}
-                                <TokenName name={token.metadata?.name??String(token.tokenId)} tokenId={token.tokenId}></TokenName>
+                                {reformatTokenName(token.metadata?.name??String(token.tokenId), token.tokenId)}
                             {/if}
                         </h1>
                         
