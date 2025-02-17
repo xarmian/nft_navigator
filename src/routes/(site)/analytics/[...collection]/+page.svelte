@@ -113,8 +113,14 @@
     $: volumeChange = null as number | null;
     $: salesChange = null as number | null;
     let sales: Sale[] = [];
-    $: startTime = undefined as undefined | Date;
-    $: endTime = undefined as undefined | Date;
+
+    // Time range handling
+    const now = new Date();
+    const defaultStart = subDays(now, 7);
+    const defaultEnd = now;
+
+    $: startTime = $userPreferences.analyticsStart ?? defaultStart;
+    $: endTime = $userPreferences.analyticsEnd ?? defaultEnd;
 
     // Quick date range options
     const dateRanges = [
@@ -130,33 +136,21 @@
         $userPreferences.analyticsStart = subDays(now, days);
     }
 
-    const unsub = userPreferences.subscribe((value: any) => {
-        if (value.analyticsStart) startTime = value.analyticsStart;
-        if (value.analyticsEnd) endTime = value.analyticsEnd;
-    });
-
-    onDestroy(unsub);
-    
-    onMount(async () => {
-        // Set default 7-day range if not already set
-        if (!$userPreferences.analyticsStart || !$userPreferences.analyticsEnd) {
-            const now = new Date();
-            $userPreferences.analyticsEnd = now;
-            $userPreferences.analyticsStart = subDays(now, 7);
-        }
-    });
-
-    // Update reactive statement to handle date range and collection changes
-    $: {
-        if (collection?.contractId !== null && startTime != null && endTime != null) {
-            chartData = [];
-            resetMetrics();
-            getData(collection?.contractId, startTime, endTime);
-        }
-    }
-
     // Add a loading state for sales data
     let isLoadingSales = false;
+
+    // Load data whenever collection or time range changes
+    $: {
+        if (startTime && endTime) {
+            chartData = [];
+            resetMetrics();
+            if (collection?.contractId) {
+                getData(collection.contractId, startTime, endTime);
+            } else if (collection === null) {
+                getData(undefined, startTime, endTime);
+            }
+        }
+    }
 
     function resetMetrics() {
         voiVolume = null;
@@ -356,38 +350,50 @@
                     <!-- Market Activity -->
                     <div class="bg-white dark:bg-gray-800 rounded-xl p-6 col-span-2 shadow-sm dark:shadow-none">
                         <h3 class="text-gray-600 dark:text-gray-400 text-sm font-medium mb-4">Secondary Market Activity</h3>
-                        <div class="grid grid-cols-3 gap-4">
-                            <div>
-                                <div class="text-gray-600 dark:text-gray-400 text-sm">Total Volume</div>
-                                <div class="text-2xl font-bold text-gray-900 dark:text-white">
-                                    {voiVolume !== null ? (voiVolume / Math.pow(10,6)).toLocaleString() : '-'} VOI
-                                </div>
-                                {#if volumeChange !== null}
-                                    <div class="mt-1 flex items-center {getChangeColor(volumeChange)}">
-                                        <i class="fas fa-{volumeChange >= 0 ? 'arrow-up' : 'arrow-down'} mr-1"></i>
-                                        {Math.abs(volumeChange).toFixed(2)}%
+                        {#if isLoadingSales}
+                            <div class="grid grid-cols-3 gap-4">
+                                {#each Array(3) as _}
+                                    <div class="space-y-2">
+                                        <div class="h-4 w-24 bg-gray-100 dark:bg-gray-700 rounded animate-pulse"></div>
+                                        <div class="h-8 w-32 bg-gray-100 dark:bg-gray-700 rounded animate-pulse"></div>
+                                        <div class="h-4 w-16 bg-gray-100 dark:bg-gray-700 rounded animate-pulse"></div>
                                     </div>
-                                {/if}
+                                {/each}
                             </div>
-                            <div>
-                                <div class="text-gray-600 dark:text-gray-400 text-sm">Total Sales</div>
-                                <div class="text-2xl font-bold text-gray-900 dark:text-white">
-                                    {totalSales !== null ? totalSales.toLocaleString() : '-'}
-                                </div>
-                                {#if salesChange !== null}
-                                    <div class="mt-1 flex items-center {getChangeColor(salesChange)}">
-                                        <i class="fas fa-{salesChange >= 0 ? 'arrow-up' : 'arrow-down'} mr-1"></i>
-                                        {Math.abs(salesChange).toFixed(2)}%
+                        {:else}
+                            <div class="grid grid-cols-3 gap-4">
+                                <div>
+                                    <div class="text-gray-600 dark:text-gray-400 text-sm">Total Volume</div>
+                                    <div class="text-2xl font-bold text-gray-900 dark:text-white">
+                                        {voiVolume !== null ? (voiVolume / Math.pow(10,6)).toLocaleString() : '-'} VOI
                                     </div>
-                                {/if}
-                            </div>
-                            <div>
-                                <div class="text-gray-600 dark:text-gray-400 text-sm">Average Price</div>
-                                <div class="text-2xl font-bold text-gray-900 dark:text-white">
-                                    {avgPrice !== null ? avgPrice.toLocaleString() : '-'} VOI
+                                    {#if volumeChange !== null}
+                                        <div class="mt-1 flex items-center {getChangeColor(volumeChange)}">
+                                            <i class="fas fa-{volumeChange >= 0 ? 'arrow-up' : 'arrow-down'} mr-1"></i>
+                                            {Math.abs(volumeChange).toFixed(2)}%
+                                        </div>
+                                    {/if}
+                                </div>
+                                <div>
+                                    <div class="text-gray-600 dark:text-gray-400 text-sm">Total Sales</div>
+                                    <div class="text-2xl font-bold text-gray-900 dark:text-white">
+                                        {totalSales !== null ? totalSales.toLocaleString() : '-'}
+                                    </div>
+                                    {#if salesChange !== null}
+                                        <div class="mt-1 flex items-center {getChangeColor(salesChange)}">
+                                            <i class="fas fa-{salesChange >= 0 ? 'arrow-up' : 'arrow-down'} mr-1"></i>
+                                            {Math.abs(salesChange).toFixed(2)}%
+                                        </div>
+                                    {/if}
+                                </div>
+                                <div>
+                                    <div class="text-gray-600 dark:text-gray-400 text-sm">Average Price</div>
+                                    <div class="text-2xl font-bold text-gray-900 dark:text-white">
+                                        {avgPrice !== null ? avgPrice.toLocaleString() : '-'} VOI
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        {/if}
                     </div>
 
                     <!-- Current Market -->
