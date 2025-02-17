@@ -28,6 +28,8 @@
     $: collection = data.collection;
     let tokens: Token[] = data.tokens ?? [];
     let isLoading = false;
+    let isLoadingMarket = false;
+    let marketTokenData: Record<string, Listing> = {};
     
     // Fetch tokens when collection changes
     $: {
@@ -55,10 +57,42 @@
     let chartData: ChartDataPoint[] = [];
     let marketData: { listings: Listing[] } = { listings: [] };
 
+    // Fetch market data when collection changes
+    $: {
+        if (collection?.contractId) {
+            isLoadingMarket = true;
+            fetch(`${indexerBaseURL}/mp/listings/?collectionId=${collection.contractId}&active=true`)
+                .then(response => response.json())
+                .then(data => {
+                    marketData = data;
+                    // Update market token data mapping
+                    marketTokenData = Object.fromEntries(
+                        data.listings
+                            .filter((l: Listing) => !l.sale && !l.delete)
+                            .map((l: Listing) => [l.tokenId, l])
+                    );
+                    isLoadingMarket = false;
+                })
+                .catch(error => {
+                    console.error('Error fetching market data:', error);
+                    isLoadingMarket = false;
+                });
+        }
+    }
+
+    // Combine tokens with market data
+    $: tokensWithMarket = tokens.map(token => {
+        const marketToken = marketTokenData[token.tokenId];
+        if (marketToken && token.owner === marketToken.seller) {
+            return { ...token, marketData: marketToken };
+        }
+        return token;
+    });
+    
     // Collection Stats
-    $: uniqueHolders = new Set(tokens.filter(t => !t.isBurned).map(t => t.owner)).size;
-    $: totalTokens = tokens.length;
-    $: burnedTokens = tokens.filter(t => t.isBurned).length;
+    $: uniqueHolders = new Set(tokensWithMarket.filter(t => !t.isBurned).map(t => t.owner)).size;
+    $: totalTokens = tokensWithMarket.length;
+    $: burnedTokens = tokensWithMarket.filter(t => t.isBurned).length;
     $: activeSupply = totalTokens - burnedTokens;
     $: holderConcentration = activeSupply > 0 ? (uniqueHolders / activeSupply) * 100 : 0;
     
@@ -104,32 +138,15 @@
     onDestroy(unsub);
     
     onMount(async () => {
-        startTime = $userPreferences.analyticsStart ?? subDays(new Date(), 1);
-        endTime = $userPreferences.analyticsEnd ?? new Date();
-
-        // Fetch market data if we have a collection
-        if (collection?.contractId) {
-            const marketUrl = `${indexerBaseURL}/mp/listings/?collectionId=${collection.contractId}&active=true`;
-            try {
-                const response = await fetch(marketUrl);
-                marketData = await response.json();
-                
-                // Update token market data
-                tokens = tokens.map(token => {
-                    const marketToken = marketData.listings.find(
-                        (l: Listing) => l.tokenId === token.tokenId && !l.sale && !l.delete
-                    );
-                    if (marketToken && token.owner === marketToken.seller) {
-                        return { ...token, marketData: marketToken };
-                    }
-                    return token;
-                });
-            } catch (error) {
-                console.error('Error fetching market data:', error);
-            }
+        // Set default 7-day range if not already set
+        if (!$userPreferences.analyticsStart || !$userPreferences.analyticsEnd) {
+            const now = new Date();
+            $userPreferences.analyticsEnd = now;
+            $userPreferences.analyticsStart = subDays(now, 7);
         }
     });
 
+    // Update reactive statement to handle date range and collection changes
     $: {
         if (collection?.contractId !== null && startTime != null && endTime != null) {
             chartData = [];
@@ -137,6 +154,9 @@
             getData(collection?.contractId, startTime, endTime);
         }
     }
+
+    // Add a loading state for sales data
+    let isLoadingSales = false;
 
     function resetMetrics() {
         voiVolume = null;
@@ -149,81 +169,79 @@
     async function getData(contractId: number | undefined, startTime: Date, endTime: Date) {
         if (!startTime || !endTime) return;
         
-        // Fetch current period data
-        let salesURL = `${indexerBaseURL}/mp/sales?min-time=${Math.floor(startTime.getTime() / 1000)}`;
-        if (contractId) {
-            salesURL += `&collectionId=${contractId}`;
+        isLoadingSales = true;
+        try {
+            // Fetch current period data
+            let salesURL = `${indexerBaseURL}/mp/sales?min-time=${Math.floor(startTime.getTime() / 1000)}`;
+            if (contractId) {
+                salesURL += `&collectionId=${contractId}`;
+            }
+            const salesResp = await fetch(salesURL);
+            const salesData = await salesResp.json();
+            const s: Sale[] = salesData.sales;
+            sales = s.reverse();
+
+            // Calculate metrics
+            voiVolume = s.reduce((acc, sale) => 
+                sale.currency === 0 ? acc + sale.price : acc, 0);
+            totalSales = s.length;
+            avgPrice = totalSales > 0 ? (voiVolume) / totalSales / Math.pow(10,6) : 0;
+
+            // Fetch previous period data for comparison
+            const prevStartTime = new Date(startTime.getTime() - (endTime.getTime() - startTime.getTime()));
+            let prevSalesURL = `${indexerBaseURL}/mp/sales?min-time=${Math.floor(prevStartTime.getTime() / 1000)}&max-time=${Math.floor(startTime.getTime() / 1000)}`;
+            if (contractId) {
+                prevSalesURL += `&collectionId=${contractId}`;
+            }
+            const prevSalesResp = await fetch(prevSalesURL);
+            const prevSalesData = await prevSalesResp.json();
+            const prevSales: Sale[] = prevSalesData.sales;
+
+            // Calculate changes
+            const prevVoiVolume = prevSales.reduce((acc, sale) => 
+                sale.currency === 0 ? acc + sale.price : acc, 0);
+            const prevTotalVolume = prevVoiVolume;
+            const currentTotalVolume = voiVolume;
+            
+            volumeChange = prevTotalVolume > 0 
+                ? ((currentTotalVolume - prevTotalVolume) / prevTotalVolume) * 100 
+                : null;
+            salesChange = prevSales.length > 0 
+                ? ((totalSales - prevSales.length) / prevSales.length) * 100 
+                : null;
+
+            // Chart data processing
+            let segment = (endTime.getTime() - startTime.getTime()) / 30;
+            let date: Date = new Date(startTime.getTime());
+            let chartDataMap = new Map<string, { value: number, voi: number, salesCount: number }>();
+            
+            for (let i = 0; i < 30; i++) {
+                let nextDate = new Date(date.getTime() + segment);
+                let result = s.reduce((acc, sale) => {
+                    if (sale.timestamp * 1000 >= date.getTime() && sale.timestamp * 1000 < nextDate.getTime()) {
+                        return { 
+                            value: acc.value + sale.price, 
+                            voi: acc.voi + (sale.currency == 0 ? sale.price : 0),
+                            salesCount: acc.salesCount + 1 
+                        };
+                    }
+                    return acc;
+                }, { value: 0, salesCount: 0, voi: 0 });
+                chartDataMap.set(date.toISOString(), result);
+                date = nextDate;
+            }
+            
+            chartData = Array.from(chartDataMap).map(([key, result]) => ({
+                date: key,
+                value: result.value / Math.pow(10,6),
+                salesCount: result.salesCount,
+                voi: result.voi / Math.pow(10,6),
+            }));
+        } catch (error) {
+            console.error('Error fetching sales data:', error);
+        } finally {
+            isLoadingSales = false;
         }
-        const salesResp = await fetch(salesURL);
-        const salesData = await salesResp.json();
-        const s: Sale[] = salesData.sales;
-        sales = s.reverse();
-
-        // Calculate metrics
-        voiVolume = s.reduce((acc, sale) => 
-            sale.currency === 0 ? acc + sale.price : acc, 0);
-        totalSales = s.length;
-        avgPrice = totalSales > 0 ? (voiVolume) / totalSales / Math.pow(10,6) : 0;
-
-        // Fetch previous period data for comparison
-        const prevStartTime = new Date(startTime.getTime() - (endTime.getTime() - startTime.getTime()));
-        const prevSalesURL = `${indexerBaseURL}/mp/sales?min-time=${Math.floor(prevStartTime.getTime() / 1000)}&max-time=${Math.floor(startTime.getTime() / 1000)}`;
-        if (contractId) {
-            salesURL += `&collectionId=${contractId}`;
-        }
-        const prevSalesResp = await fetch(prevSalesURL);
-        const prevSalesData = await prevSalesResp.json();
-        const prevSales: Sale[] = prevSalesData.sales;
-
-        // Calculate changes
-        const prevVoiVolume = prevSales.reduce((acc, sale) => 
-            sale.currency === 0 ? acc + sale.price : acc, 0);
-        const prevTotalVolume = prevVoiVolume;
-        const currentTotalVolume = voiVolume;
-        
-        volumeChange = prevTotalVolume > 0 
-            ? ((currentTotalVolume - prevTotalVolume) / prevTotalVolume) * 100 
-            : null;
-        salesChange = prevSales.length > 0 
-            ? ((totalSales - prevSales.length) / prevSales.length) * 100 
-            : null;
-
-        // Fetch listings
-        let listURL = `${indexerBaseURL}/mp/listings?min-time=${Math.floor(startTime.getTime() / 1000)}`;
-        if (contractId) {
-            listURL += `&collectionId=${contractId}`;
-        }
-        const listResp = await fetch(listURL);
-        const listData = await listResp.json();
-        const listings: any[] = listData.listings;
-
-        // Chart data processing
-        let segment = (endTime.getTime() - startTime.getTime()) / 30;
-        let date: Date = new Date(startTime.getTime());
-        let chartDataMap = new Map<string, { value: number, voi: number, salesCount: number }>();
-        
-        for (let i = 0; i < 30; i++) {
-            let nextDate = new Date(date.getTime() + segment);
-            let result = s.reduce((acc, sale) => {
-                if (sale.timestamp * 1000 >= date.getTime() && sale.timestamp * 1000 < nextDate.getTime()) {
-                    return { 
-                        value: acc.value + sale.price, 
-                        voi: acc.voi + (sale.currency == 0 ? sale.price : 0),
-                        salesCount: acc.salesCount + 1 
-                    };
-                }
-                return acc;
-            }, { value: 0, salesCount: 0, voi: 0 });
-            chartDataMap.set(date.toISOString(), result);
-            date = nextDate;
-        }
-        
-        chartData = Array.from(chartDataMap).map(([key, result]) => ({
-            date: key,
-            value: result.value / Math.pow(10,6),
-            salesCount: result.salesCount,
-            voi: result.voi / Math.pow(10,6),
-        }));
     }
 
     function resetSelectedCollection() {
@@ -376,7 +394,7 @@
                     {#if collection}
                         <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm dark:shadow-none">
                             <h3 class="text-gray-600 dark:text-gray-400 text-sm font-medium mb-4">Current Market</h3>
-                            {#if isLoading}
+                            {#if isLoading || isLoadingMarket}
                                 <div class="space-y-4 animate-pulse">
                                     <div class="h-16 bg-gray-100 dark:bg-gray-700 rounded"></div>
                                     <div class="h-16 bg-gray-100 dark:bg-gray-700 rounded"></div>
