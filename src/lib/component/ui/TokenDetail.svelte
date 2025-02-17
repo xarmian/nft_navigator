@@ -370,6 +370,15 @@
         goto(`/collection/${token.contractId}`);
     }
 
+    function handleLinkClick(e: MouseEvent) {
+        e.preventDefault();
+        e.stopPropagation();
+        const href = (e.currentTarget as HTMLAnchorElement).getAttribute('href');
+        if (href) {
+            goto(href);
+        }
+    }
+
 </script>
     <div class="shadow-md rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative overflow-hidden {hidden ? 'hidden' : ''}" style="display: {hidden ? 'none' : 'block'}">
         <a href="/collection/{token.contractId}/token/{token.tokenId}" 
@@ -491,7 +500,9 @@
                             {#if token.isBurned}
                                 <span class="text-red-500 font-medium"><i class="fas fa-fire"></i> Burned</span>
                             {:else}
-                                <a href="/portfolio/{token.owner}" class="text-purple-600 dark:text-purple-400 hover:text-purple-700 font-medium">
+                                <a href="/portfolio/{token.owner}" 
+                                   on:click={handleLinkClick}
+                                   class="text-purple-600 dark:text-purple-400 hover:text-purple-700 font-medium">
                                     {#if token.ownerNFD}
                                         {token.ownerNFD}
                                     {:else}

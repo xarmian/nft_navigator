@@ -111,124 +111,169 @@
 </script>
 
 <MetaTags title="Home | NFT Navigator" />
-<div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-bold my-8 text-center">Discover NFTs on Voi Network</h1>
-
-    <NFTGamesAd />
-
-    <div class="mb-8">
-        <SecondaryNavBar />
-    </div>
-
-    <div class="flex flex-col md:flex-row justify-between items-center mb-8">
-        <div class="flex space-x-4 mb-4 md:mb-0">
-            <button
-                class="{activeTab === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'} px-4 py-2 rounded-full transition duration-300"
-                on:click={() => { activeTab = 'all'; $filters.mintable = false; }}
-            >
-                All Collections
-            </button>
-            <button
-                class="{activeTab === 'mintable' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'} px-4 py-2 rounded-full transition duration-300"
-                on:click={() => { activeTab = 'mintable'; $filters.mintable = true; }}
-            >
-                Mintable
-            </button>
+<div class="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Hero Section -->
+        <div class="text-center mb-12">
+            <h1 class="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Discover NFTs on Voi Network
+            </h1>
+            <p class="text-gray-600 dark:text-gray-300 text-lg max-w-2xl mx-auto">
+                Explore unique digital collectibles, discover new artists, and join the vibrant Voi NFT community.
+            </p>
         </div>
-        <div class="flex items-center space-x-4">
-            <Select options={[{id:'Popularity', name: 'Popularity'},{id: 'Mint', name: 'Mint Date'},{id: 'Name', name: 'Name'},{id: 'Randomize', name: 'Randomize'}]} bind:value={$sort.by} />
-            <Select options={[{id: 'Descending', name: 'Descending'},{id: 'Ascending', name: 'Ascending'}]} bind:value={$sort.direction} />
+
+        <NFTGamesAd />
+
+        <!-- Navigation and Filters -->
+        <div class="mb-8">
+            <SecondaryNavBar />
         </div>
-    </div>
 
-    <div class="relative mb-8">
-        <input
-        type="text"
-        placeholder="Search collections"
-        bind:value={textFilter}
-        bind:this={inputElement}
-        class="w-full p-4 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-    />
-    {#if textFilter}
-        <button
-            class="absolute right-4 top-1/2 transform -translate-y-1/2"
-            on:click={() => { textFilter = ''; inputElement.focus(); }}
-            aria-label="Clear search"
-        >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-6 w-6 text-gray-500">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-        </button>
-    {/if}
-    {#if isMounted && filterCollections.length == 0}
-        <div class="text-center text-gray-500 mb-4 mt-2">Nothing to see here. Check back soon.</div>
-        <div class="w-full h-64 bg-gray-900 relative overflow-hidden rounded-lg mb-8">
-                <svg width="100%" height="100%" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Stars -->
-                    <g id="stars">
-                        <circle cx="30" cy="30" r="1" fill="white" />
-                        <circle cx="70" cy="50" r="1" fill="white" />
-                        <circle cx="150" cy="20" r="1" fill="white" />
-                        <circle cx="200" cy="40" r="1" fill="white" />
-                        <circle cx="280" cy="70" r="1" fill="white" />
-                        <circle cx="350" cy="30" r="1" fill="white" />
-                    </g>
+        <!-- Main Controls -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <div class="flex space-x-4 w-full md:w-auto">
+                <button
+                    class="{activeTab === 'all' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'} px-6 py-2.5 rounded-xl shadow-sm transition duration-300 font-medium flex items-center gap-2"
+                    on:click={() => { activeTab = 'all'; $filters.mintable = false; }}
+                >
+                    <i class="fas fa-th"></i>
+                    All Collections
+                </button>
+                <button
+                    class="{activeTab === 'mintable' ? 'bg-gradient-to-r from-green-500 to-green-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'} px-6 py-2.5 rounded-xl shadow-sm transition duration-300 font-medium flex items-center gap-2"
+                    on:click={() => { activeTab = 'mintable'; $filters.mintable = true; }}
+                >
+                    <i class="fas fa-fire"></i>
+                    Mintable
+                </button>
+            </div>
+            <div class="flex items-center space-x-4 w-full md:w-auto">
+                <div class="w-30">
+                    <Select options={[{id:'Popularity', name: 'Popularity'},{id: 'Mint', name: 'Mint Date'},{id: 'Name', name: 'Name'},{id: 'Randomize', name: 'Randomize'}]} bind:value={$sort.by} />
+                </div>
+                <div class="w-30">
+                    <Select options={[{id: 'Descending', name: 'Descending'},{id: 'Ascending', name: 'Ascending'}]} bind:value={$sort.direction} />
+                </div>
+            </div>
+        </div>
 
-                    <!-- Spaceship -->
-                    <g id="spaceship">
-                        <animateTransform
-                            attributeName="transform"
-                            type="translate"
-                            from="0 0"
-                            to="0 -200"
-                            dur="4s"
-                            repeatCount="indefinite"
-                        />
-                        <path d="M200 140 L180 180 L220 180 Z" fill="#808080" />
-                        <rect x="190" y="100" width="20" height="50" fill="#A0A0A0" />
-                        <circle cx="200" cy="90" r="20" fill="#C0C0C0" />
-                        
-                        <!-- Flame -->
-                        <path id="flame" d="M195 180 Q200 190 205 180 L200 200 Z" fill="orange">
-                            <animate
-                                attributeName="opacity"
-                                values="1;0;1"
-                                dur="0.5s"
+        <!-- Search Bar -->
+        <div class="relative mb-8">
+            <div class="relative">
+                <input
+                    type="text"
+                    placeholder="Search collections..."
+                    bind:value={textFilter}
+                    bind:this={inputElement}
+                    class="w-full p-4 pl-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-300"
+                />
+                <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                {#if textFilter}
+                    <button
+                        class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                        on:click={() => { textFilter = ''; inputElement.focus(); }}
+                        aria-label="Clear search"
+                    >
+                        <i class="fas fa-times"></i>
+                    </button>
+                {/if}
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        {#if isMounted && filterCollections.length == 0}
+            <div class="text-center py-16 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+                <div class="text-gray-500 dark:text-gray-400 mb-4">Nothing to see here. Check back soon.</div>
+                <div class="w-full h-64 relative overflow-hidden rounded-lg">
+                    <svg width="100%" height="100%" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Stars with animation -->
+                        <g id="stars">
+                            {#each Array(20) as _, i}
+                                <circle 
+                                    cx={Math.random() * 400} 
+                                    cy={Math.random() * 200} 
+                                    r="1" 
+                                    fill="white" 
+                                    opacity={Math.random()}
+                                >
+                                    <animate
+                                        attributeName="opacity"
+                                        values="0;1;0"
+                                        dur={2 + Math.random() * 3 + "s"}
+                                        repeatCount="indefinite"
+                                    />
+                                </circle>
+                            {/each}
+                        </g>
+
+                        <!-- Spaceship with improved animation -->
+                        <g id="spaceship">
+                            <animateTransform
+                                attributeName="transform"
+                                type="translate"
+                                from="-50 100"
+                                to="450 100"
+                                dur="8s"
                                 repeatCount="indefinite"
                             />
-                        </path>
-                    </g>
-                </svg>
-            </div>
-        {/if}
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-y-6 gap-x-6">
-        {#if isMounted}
-            {#each filterCollections.slice(0, displayCount) as collection (collection.contractId)}
-                <div transition:fade>
-                    <MultiCollectionView viewType="grid" collections={[collection]} on:click={handleCollectionClick} />
+                            <path d="M200 140 L180 180 L220 180 Z" fill="#808080" />
+                            <rect x="190" y="100" width="20" height="50" fill="#A0A0A0" />
+                            <circle cx="200" cy="90" r="20" fill="#C0C0C0" />
+                            
+                            <!-- Flame with animation -->
+                            <path id="flame" d="M195 180 Q200 190 205 180 L200 200 Z" fill="orange">
+                                <animate
+                                    attributeName="opacity"
+                                    values="1;0.5;1"
+                                    dur="0.3s"
+                                    repeatCount="indefinite"
+                                />
+                            </path>
+                        </g>
+                    </svg>
                 </div>
-            {/each}
+            </div>
+        {/if}
+
+        <!-- Collections Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {#if isMounted}
+                {#each filterCollections.slice(0, displayCount) as collection (collection.contractId)}
+                    <div in:fade={{ duration: 300, delay: 100 }}>
+                        <MultiCollectionView viewType="grid" collections={[collection]} on:click={handleCollectionClick} />
+                    </div>
+                {/each}
+            {/if}
+        </div>
+
+        <!-- Loading Overlay -->
+        {#if isLoading}
+            <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" transition:fade={{ duration: 200 }}>
+                <div in:fly="{{ y: 50, duration: 300 }}" out:fade="{{ duration: 200 }}" class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-xl">
+                    <LoadingSpinner />
+                </div>
+            </div>
+        {/if}
+
+        <!-- Load More Button -->
+        {#if filterCollections.length > displayCount}
+            <div class="text-center mt-12">
+                <button
+                    class="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition duration-300 flex items-center gap-2 mx-auto"
+                    on:click={showMore}
+                >
+                    <i class="fas fa-plus"></i>
+                    Load More Collections
+                </button>
+            </div>
         {/if}
     </div>
-
-    {#if isLoading}
-        <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-            <div in:fly="{{ y: 50, duration: 300 }}" out:fade="{{ duration: 200 }}">
-                <LoadingSpinner />
-            </div>
-        </div>
-    {/if}
-
-    {#if filterCollections.length > displayCount}
-        <div class="text-center mt-8">
-            <button
-                class="bg-blue-500 text-white px-6 py-3 rounded-full hover:bg-blue-600 transition duration-300"
-                on:click={showMore}
-            >
-                Load More
-            </button>
-        </div>
-    {/if}
 </div>
+
+<style>
+    /* Add any additional styles here */
+    :global(.dark) {
+        color-scheme: dark;
+    }
+</style>
