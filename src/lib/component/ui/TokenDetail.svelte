@@ -412,7 +412,7 @@
 
             <!-- Permanent Sale Badge -->
             {#if listing && !listing.sale && !listing.delete}
-                <div class="absolute top-2 left-2 transition-opacity duration-300 {isExpanded ? 'opacity-0' : ''}">
+                <div class="absolute top-2 left-2 transition-opacity duration-300 {isExpanded ? 'opacity-0' : 'opacity-90'}">
                     <div class="flex items-center gap-2 bg-gradient-to-r from-purple-600/90 to-purple-800/90 rounded-lg px-3 py-1.5 shadow-lg backdrop-blur-sm">
                         <i class="fas {listing?.type === 'dutch_auction' ? 'fa-gavel' : 'fa-tag'} text-white/90"></i>
                         <div class="flex flex-col">
@@ -456,7 +456,8 @@
             </div>
             
             <!-- Info Overlay -->
-            <div class="absolute inset-0 bg-black/70 {isExpanded ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'} transition-opacity duration-300 flex flex-col justify-between p-4 overflow-hidden z-[2]">
+            <div class="absolute inset-0 bg-black/70 {isExpanded ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'} transition-opacity duration-300 flex flex-col justify-between p-4 overflow-hidden z-[2]"
+                 on:click|stopPropagation|preventDefault>
                 <!-- Main Content Section -->
                 <div class="flex-1 flex flex-col justify-between">
                     <!-- Top Section with Title and Collection -->
@@ -710,14 +711,10 @@
     </div>
 {/if}
 
-<style>
+<style lang="postcss">
     a {
         text-decoration: none;
     }
-    .badge, .badge::before, .badge::after, .top-right {
-        display: none;
-    }
-
     .hidden {
         display: none !important;
     }
@@ -745,30 +742,16 @@
     }
 
     @media (hover: none) {
+        /* Remove mobile-specific behaviors */
         .group:active .opacity-0 {
-            opacity: 1;
+            opacity: 0;
         }
         .group:active .translate-y-4 {
-            transform: translateY(0);
-        }
-        .group:active .scale-105 {
-            transform: scale(1.05);
+            transform: translateY(4px);
         }
         .group:active .typewriter-effect {
-            animation-play-state: running;
+            animation-play-state: paused;
         }
-    }
-
-    .line-clamp-3 {
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-
-    /* Ensure menu is always on top */
-    .z-50 {
-        z-index: 50;
     }
 
     /* Add backdrop blur to permanent elements */
