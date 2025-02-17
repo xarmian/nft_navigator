@@ -329,8 +329,8 @@
         <div class="flex gap-2">
             <select
                 class="flex-1 p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600"
-                bind:value={displayTab}
-                on:change={(e) => onSubpageChange((e.target as HTMLSelectElement).value)}
+                value={displayTab}
+                on:change={(e) => onSubpageChange(e.target.value)}
             >
                 {#each tabs as tab}
                     <option value={tab.id}>

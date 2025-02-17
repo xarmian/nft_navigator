@@ -47,6 +47,8 @@
     let menuRef: HTMLElement | null = null;
 	let windowDefined = false;
     let waitingForConfirmationModal = false;
+    let isExpanded = false;
+    let isMobile = false;
 
     $: imageUrl = (token) ? getTokenImageUrl(token,((format == 'small') ? 480 : 0)) : '';
 
@@ -72,14 +74,31 @@
         }
     }
 
+    function toggleExpanded(e: MouseEvent) {
+        e.preventDefault();
+        e.stopPropagation();
+        isExpanded = !isExpanded;
+    }
+
     onMount(() => {
         windowDefined = typeof window !== 'undefined';
-
-        //token = token;
+        if (windowDefined) {
+            isMobile = window.matchMedia('(hover: none)').matches;
+            window.addEventListener('resize', () => {
+                isMobile = window.matchMedia('(hover: none)').matches;
+            });
+        }
     });
 
     onDestroy(() => {
-        if (windowDefined && document) document.removeEventListener('click', handleClickOutside);
+        if (windowDefined && document) {
+            document.removeEventListener('click', handleClickOutside);
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('resize', () => {
+                    isMobile = window.matchMedia('(hover: none)').matches;
+                });
+            }
+        }
     });
 
     async function getMarketData() {
@@ -365,7 +384,8 @@
 
 </script>
     <div class="shadow-md rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative overflow-hidden {hidden ? 'hidden' : ''}" style="display: {hidden ? 'none' : 'block'}">
-        <a href="/collection/{token.contractId}/token/{token.tokenId}" class="relative overflow-hidden place-self-center rounded-xl {disableHover ? '' : 'group'} block w-72 h-72">
+        <a href="/collection/{token.contractId}/token/{token.tokenId}" 
+           class="relative overflow-hidden place-self-center rounded-xl {disableHover ? '' : 'group'} block w-72 h-72">
             {#if token.metadata?.envoiName}
                 <div class="absolute inset-0 bg-gradient-to-br from-purple-900/20 to-purple-600/20">
                     <div class="w-full h-full p-6">
@@ -383,9 +403,12 @@
                     </div>
                 </div>
             {:else}
-                <img src={imageUrl} class="w-72 h-72 object-contain transition-transform duration-300 group-hover:scale-105" alt={token.metadata?.name ?? `Token ${token.tokenId}`} loading="lazy" />
+                <img src={imageUrl} 
+                     class="w-72 h-72 object-contain transition-transform duration-300 {!isExpanded && 'group-hover:scale-105'}" 
+                     alt={token.metadata?.name ?? `Token ${token.tokenId}`} 
+                     loading="lazy" />
                 <!-- Add permanent token name that fades out on hover -->
-                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-4 py-3 transition-opacity duration-300 group-hover:opacity-0">
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-4 py-3 transition-opacity duration-300 {isExpanded ? 'opacity-0' : ''}">
                     <div class="flex items-center gap-3">
                         <div class="flex-1">
                             <h3 class="text-white font-bold text-lg">
@@ -401,7 +424,7 @@
 
             <!-- Permanent Sale Badge -->
             {#if listing && !listing.sale && !listing.delete}
-                <div class="absolute top-2 left-2 z-10 transition-opacity duration-300 group-hover:opacity-0">
+                <div class="absolute top-2 left-2 transition-opacity duration-300 {isExpanded ? 'opacity-0' : ''}">
                     <div class="flex items-center gap-2 bg-gradient-to-r from-purple-600/90 to-purple-800/90 rounded-lg px-3 py-1.5 shadow-lg backdrop-blur-sm">
                         <i class="fas {listing?.type === 'dutch_auction' ? 'fa-gavel' : 'fa-tag'} text-white/90"></i>
                         <div class="flex flex-col">
@@ -422,9 +445,17 @@
                 </div>
             {/if}
 
-            <!-- Quick Action Buttons (Always Visible) -->
-            {#if showMenuIcon && (isTokenOwner || isTokenApproved || (listing && !listing.sale && !listing.delete && $selectedWallet))}
-                <div class="absolute top-2 right-2 z-[5]">
+            <!-- Quick Action Buttons -->
+            <div class="absolute top-2 right-2 z-[5] flex gap-2">
+                <!-- Expand/Collapse Button -->
+                <button 
+                    class="p-2 bg-gray-900/70 hover:bg-gray-900/90 rounded-lg transition-colors duration-150 backdrop-blur-sm"
+                    on:click={toggleExpanded}
+                    aria-label="Toggle Details">
+                    <i class="fas {isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'} text-white/90"></i>
+                </button>
+
+                {#if showMenuIcon && (isTokenOwner || isTokenApproved || (listing && !listing.sale && !listing.delete && $selectedWallet))}
                     <button 
                         class="p-2 bg-gray-900/70 hover:bg-gray-900/90 rounded-lg transition-colors duration-150 backdrop-blur-sm"
                         on:click|stopPropagation|preventDefault={toggleMenu}
@@ -433,16 +464,16 @@
                         aria-label="Token Actions">
                         <i class="fas fa-ellipsis-h text-white/90"></i>
                     </button>
-                </div>
-            {/if}
+                {/if}
+            </div>
             
-            <!-- Animated Info Overlay -->
-            <div class="absolute inset-0 bg-black/70 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex flex-col justify-between p-4 overflow-hidden z-[2]">
+            <!-- Info Overlay -->
+            <div class="absolute inset-0 bg-black/70 {isExpanded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300 flex flex-col justify-between p-4 overflow-hidden z-[2]">
                 <!-- Main Content Section -->
                 <div class="flex-1 flex flex-col justify-between">
                     <!-- Top Section with Title and Collection -->
                     <div class="space-y-2">
-                        <div class="transform translate-y-4 opacity-0 transition-all duration-300 delay-200 group-hover:translate-y-0 group-hover:opacity-100">
+                        <div class="transform {isExpanded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'} transition-all duration-300 delay-200">
                             <h3 class="text-white font-bold mb-2 typewriter-effect">
                                 {#if token.contractId === 797609}
                                     {token.metadata?.envoiName}
@@ -452,19 +483,19 @@
                             </h3>
                         </div>
                         
-                        <div class="transform translate-y-4 opacity-0 transition-all duration-300 delay-250 group-hover:translate-y-0 group-hover:opacity-100">
+                        <div class="transform {isExpanded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'} transition-all duration-300 delay-250">
                             <p class="text-white/80 text-sm">Collection: <span on:click|stopPropagation|preventDefault={navigateToCollection} class="text-purple-400 hover:text-purple-300 transition-colors cursor-pointer">{collectionName}</span></p>
                         </div>
                         
                         {#if token.rank && !token.metadata?.envoiName}
-                            <div class="transform translate-y-4 opacity-0 transition-all duration-300 delay-300 group-hover:translate-y-0 group-hover:opacity-100">
+                            <div class="transform {isExpanded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'} transition-all duration-300 delay-300">
                                 <p class="text-white/80 text-sm">Rank: #{token.rank}</p>
                             </div>
                         {/if}
                     </div>
 
                     <!-- Middle Section with Owner Details -->
-                    <div class="transform translate-y-4 opacity-0 transition-all duration-300 delay-350 group-hover:translate-y-0 group-hover:opacity-100">
+                    <div class="transform {isExpanded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'} transition-all duration-300 delay-350">
                         <p class="text-white/80 text-sm line-clamp-2">
                             <span class="font-bold">Owner:</span>
                             {#if token.isBurned}
@@ -485,32 +516,34 @@
                     <div class="space-y-3">
                         <!-- Buy Options -->
                         {#if listing && !listing.sale && !listing.delete && $selectedWallet && listing.seller !== $selectedWallet.address}
-                            <div class="transform translate-y-4 opacity-0 transition-all duration-300 delay-400 group-hover:translate-y-0 group-hover:opacity-100 flex gap-2">
-                                <button on:click|stopPropagation|preventDefault={buyToken}
-                                        class="flex-1 flex flex-col items-center justify-center gap-1 px-3 py-2 bg-blue-500/90 hover:bg-blue-600/90 text-white rounded-lg transition-colors backdrop-blur-sm">
-                                    <div class="flex items-center gap-2">
-                                        <i class="fas fa-shopping-cart text-sm"></i>
-                                        <span class="text-sm font-medium">Buy Now</span>
-                                        {#if currency}
-                                            <span class="text-sm font-bold">
-                                                ({(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName})
-                                            </span>
-                                        {/if}
-                                    </div>
-                                    <div class="text-xs text-white/80 flex items-center gap-1.5">
-                                        Powered by {#if listing.source === 'arcpay'}
-                                            NFT Navigator
-                                        {:else}
-                                            <img src={NautilusLogo} alt="Nautilus Logo" class="h-3.5 bg-white/90 rounded-full p-0.5" />
-                                        {/if}
-                                    </div>
-                                </button>
+                            <div class="transform {isExpanded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'} transition-all duration-300 delay-400">
+                                <div class="flex gap-2">
+                                    <button on:click|stopPropagation|preventDefault={buyToken}
+                                            class="flex-1 flex flex-col items-center justify-center gap-1 px-3 py-2 bg-blue-500/90 hover:bg-blue-600/90 text-white rounded-lg transition-colors backdrop-blur-sm">
+                                        <div class="flex items-center gap-2">
+                                            <i class="fas fa-shopping-cart text-sm"></i>
+                                            <span class="text-sm font-medium">Buy Now</span>
+                                            {#if currency}
+                                                <span class="text-sm font-bold">
+                                                    ({(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName})
+                                                </span>
+                                            {/if}
+                                        </div>
+                                        <div class="text-xs text-white/80 flex items-center gap-1.5">
+                                            Powered by {#if listing.source === 'arcpay'}
+                                                NFT Navigator
+                                            {:else}
+                                                <img src={NautilusLogo} alt="Nautilus Logo" class="h-3.5 bg-white/90 rounded-full p-0.5" />
+                                            {/if}
+                                        </div>
+                                    </button>
+                                </div>
                             </div>
                         {/if}
 
                         <!-- Properties or Metadata -->
                         {#if token.metadata?.envoiName}
-                            <div class="transform translate-y-4 opacity-0 transition-all duration-300 delay-450 group-hover:translate-y-0 group-hover:opacity-100">
+                            <div class="transform {isExpanded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'} transition-all duration-300 delay-450">
                                 <div class="space-y-2">
                                     {#if token.metadata?.envoiMetadata}
                                         <div class="flex flex-col gap-2">
@@ -546,7 +579,7 @@
                                 </div>
                             </div>
                         {:else if tokenProps.length > 0}
-                            <div class="transform translate-y-4 opacity-0 transition-all duration-300 delay-450 group-hover:translate-y-0 group-hover:opacity-100">
+                            <div class="transform {isExpanded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'} transition-all duration-300 delay-450">
                                 <div class="flex flex-wrap gap-1.5">
                                     {#each tokenProps.slice(0, 3) as prop}
                                         <span class="text-xs px-2 py-1 rounded-full bg-white/15 text-white/90 backdrop-blur-sm border border-white/10">
