@@ -48,7 +48,6 @@
 	let windowDefined = false;
     let waitingForConfirmationModal = false;
     let isExpanded = false;
-    let isMobile = false;
 
     $: imageUrl = (token) ? getTokenImageUrl(token,((format == 'small') ? 480 : 0)) : '';
 
@@ -82,22 +81,11 @@
 
     onMount(() => {
         windowDefined = typeof window !== 'undefined';
-        if (windowDefined) {
-            isMobile = window.matchMedia('(hover: none)').matches;
-            window.addEventListener('resize', () => {
-                isMobile = window.matchMedia('(hover: none)').matches;
-            });
-        }
     });
 
     onDestroy(() => {
         if (windowDefined && document) {
             document.removeEventListener('click', handleClickOutside);
-            if (typeof window !== 'undefined') {
-                window.removeEventListener('resize', () => {
-                    isMobile = window.matchMedia('(hover: none)').matches;
-                });
-            }
         }
     });
 
