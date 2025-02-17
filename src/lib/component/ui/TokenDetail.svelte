@@ -402,6 +402,7 @@
                             <h3 class="text-white font-bold text-lg">
                                 <TokenName name={token.metadata?.name??String(token.tokenId)} tokenId={token.tokenId}></TokenName>
                             </h3>
+                            <p class="text-white/80 text-sm">{collectionName}</p>
                             {#if token.rank}
                                 <p class="text-purple-400 text-sm">Rank #{token.rank}</p>
                             {/if}

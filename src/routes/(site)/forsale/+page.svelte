@@ -7,6 +7,7 @@
     import Select from '$lib/component/ui/Select.svelte';
     import CollectionPreview from '$lib/component/ui/CollectionPreview.svelte';
     import CollectionPreviewModal from '$lib/component/ui/CollectionPreviewModal.svelte';
+	import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
     
     export let data: PageData;
     let voiGames: object[] = data.voiGames;
@@ -474,7 +475,7 @@
             {:else}
                 <div class="grid {gridColumns} gap-6">
                     {#each filterTokens.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage) as token (String(token.contractId) + '_' + String(token.tokenId))}
-                        <TokenCard {token} />
+                        <TokenDetail {token} collection={$collectionStore.find(c => c.contractId === token.contractId)} />
                     {/each}
                 </div>
 

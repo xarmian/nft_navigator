@@ -40,6 +40,7 @@
     let showListedOnly = false;
     let sortDirection: 'asc' | 'desc' = 'asc';
     let containerRef: HTMLDivElement;
+    let isLoading = true;
 
     $: {
         if (tokens) {
@@ -59,6 +60,10 @@
 
     onMount(async () => {
         isMobile = Device.isMobile;
+        // Set loading to false after a short delay to prevent flash
+        setTimeout(() => {
+            isLoading = false;
+        }, 500);
     });
 
     $: {
@@ -204,8 +209,40 @@
         }
     }
 </script>
-<div class="text-center">
-    {#if walletId}
+<div>
+    {#if isLoading}
+        <div class="relative w-full h-52 overflow-visible">
+            <div class="flex h-full w-full absolute blur-xsm -z-10 opacity-60 bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+            <div class="flex justify-center items-center w-full mx-2 absolute top-8">
+                <div class="flex flex-col p-4 md:p-8 mt-2 mb-2 bg-slate-100 dark:bg-slate-800/95 shadow-2xl rounded-2xl space-y-4 max-w-3xl w-full">
+                    <div class="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0 h-36">
+                        <div class="flex flex-row space-x-4 flex-grow">
+                            <div class="h-24 w-24 rounded-full bg-gray-300 dark:bg-gray-600 animate-pulse"></div>
+                            <div class="flex flex-col flex-grow space-y-2">
+                                <div class="h-8 w-48 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+                                <div class="h-4 w-32 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col justify-between space-y-2 md:w-48">
+                            <div class="h-6 w-32 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+                            <div class="h-4 w-24 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="h-16"></div>
+        <div class="flex justify-center">
+            <div class="w-full max-w-3xl p-4">
+                <div class="h-8 w-32 bg-gray-300 dark:bg-gray-600 rounded animate-pulse mb-4"></div>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {#each Array(8) as _, i}
+                        <div class="h-48 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+                    {/each}
+                </div>
+            </div>
+        </div>
+    {:else if walletId}
         <div class="relative w-full h-52 overflow-visible">
             <div class="flex h-full w-full absolute blur-xsm -z-10 opacity-60">
                 {#each headerTokens as token (token)}
