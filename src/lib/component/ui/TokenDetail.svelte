@@ -468,7 +468,7 @@
             </div>
             
             <!-- Info Overlay -->
-            <div class="absolute inset-0 bg-black/70 {isExpanded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300 flex flex-col justify-between p-4 overflow-hidden z-[2]">
+            <div class="absolute inset-0 bg-black/70 {isExpanded ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'} transition-opacity duration-300 flex flex-col justify-between p-4 overflow-hidden z-[2]">
                 <!-- Main Content Section -->
                 <div class="flex-1 flex flex-col justify-between">
                     <!-- Top Section with Title and Collection -->
