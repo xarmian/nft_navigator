@@ -115,209 +115,265 @@
     }
 
 </script>
-<div class="flex flex-col md:flex-row shadow-2xl rounded-xl bg-opacity-0 bg-black dark:bg-white dark:bg-opacity-10 my-2">
-    <div class="w-full overflow-hidden rounded-lg shadow-xs">
-        <div class="w-full overflow-x-auto">
-            <!-- Filter controls -->
-            <div class="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:hidden">
-                <div class={tokenList.length > 0 ? 'hidden' : ''}>
-                    <label for="token-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Token</label>
-                    <select id="token-filter" class="mt-1 block w-full border border-gray-200 rounded-lg p-2 dark:text-black" bind:value={filterToken}>
-                        <option value=''>All</option>
-                        {#each tokenList as token (token)}
-                            <option value={token}>{token.metadata ? token.metadata.name : token.contractId + '-' + token.tokenId}</option>
-                        {/each}
-                    </select>
-                </div>
-                <div>
-                    <label for="from-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">From</label>
-                    <input id="from-filter" type="text" placeholder="Search" class="mt-1 block w-full border border-gray-200 rounded-lg p-2 dark:text-black" bind:value={searchFrom} />
-                </div>
-                <div>
-                    <label for="to-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">To</label>
-                    <input id="to-filter" type="text" placeholder="Search" class="mt-1 block w-full border border-gray-200 rounded-lg p-2 dark:text-black" bind:value={searchTo} />
-                </div>
-                <div>
-                    <label for="sales-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Only Sales</label>
-                    <Switch label="" bind:checked={showOnlySales} title="Toggle only marketplace sales"></Switch>
-                </div>
-                <div>
-                    <button class="mt-6 w-full cursor-pointer p-2 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200" on:click={refreshTable}>
-                        <i class="fas fa-sync-alt" aria-details="Refresh"></i>
-                        <span class="ml-2">Refresh</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Mobile view -->
-            <div class="md:hidden">
-                {#each paginatedTransfers as transfer (transfer.transactionId)}
-                    <div class="bg-white dark:bg-gray-700 p-4 mb-4 rounded-lg shadow">
-                        <div class="flex justify-between items-center mb-2">
-                            <div class="text-sm text-gray-500 dark:text-gray-300">{new Date(transfer.timestamp * 1000).toLocaleString()}</div>
-                            <button class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200" on:click={() => doShowTxModal(transfer)}>
-                                <i class="fas fa-info-circle" aria-details="Info"></i>
-                                <span class="ml-1">Details</span>
-                            </button>
-                        </div>
-                        <div class="flex items-center mb-2">
-                            {#if transfer.token}
-                                <TokenIcon token={transfer.token}></TokenIcon>
-                                <div class="ml-2 text-sm">{transfer.token.metadata?.name??''}</div>
-                            {:else}
-                                <div>{transfer.tokenId}</div>
-                            {/if}
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 text-sm">
-                            <div>
-                                <span class="font-semibold">From:</span> 
-                                {#if transfer.from == zeroAddress}
-                                    <span class="inline-block text-center text-xs bg-yellow-200 rounded-lg text-yellow-700 font-bold p-1">Minted</span>
-                                {:else}
-                                    <A href='/portfolio/{transfer.from}'>{nfdMap[transfer.from] ? nfdMap[transfer.from] : formatAddr(transfer.from)}</A>
-                                {/if}
-                            </div>
-                            <div>
-                                <span class="font-semibold">To:</span> 
-                                {#if transfer.to == zeroAddress}
-                                    <span class="inline-block text-center text-xs bg-yellow-200 rounded-lg text-yellow-700 font-bold p-1">Burned</span>
-                                {:else}
-                                    <A href='/portfolio/{transfer.to}'>{nfdMap[transfer.to] ? nfdMap[transfer.to] : formatAddr(transfer.to)}</A>
-                                {/if}
-                            </div>
-                        </div>
-                        <div class="mt-2 text-sm">
-                            <span class="font-semibold">Sale Price:</span> 
-                            {#if transfer.salePrice}
-                                {transfer.salePrice / Math.pow(10,transfer.saleCurrency?.decimals??0)} {transfer.saleCurrency?.unitName??''}
-                                <span role="img" aria-label="Celebration">🎉</span>
-                            {:else}
-                                -
-                            {/if}
-                        </div>
-                    </div>
+<div class="space-y-6">
+    <!-- Filter controls -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:hidden">
+        <div class={tokenList.length > 0 ? 'hidden' : ''}>
+            <label for="token-filter" class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Token</label>
+            <select id="token-filter" class="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 dark:text-white" bind:value={filterToken}>
+                <option value=''>All</option>
+                {#each tokenList as token (token)}
+                    <option value={token}>{token.metadata ? token.metadata.name : token.contractId + '-' + token.tokenId}</option>
                 {/each}
-            </div>
-
-            <!-- Desktop view -->
-            <table class="w-full whitespace-no-wrap hidden md:table">
-                <thead>
-                    <tr class="text-xs font-semibold tracking-wide text-left text-gray-500 dark:text-gray-100 uppercase border-b bg-gray-50 dark:bg-gray-700">
-                        <th class="px-4 py-3 align-top">Date</th>
-                        <th class="px-4 py-3 align-top">
-                            <div>Token</div>
-                            <select class="w-full border border-gray-200 rounded-lg p-1 dark:text-black" bind:value={filterToken}>
-                                <option value=''>All</option>
-                                {#each tokenList as token (token)}
-                                    <option value={token}>{token.metadata ? token.metadata.name : token.contractId + '-' + token.tokenId}</option>
-                                {/each}
-                            </select>
-                        </th>
-                        <th class="px-4 py-3 align-top">
-                            <div>From</div>
-                            <input type="text" placeholder="Search" class="w-full border border-gray-200 rounded-lg p-1 dark:text-black" bind:value={searchFrom} />
-                        </th>
-                        <th class="px-4 py-3 align-top">
-                            <div>To</div>
-                            <input type="text" placeholder="Search" class="w-full border border-gray-200 rounded-lg p-1 dark:text-black" bind:value={searchTo} />
-                        </th>
-                        <th class="px-4 py-3 align-top">
-                            <div>Sale Price</div>
-                            <Switch label="" bind:checked={showOnlySales} title="Toggle only marketplace sales"></Switch> 
-                        </th>
-                        <th>
-                            <button class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-14" on:click={refreshTable}>
-                                <i class="fas fa-sync-alt" aria-details="Refresh"></i>
-                                <div class="text-xs">Refresh</div>
-                            </button>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white dark:bg-gray-700 divide-y text-left">
-                    {#each paginatedTransfers as transfer (transfer.transactionId)}
-                        {#if transfers.length === 0}
-                            <tr class="text-gray-700 dark:text-gray-100">
-                                <td class="px-4 py-3" colspan="6">No transfers found</td>
-                            </tr>
-                        {/if}
-                        <tr class="text-gray-700 dark:text-gray-100">
-                            <td class="px-4 py-3">{new Date(transfer.timestamp * 1000).toLocaleString()}</td>
-                            <td class="px-4 py-3">
-                                {#if transfer.token}
-                                    <TokenIcon token={transfer.token}></TokenIcon>
-                                    <div class="text-xs">{transfer.token.metadata?.name??''}</div>
-                                {:else}
-                                    {transfer.tokenId}
-                                {/if}
-                            </td>
-                            <td class="px-4 py-3">
-                                {#if transfer.from == zeroAddress}
-                                    <span class="text-center w-full text-sm bg-yellow-200 rounded-lg text-yellow-700 font-bold p-1 pl-2 pr-2">Minted</span>
-                                {:else}
-                                    <A href='/portfolio/{transfer.from}'>{nfdMap[transfer.from] ? nfdMap[transfer.from] : formatAddr(transfer.from)}</A>
-                                {/if}
-                            </td>
-                            <td class="px-4 py-3">
-                                {#if transfer.to == zeroAddress}
-                                    <span class="text-center w-full text-sm bg-yellow-200 rounded-lg text-yellow-700 font-bold p-1 pl-2 pr-2">Burned</span>
-                                {:else}
-                                    <A href='/portfolio/{transfer.to}'>{nfdMap[transfer.to] ? nfdMap[transfer.to] : formatAddr(transfer.to)}</A>
-                                {/if}
-                            </td>
-                            <td class="px-4 py-3">
-                                {#if transfer.salePrice}
-                                    {transfer.salePrice / Math.pow(10,transfer.saleCurrency?.decimals??0)} {transfer.saleCurrency?.unitName??''}
-                                    <span role="img" aria-label="Celebration">🎉</span>
-                                {:else}
-                                    -
-                                {/if}
-                            </td>
-                            <td class="px-4 py-3">
-                                <button class="cursor-pointer p-1 bg-blue-400 hover:bg-blue-500 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 w-14" on:click={() => doShowTxModal(transfer)}>
-                                    <i class="fas fa-info-circle" aria-details="Info"></i>
-                                    <div class="text-xs">Details</div>
-                                </button>
-                            </td>
-                        </tr>
-                    {/each}
-                </tbody>
-            </table>
-
-            <!-- Pagination -->
-            <div class="pagination">
-                <button on:click={previousPage} disabled={currentPage === 1} class="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300">Previous</button>
-                <span class="px-4 py-2">Page {currentPage} of {Math.ceil(filteredTransfers.length / transactionsPerPage)}</span>
-                <button on:click={nextPage} disabled={currentPage === Math.ceil(filteredTransfers.length / transactionsPerPage)} class="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300">Next</button>
-            </div>
+            </select>
+        </div>
+        <div>
+            <label for="from-filter" class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">From</label>
+            <input id="from-filter" type="text" placeholder="Search address" class="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 dark:text-white" bind:value={searchFrom} />
+        </div>
+        <div>
+            <label for="to-filter" class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">To</label>
+            <input id="to-filter" type="text" placeholder="Search address" class="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 dark:text-white" bind:value={searchTo} />
+        </div>
+        <div>
+            <label for="sales-filter" class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Only Sales</label>
+            <Switch label="" bind:checked={showOnlySales} title="Toggle only marketplace sales"></Switch>
+        </div>
+        <div>
+            <button class="w-full mt-6 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2" on:click={refreshTable}>
+                <i class="fas fa-sync-alt" aria-details="Refresh"></i>
+                <span>Refresh</span>
+            </button>
         </div>
     </div>
-</div>
-<!-- transaction details modal -->
-<Modal title="Transaction Details" bind:showModal={showTxModal}>
-    <div class="text-center">
-        {#if selectedTx}
-            <div class="text-2xl font-bold mb-2">Transaction ID: <A href="https://explorer.voi.network/explorer/transaction/{selectedTx.transactionId}" target="_blank">{selectedTx.transactionId.substring(0, 6)}...{selectedTx.transactionId.substring(selectedTx.transactionId.length - 6)}</A></div>
-            <div class="text-sm">Round: <A href="https://explorer.voi.network/explorer/block/{selectedTx.round.toString()}" target="_blank">{selectedTx.round}</A></div>
-            <div class="text-sm">Date: {new Date(selectedTx.timestamp * 1000).toLocaleString()}</div>
-            <div class="text-sm">From: <A href='/portfolio/{selectedTx.from}'>{nfdMap[selectedTx.from] ? nfdMap[selectedTx.from] : formatAddr(selectedTx.from)}</A></div>
-            <div class="text-sm">To: <A href='/portfolio/{selectedTx.to}'>{nfdMap[selectedTx.to] ? nfdMap[selectedTx.to] : formatAddr(selectedTx.to)}</A></div>
-            <div class="text-sm">
-                {#if selectedTx.salePrice}
-                    Sale Price: {selectedTx.salePrice / Math.pow(10,selectedTx.saleCurrency?.decimals??0)} {selectedTx.saleCurrency?.unitName??''}
-                {:else}
-                    Sale Price: -
+
+    <!-- Mobile view -->
+    <div class="md:hidden space-y-4">
+        {#each paginatedTransfers as transfer (transfer.transactionId)}
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] border border-gray-100 dark:border-gray-700">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">{new Date(transfer.timestamp * 1000).toLocaleString()}</div>
+                    <button class="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2" on:click={() => doShowTxModal(transfer)}>
+                        <i class="fas fa-info-circle"></i>
+                        <span>Details</span>
+                    </button>
+                </div>
+                <div class="flex items-center mb-4">
+                    {#if transfer.token}
+                        <TokenIcon token={transfer.token}></TokenIcon>
+                        <div class="ml-3 text-gray-900 dark:text-white font-medium">{transfer.token.metadata?.name??''}</div>
+                    {:else}
+                        <div class="text-gray-900 dark:text-white">{transfer.tokenId}</div>
+                    {/if}
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">From</span><br>
+                        {#if transfer.from == zeroAddress}
+                            <span class="inline-block text-xs px-3 py-1 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white rounded-lg font-medium">Minted</span>
+                        {:else}
+                            <A href='/portfolio/{transfer.from}' class="text-purple-600 dark:text-purple-400 hover:text-purple-700">{nfdMap[transfer.from] ? nfdMap[transfer.from] : formatAddr(transfer.from)}</A>
+                        {/if}
+                    </div>
+                    <div>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">To</span><br>
+                        {#if transfer.to == zeroAddress}
+                            <span class="inline-block text-xs px-3 py-1 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white rounded-lg font-medium">Burned</span>
+                        {:else}
+                            <A href='/portfolio/{transfer.to}' class="text-purple-600 dark:text-purple-400 hover:text-purple-700">{nfdMap[transfer.to] ? nfdMap[transfer.to] : formatAddr(transfer.to)}</A>
+                        {/if}
+                    </div>
+                </div>
+                {#if transfer.salePrice}
+                    <div class="mt-4 p-3 bg-purple-50 dark:bg-purple-900/30 rounded-lg flex items-center justify-between">
+                        <span class="text-sm text-gray-600 dark:text-gray-300">Sales Only</span>
+                        <span class="font-medium text-purple-600 dark:text-purple-400">
+                            {transfer.salePrice / Math.pow(10,transfer.saleCurrency?.decimals??0)} {transfer.saleCurrency?.unitName??''}
+                            <span role="img" aria-label="Celebration" class="ml-1">🎉</span>
+                        </span>
+                    </div>
                 {/if}
             </div>
-        {/if}
+        {/each}
     </div>
+
+    <!-- Desktop view -->
+    <div class="hidden md:block overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+        <table class="w-full">
+            <thead>
+                <tr class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                    <th class="px-6 py-4">
+                        <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Date</span>
+                    </th>
+                    <th class="px-6 py-4">
+                        <span class="text-sm font-medium text-gray-600 dark:text-gray-300 block mb-2">Token</span>
+                        <select class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 dark:text-white text-sm" bind:value={filterToken}>
+                            <option value=''>All</option>
+                            {#each tokenList as token (token)}
+                                <option value={token}>{token.metadata ? token.metadata.name : token.contractId + '-' + token.tokenId}</option>
+                            {/each}
+                        </select>
+                    </th>
+                    <th class="px-6 py-4">
+                        <span class="text-sm font-medium text-gray-600 dark:text-gray-300 block mb-2">From</span>
+                        <input type="text" placeholder="Search" class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 dark:text-white text-sm" bind:value={searchFrom} />
+                    </th>
+                    <th class="px-6 py-4">
+                        <span class="text-sm font-medium text-gray-600 dark:text-gray-300 block mb-2">To</span>
+                        <input type="text" placeholder="Search" class="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 dark:text-white text-sm" bind:value={searchTo} />
+                    </th>
+                    <th class="px-6 py-4">
+                        <span class="text-sm font-medium text-gray-600 dark:text-gray-300 block mb-2">Sale Price</span>
+                        <Switch label="" bind:checked={showOnlySales} title="Toggle only marketplace sales"></Switch>
+                    </th>
+                    <th class="px-6 py-4">
+                        <button class="w-full mt-6 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2" on:click={refreshTable}>
+                            <i class="fas fa-sync-alt"></i>
+                            <span>Refresh</span>
+                        </button>
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {#each paginatedTransfers as transfer (transfer.transactionId)}
+                    <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-200">
+                        <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">{new Date(transfer.timestamp * 1000).toLocaleString()}</td>
+                        <td class="px-6 py-4">
+                            {#if transfer.token}
+                                <div class="flex items-center gap-3">
+                                    <TokenIcon token={transfer.token}></TokenIcon>
+                                    <span class="text-sm text-gray-900 dark:text-white">{transfer.token.metadata?.name??''}</span>
+                                </div>
+                            {:else}
+                                <span class="text-sm text-gray-900 dark:text-white">{transfer.tokenId}</span>
+                            {/if}
+                        </td>
+                        <td class="px-6 py-4">
+                            {#if transfer.from == zeroAddress}
+                                <span class="inline-block text-xs px-3 py-1 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white rounded-lg font-medium">Minted</span>
+                            {:else}
+                                <A href='/portfolio/{transfer.from}' class="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700">{nfdMap[transfer.from] ? nfdMap[transfer.from] : formatAddr(transfer.from)}</A>
+                            {/if}
+                        </td>
+                        <td class="px-6 py-4">
+                            {#if transfer.to == zeroAddress}
+                                <span class="inline-block text-xs px-3 py-1 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white rounded-lg font-medium">Burned</span>
+                            {:else}
+                                <A href='/portfolio/{transfer.to}' class="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700">{nfdMap[transfer.to] ? nfdMap[transfer.to] : formatAddr(transfer.to)}</A>
+                            {/if}
+                        </td>
+                        <td class="px-6 py-4">
+                            {#if transfer.salePrice}
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-medium text-purple-600 dark:text-purple-400">
+                                        {transfer.salePrice / Math.pow(10,transfer.saleCurrency?.decimals??0)} {transfer.saleCurrency?.unitName??''}
+                                    </span>
+                                    <span role="img" aria-label="Celebration">🎉</span>
+                                </div>
+                            {:else}
+                                <span class="text-sm text-gray-500 dark:text-gray-400">-</span>
+                            {/if}
+                        </td>
+                        <td class="px-6 py-4">
+                            <button class="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 w-full" on:click={() => doShowTxModal(transfer)}>
+                                <i class="fas fa-info-circle"></i>
+                                <span>Details</span>
+                            </button>
+                        </td>
+                    </tr>
+                {/each}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+        <button 
+            on:click={previousPage} 
+            disabled={currentPage === 1} 
+            class="px-6 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+            <i class="fas fa-chevron-left"></i>
+            <span>Previous</span>
+        </button>
+        <span class="text-sm text-gray-600 dark:text-gray-300">Page {currentPage} of {Math.ceil(filteredTransfers.length / transactionsPerPage)}</span>
+        <button 
+            on:click={nextPage} 
+            disabled={currentPage === Math.ceil(filteredTransfers.length / transactionsPerPage)} 
+            class="px-6 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+            <span>Next</span>
+            <i class="fas fa-chevron-right"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Transaction details modal -->
+<Modal title="Transaction Details" bind:showModal={showTxModal}>
+    {#if selectedTx}
+        <div class="p-6 space-y-6">
+            <div class="text-center space-y-2">
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Transaction Details</h3>
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                    <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">Transaction ID</div>
+                    <A href="https://explorer.voi.network/explorer/transaction/{selectedTx.transactionId}" target="_blank" 
+                       class="text-purple-600 dark:text-purple-400 hover:text-purple-700 font-medium">
+                        {selectedTx.transactionId.substring(0, 6)}...{selectedTx.transactionId.substring(selectedTx.transactionId.length - 6)}
+                    </A>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                        <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">Round</div>
+                        <A href="https://explorer.voi.network/explorer/block/{selectedTx.round.toString()}" target="_blank" 
+                           class="text-purple-600 dark:text-purple-400 hover:text-purple-700 font-medium">{selectedTx.round}</A>
+                    </div>
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                        <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">Date</div>
+                        <div class="text-gray-900 dark:text-white font-medium">{new Date(selectedTx.timestamp * 1000).toLocaleString()}</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                        <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">From</div>
+                        <A href='/portfolio/{selectedTx.from}' class="text-purple-600 dark:text-purple-400 hover:text-purple-700 font-medium">
+                            {nfdMap[selectedTx.from] ? nfdMap[selectedTx.from] : formatAddr(selectedTx.from)}
+                        </A>
+                    </div>
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                        <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">To</div>
+                        <A href='/portfolio/{selectedTx.to}' class="text-purple-600 dark:text-purple-400 hover:text-purple-700 font-medium">
+                            {nfdMap[selectedTx.to] ? nfdMap[selectedTx.to] : formatAddr(selectedTx.to)}
+                        </A>
+                    </div>
+                </div>
+
+                {#if selectedTx.salePrice}
+                    <div class="p-4 bg-purple-50 dark:bg-purple-900/30 rounded-xl">
+                        <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">Sale Price</div>
+                        <div class="text-xl font-bold text-purple-600 dark:text-purple-400">
+                            {selectedTx.salePrice / Math.pow(10,selectedTx.saleCurrency?.decimals??0)} {selectedTx.saleCurrency?.unitName??''}
+                            <span role="img" aria-label="Celebration" class="ml-2">🎉</span>
+                        </div>
+                    </div>
+                {/if}
+            </div>
+        </div>
+    {/if}
 </Modal>
 
 <style>
-    .pagination {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 20px;
+    /* Remove the old pagination styles */
+    .transition-all {
+        transition-property: all;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 300ms;
     }
 
+    .hover\:scale-\[1\.01\]:hover {
+        transform: scale(1.01);
+    }
+
+    .hover\:shadow-xl:hover {
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
 </style>

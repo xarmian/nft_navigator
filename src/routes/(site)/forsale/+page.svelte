@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+    import type { Collection, Token } from '$lib/data/types';
     import { filters, saleSort as sort, viewMode, collectionStore, currencies } from '../../../stores/collection';
-    import type { Token } from '$lib/data/types';
     import TokenCard from '$lib/component/ui/TokenCard.svelte';
     import Switch from '$lib/component/ui/Switch.svelte';
     import Select from '$lib/component/ui/Select.svelte';
@@ -203,12 +203,14 @@
     let showPreviewModal = false;
     let selectedCollectionTokens: Token[] = [];
     let selectedCollectionName = '';
+    let selectedCollection: Collection | null = null;
 
     function handlePreviewClick(group: { name: string; tokens: Token[] }, event: MouseEvent) {
         event.preventDefault();
         event.stopPropagation();
         selectedCollectionTokens = group.tokens;
         selectedCollectionName = group.name;
+        selectedCollection = $collectionStore.find(c => c.contractId === group.tokens[0].contractId);
         showPreviewModal = true;
     }
 </script>
@@ -217,6 +219,7 @@
     bind:showModal={showPreviewModal}
     tokens={selectedCollectionTokens}
     collectionName={selectedCollectionName}
+    collection={selectedCollection}
 />
 
 <!-- New layout structure -->

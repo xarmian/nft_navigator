@@ -18,13 +18,13 @@ export const load = (async ({ params, fetch }) => {
 
 	try {
 		if (walletId) {
-			const nfd = await getNFD([walletId], fetch); // nfd is array of objects with key = owner, replacementValue = nfd
+			const nfd = await getNFD([walletId]);
 			const nfdObj: any = nfd.find((n: any) => n.key === walletId);
 			walletNFD = nfdObj?.replacementValue ?? undefined;
 			walletAvatar = nfdObj?.avatar ?? '/blank_avatar_small.png';
 
 			// owned tokens
-			tokens = await getTokens({ owner: walletId, fetch });	
+			tokens = await getTokens({ owner: walletId, invalidate: true });
 			/*const url = `${indexerBaseURL}/tokens?owner=${walletId}`;
 			const data = await fetch(url).then((response: any) => response.json());
 			data.tokens.forEach((token: any) => {

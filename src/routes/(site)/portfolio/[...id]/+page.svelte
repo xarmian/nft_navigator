@@ -39,6 +39,7 @@
     let searchQuery = '';
     let showListedOnly = false;
     let sortDirection: 'asc' | 'desc' = 'asc';
+    let containerRef: HTMLDivElement;
 
     $: {
         if (tokens) {
@@ -196,6 +197,12 @@
     // Add this near the top of the script section
     $: shareUrl = `https://nftnavigator.xyz/portfolio/${walletId}`;
     $: shareText = `Check out this sweet NFT portfolio on Voi Network! #Voiagers #VoiNFTs`;
+
+    $: {
+        if (containerRef) {
+            containerRef.style.setProperty('--token-area-width', `${containerRef.querySelector('.token-area')?.clientWidth ?? 100}px`);
+        }
+    }
 </script>
 <div class="text-center">
     {#if walletId}
@@ -324,46 +331,48 @@
                             {tokens.length}
                         </Indicator>
                     </div>
-                    <div class="flex flex-col">
-                        <div class="flex flex-col md:flex-row justify-between items-center gap-4 p-4">
-                            <div class="w-full md:w-1/3">
-                                <input
-                                    type="text"
-                                    placeholder="Search by name, collection, or traits..."
-                                    class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
-                                    bind:value={searchQuery}
-                                />
-                            </div>
-                            <div class="flex flex-row gap-4 items-center">
-                                <div class="flex items-center gap-2">
-                                    <select
-                                        bind:value={portfolioSort}
-                                        class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
-                                    >
-                                        {#each sortOptions as option}
-                                            <option value={option.id}>{option.name}</option>
-                                        {/each}
-                                    </select>
-                                    <button
-                                        on:click={() => sortDirection = sortDirection === 'asc' ? 'desc' : 'asc'}
-                                        class="px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
-                                        title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
-                                        aria-label={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
-                                    >
-                                        <i class="fas fa-sort-{sortDirection === 'asc' ? 'up' : 'down'}"></i>
-                                    </button>
-                                </div>
-                                <label class="flex items-center gap-2 hidden">
+                    <div class="flex flex-col" bind:this={containerRef}>
+                        <div class="flex justify-center w-full">
+                            <div class="flex flex-col md:flex-row justify-between items-center gap-4 p-4" style="width: var(--token-area-width, 100%);">
+                                <div class="w-full md:w-auto flex-grow">
                                     <input
-                                        type="checkbox"
-                                        bind:checked={showListedOnly}
-                                        class="form-checkbox h-5 w-5 text-blue-600"
+                                        type="text"
+                                        placeholder="Search by name, collection, or traits..."
+                                        class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+                                        bind:value={searchQuery}
                                     />
-                                    <span>Listed Only</span>
-                                </label>
+                                </div>
+                                <div class="flex flex-row gap-4 items-center w-full md:w-auto">
+                                    <div class="flex items-center gap-2 w-full md:w-auto">
+                                        <select
+                                            bind:value={portfolioSort}
+                                            class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 w-full md:w-auto"
+                                        >
+                                            {#each sortOptions as option}
+                                                <option value={option.id}>{option.name}</option>
+                                            {/each}
+                                        </select>
+                                        <button
+                                            on:click={() => sortDirection = sortDirection === 'asc' ? 'desc' : 'asc'}
+                                            class="px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                            title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
+                                            aria-label={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
+                                        >
+                                            <i class="fas fa-sort-{sortDirection === 'asc' ? 'up' : 'down'}"></i>
+                                        </button>
+                                    </div>
+                                    <label class="flex items-center gap-2 hidden">
+                                        <input
+                                            type="checkbox"
+                                            bind:checked={showListedOnly}
+                                            class="form-checkbox h-5 w-5 text-blue-600"
+                                        />
+                                        <span>Listed Only</span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
-                        <div class="flex flex-row flex-wrap justify-center">
+                        <div class="flex flex-row flex-wrap justify-center token-area" style="max-width: fit-content; margin: 0 auto;">
                             {#each filteredTokens.slice(0, displayCount) as token, i}
                                 {#if token.owner === walletId}
                                     <div class="m-4 relative" 

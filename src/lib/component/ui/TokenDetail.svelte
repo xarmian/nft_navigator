@@ -1,4 +1,6 @@
 <script lang="ts">
+  import TokenDetailPage from './TokenDetailPage.svelte';
+
     import type { Token, Collection, Listing, Currency, Auction, Sale } from '$lib/data/types';
     import TokenName from '$lib/component/ui/TokenName.svelte';
     import { zeroAddress } from '$lib/data/constants';
@@ -18,6 +20,8 @@
     import type { Listing as AListing } from '$lib/arcpay';
     import Share from '$lib/component/ui/Share.svelte';
     import { browser } from '$app/environment';
+    import { toast } from '@zerodevx/svelte-toast';
+    import { copy } from 'svelte-copy';
 
     export let token: Token;
     export let collection: Collection | undefined;
@@ -25,6 +29,7 @@
     export let format = 'small';
     export let listing: Listing | null = null;
     export let showMenuIcon = true;
+    export let disableHover = false;
     //export let quality = 'normal';
 
     let formattedOwner = '';
@@ -284,39 +289,6 @@
         }
     }
 
-    async function buyArcpay(evt: Event) {
-        if (!browser) return;
-
-        if (listing && listing.source === 'arcpay') {
-            const txId = await buyTokenArcpay(listing?.transactionId);
-            waitingForConfirmationModal = true;
-
-            if (txId !== undefined) {
-                let count = 0;
-                const interval = setInterval(async () => {
-                    const tokenChk = (await getTokens({ contractId: token.contractId, tokenId: token.tokenId, invalidate: true }))[0];
-                    if (tokenChk.approved === zeroAddress) {
-                        token = tokenChk;
-                        // Clear listing after successful purchase
-                        listing = null;
-                        waitingForConfirmationModal = false;
-                        clearInterval(interval);
-                    } else {
-                        count++;
-                        if (count === 12) {
-                            token = tokenChk;
-                            waitingForConfirmationModal = false;
-                            clearInterval(interval);
-                        }
-                    }
-                }, 2000);
-            }
-        }
-
-        evt.preventDefault();
-        return false;
-    }
-
     async function processArcpayListing(arcpayListing: AListing): Promise<Listing | null> {
         if (arcpayListing && (arcpayListing.status === 'active' || arcpayListing.status === 'pending')) {
             let c = await getCurrency(Number(arcpayListing.currency));
@@ -385,427 +357,317 @@
         return null;
     }
 
-</script>
-{#if format === 'small'}
-    <div class="shadow-md rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative overflow-hidden h-full" class:hidden={hidden}>
-        <a href="/collection/{token.contractId}/token/{token.tokenId}" class="relative overflow-hidden place-self-center rounded-t-xl">
-            <img src={imageUrl} class="w-72 h-72 object-contain" alt={token.metadata?.name ?? `Token ${token.tokenId}`} />
-            {#if token.metadata?.envoiName && token.metadata?.image !== 'ipfs://QmcekfLHJqJfL1TqhMdGncyhfNJTx93ZqPikFsKKx4nUTi'}
-                <img src="/icons/envoi_icon.png" class="absolute bottom-2 right-2 w-12 h-12 rounded-full shadow-lg opacity-80" alt="Envoi Logo" />
-            {/if}
-            {#if listing && !listing.sale && !listing.delete}
-                {#if listing.source === 'arcpay'}
-                    <button on:click|stopPropagation|preventDefault={buyArcpay} class="absolute top-0 right-0 p-1 text-white rounded-full text-nowrap" title="Buy on NFT Navigator">
-                        {#if currency}
-                            <div class="badge top-right"><div>{listing?.type === 'sale' ? 'For Sale' : listing?.type === 'dutch_auction' ? 'Reverse Auction' : 'Starting At'}</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}</div></div>
-                        {:else}
-                            <div class="badge top-right"><div>{listing?.type === 'sale' ? 'For Sale' : listing?.type === 'dutch_auction' ? 'Reverse Auction' : 'Starting At'}</div><div class="text-xxs">See Marketplace</div></div>
-                        {/if}
-                    </button>
-                {:else}
-                    <button on:click|stopPropagation|preventDefault={() => window.open(`https://nautilus.sh/#/collection/${token.contractId}/token/${token.tokenId}`, '_blank')} class="absolute top-0 right-0 p-1 text-white rounded-full text-nowrap" title="View on Marketplace">
-                        {#if currency}
-                            <div class="badge top-right"><div>For Sale</div><div class="text-xs">{(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}</div></div>
-                        {:else}
-                            <div class="badge top-right"><div>For Sale</div><div class="text-xxs">See Marketplace</div></div>
-                        {/if}
-                    </button>
-                {/if}
-            {/if}
-            {#if showOwnerIcon && token.owner == $selectedWallet?.address}
-                <div class="absolute top-0 left-0 p-1 text-green-500 text-3xl" title='Owned by You'>
-                    <i class="fas fa-user"></i>
-                </div>
-            {/if}
-        </a>
-        <div class="side back bg-gray-200 dark:bg-gray-900 relative flex flex-col p-1 h-full">
-            <div class='p-1 flex flex-col flex-grow h-full'>
-                <div class="flex flex-col mb-1 text-sm">
-                    <div class="text-sm font-bold">
-                        {#if token.contractId === 797609}
-                            {token.metadata?.envoiName}
-                        {:else}
-                            <TokenName name={token.metadata?.name??String(token.tokenId)} tokenId={token.tokenId}></TokenName>
-                        {/if}
-                    </div>
-                    <div class="flex justify-between">
-                        <div>Collection</div>
-                        <a href="/collection/{token.contractId}" class="text-gray-600 dark:text-gray-300">{collectionName}</a>
-                    </div>
-                    <div class="flex justify-between">
-                        <div>Owner</div>
-                        <a href="/portfolio/{token.owner}" on:click|stopPropagation class="text-gray-600 dark:text-gray-300">{formattedOwner}</a>
-                    </div>
-                    {#if token.approved && token.approved != zeroAddress}
-                        <div class="flex justify-between">
-                            <div>Approved</div>
-                            <a href="/portfolio/{token.approved}" on:click|stopPropagation class="text-gray-600 dark:text-gray-300">{formattedApproved}</a>
-                        </div>
-                    {/if}
-                    {#if token.rank}
-                        <div class="flex justify-between">
-                            <div>Ranking</div>
-                            <div>{token.rank}</div>
-                        </div>
-                    {/if}
-                </div>
-            </div>
-        </div>
-        {#if showMenuIcon && (isTokenOwner || isTokenApproved || (listing && !listing.sale && !listing.delete && $selectedWallet))}
-            <button 
-                class="absolute top-1 right-1 cursor-pointer opacity-50" 
-                on:click|stopPropagation|preventDefault={toggleMenu}
-                aria-label="Menu">
-                <div class="rounded-full w-10 h-10 bg-gray-200 dark:bg-gray-800 p-2 text-center border border-gray-500 hover:border-gray-300 dark:hover:bg-gray-700 shadow-md hover:shadow-lg transition duration-200 ease-in-out">
-                    <i class="fas fa-ellipsis-v text-xl text-gray-500 dark:text-gray-300"></i>
-                </div>
-            </button>
-            {#if showMenu}
-                <div class="absolute top-10 right-2 border border-gray-300 shadow-lg flex flex-col z-10 bg-gray-200 dark:bg-gray-900" bind:this={menuRef}>
-                    {#if isTokenOwner || isTokenApproved}
-                        <div class="text-sm justify-self-end flex flex-col space-y-2 m-1">
-                            <button on:click={sendToken} class="flex flex-row items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14">
-                                <i class="fas fa-paper-plane mr-2"></i>
-                                <div class="w-full place-content-center">
-                                    Transfer
-                                </div>
-                            </button>
-                            {#if isTokenOwner}
-                                <button on:click={approveToken} class="flex flex-row items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out min-h-14 w-full">
-                                    <i class="fas fa-coins mr-2"></i>
-                                    <div class="w-full place-content-center">
-                                        {#if token.approved != zeroAddress}
-                                            Change
-                                        {:else}
-                                            Set
-                                        {/if}
-                                        Approval
-                                    </div>
-                                </button>
-                            {/if}
-                            {#if (!listing || (listing && listing?.source === 'arcpay'))}
-                                <button on:click={listArcpay} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14">
-                                    <i class="fas fa-shopping-cart mr-2"></i>
-                                    <div class="flex-col">
-                                        <div class="flex flex-row place-content-center">
-                                            {#if listing}
-                                                <div>Update Listing</div>
-                                            {:else}
-                                                <div class="flex flex-col items-center justify-center text-sm">
-                                                    <div>Sell on NFT Navigator</div>
-                                                    <div class="flex flex-row items-center justify-center text-sm">
-                                                        <span class="mr-1">with</span>
-                                                        <img src="/logos/arcpay.png" alt="Arcpay Logo" class="h-7 opacity-50" />
-                                                    </div>
-                                                </div>
-                                            {/if}
-                                        </div>
-                                    </div>
-                                </button>
-                            {/if}
-                            {#if !listing || (listing && listing.source !== 'arcpay')}
-                                <!--<button on:click={listToken} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14">
-                                    <i class="fas fa-shopping-cart mr-2"></i>
-                                    <div class="flex-col">
-                                        <div class="flex flex-row place-content-center">
-                                            {#if listing}
-                                                <div>Update/Cancel</div>
-                                            {:else}
-                                                <div>Sell on</div>
-                                            {/if}
-                                        </div>
-                                        <div class="flex flex-row">
-                                            <img src={NautilusLogo} alt="Nautilus Logo" class="w-24 ml-1" />
-                                        </div>
-                                    </div>
-                                </button>-->
-                                <a href="https://nautilus.sh/#/collection/{token.contractId}/token/{token.tokenId}" target="_blank" class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14">
-                                    <i class="fas fa-shopping-cart mr-2"></i>
-                                    <div class="flex-col">
-                                        <div class="flex flex-row place-content-center">
-                                            {#if listing}
-                                                <div>Update/Cancel</div>
-                                            {:else}
-                                                <div>List on</div>
-                                            {/if}
-                                            <img src={NautilusLogo} alt="Nautilus Logo" class="w-24 ml-1" />
-                                        </div>
-                                    </div>
-                                </a>
-                            {/if}
-                            {#if listing}
-                                <button on:click={cancelListing} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14">
-                                    <i class="fas fa-shopping-cart mr-2"></i>
-                                    <div class="flex-col">
-                                        <div class="flex flex-row place-content-center">
-                                            Cancel Listing
-                                        </div>
-                                    </div>
-                                </button>
-                            {/if}
-                        </div>
-                    {:else if listing && !listing.sale && !listing.delete && $selectedWallet}
-                        <div class="flex flex-col justify-start items-center">
-                            {#if listing.source !== 'arcpay'}
-                                <button on:click={buyToken} class="flex flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14">
-                                    <i class="fas fa-shopping-cart mr-2"></i>
-                                    <div class="flex-col">
-                                        <div class="flex flex-row place-content-center">
-                                            <div>Buy from</div>
-                                        </div>
-                                        <div class="flex flex-row">
-                                            <img src={NautilusLogo} alt="Nautilus Logo" class="w-24 ml-1" />
-                                        </div>
-                                    </div>
-                                </button>
-                            {:else}
-                                <button on:click={buyArcpay} class="flex-row space-x-3 items-center px-4 py-2 bg-blue-700 text-white shadow hover:bg-blue-600 active:bg-blue-800 transition duration-150 ease-in-out w-full min-h-14">
-                                    <i class="fas fa-shopping-cart mr-2"></i>
-                                    <div class="flex-col">
-                                        <div class="flex flex-row place-content-center">
-                                            Buy on NFT Navigator
-                                        </div>
-                                    </div>
-                                </button>
-                            {/if}
-                        </div>
-                    {/if}
-                </div>
-            {/if}
-        {/if}    
-    </div>
-{:else}
-    <div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-7xl mx-auto">
-            <!-- Top Section with Image and Basic Info -->
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden relative">
-                <!-- Share Button -->
-                <div class="absolute top-4 right-4 z-10">
-                    <Share url={`https://nftnavigator.xyz/collection/${token.contractId}/token/${token.tokenId}`} 
-                           text="Check out {token.metadata?.name??String(token.tokenId)} on NFT Navigator @voinftnavigator! #Voiagers #VoiNFTs" />
-                </div>
+    function navigateToCollection(e: MouseEvent) {
+        e.preventDefault();
+        e.stopPropagation();
+        goto(`/collection/${token.contractId}`);
+    }
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
-                    <!-- Left Column - Image -->
-                    <div class="relative">
-                        <div class="aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700">
-                            <img src={imageUrl} class="w-full h-full object-contain" alt={token.metadata?.name ?? `Token ${token.tokenId}`} />
-                            {#if token.metadata?.envoiName && token.metadata?.image !== 'ipfs://QmcekfLHJqJfL1TqhMdGncyhfNJTx93ZqPikFsKKx4nUTi'}
-                                <img src="/icons/envoi_icon.png" class="absolute bottom-4 right-4 w-16 h-16 rounded-full shadow-lg" alt="Envoi Logo" />
+</script>
+    <div class="shadow-md rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative overflow-hidden {hidden ? 'hidden' : ''}" style="display: {hidden ? 'none' : 'block'}">
+        <a href="/collection/{token.contractId}/token/{token.tokenId}" class="relative overflow-hidden place-self-center rounded-xl {disableHover ? '' : 'group'} block w-72 h-72">
+            {#if token.metadata?.envoiName}
+                <div class="absolute inset-0 bg-gradient-to-br from-purple-900/20 to-purple-600/20">
+                    <div class="w-full h-full p-6">
+                        <img src={token.metadata?.envoiMetadata?.avatar ?? '/blank_avatar.png'} 
+                             class="w-full h-full object-cover rounded-[40%] border-4 border-purple-500/50 shadow-2xl" 
+                             alt={token.metadata?.envoiName} />
+                    </div>
+                </div>
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-4 py-3">
+                    <div class="flex items-center gap-3">
+                        <div class="flex-1">
+                            <h3 class="text-white font-bold text-xl">{token.metadata?.envoiName}</h3>
+                            <p class="text-purple-400 text-sm">Envoi Name</p>
+                        </div>
+                    </div>
+                </div>
+            {:else}
+                <img src={imageUrl} class="w-72 h-72 object-contain transition-transform duration-300 group-hover:scale-105" alt={token.metadata?.name ?? `Token ${token.tokenId}`} loading="lazy" />
+                <!-- Add permanent token name that fades out on hover -->
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-4 py-3 transition-opacity duration-300 group-hover:opacity-0">
+                    <div class="flex items-center gap-3">
+                        <div class="flex-1">
+                            <h3 class="text-white font-bold text-lg">
+                                <TokenName name={token.metadata?.name??String(token.tokenId)} tokenId={token.tokenId}></TokenName>
+                            </h3>
+                            {#if token.rank}
+                                <p class="text-purple-400 text-sm">Rank #{token.rank}</p>
                             {/if}
                         </div>
-                        {#if listing && !listing.sale && !listing.delete}
-                            <div class="absolute top-4 right-4">
-                                <div class="bg-red-500 text-white px-4 py-2 rounded-full font-medium flex items-center space-x-2">
-                                    <i class="fas fa-tag"></i>
-                                    <span>
-                                        {#if currency}
-                                            {(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}
-                                        {:else}
-                                            For Sale
-                                        {/if}
-                                    </span>
-                                </div>
-                            </div>
-                        {/if}
                     </div>
-                    
-                    <!-- Right Column - Basic Info -->
-                    <div class="flex flex-col justify-between">
-                        <div>
-                            <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                </div>
+            {/if}
+
+            <!-- Permanent Sale Badge -->
+            {#if listing && !listing.sale && !listing.delete}
+                <div class="absolute top-2 left-2 z-10 transition-opacity duration-300 group-hover:opacity-0">
+                    <div class="flex items-center gap-2 bg-gradient-to-r from-purple-600/90 to-purple-800/90 rounded-lg px-3 py-1.5 shadow-lg backdrop-blur-sm">
+                        <i class="fas {listing?.type === 'dutch_auction' ? 'fa-gavel' : 'fa-tag'} text-white/90"></i>
+                        <div class="flex flex-col">
+                            <span class="text-white/90 text-xs font-medium">
+                                {#if listing?.type === 'dutch_auction'}
+                                    Reverse Auction
+                                {:else}
+                                    For Sale
+                                {/if}
+                            </span>
+                            {#if currency}
+                                <span class="text-white font-bold text-sm">
+                                    {(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}
+                                </span>
+                            {/if}
+                        </div>
+                    </div>
+                </div>
+            {/if}
+
+            <!-- Quick Action Buttons (Always Visible) -->
+            {#if showMenuIcon && (isTokenOwner || isTokenApproved || (listing && !listing.sale && !listing.delete && $selectedWallet))}
+                <div class="absolute top-2 right-2 z-[5]">
+                    <button 
+                        class="p-2 bg-gray-900/70 hover:bg-gray-900/90 rounded-lg transition-colors duration-150 backdrop-blur-sm"
+                        on:click|stopPropagation|preventDefault={toggleMenu}
+                        on:mousedown|stopPropagation|preventDefault
+                        on:mouseup|stopPropagation|preventDefault
+                        aria-label="Token Actions">
+                        <i class="fas fa-ellipsis-h text-white/90"></i>
+                    </button>
+                </div>
+            {/if}
+            
+            <!-- Animated Info Overlay -->
+            <div class="absolute inset-0 bg-black/70 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex flex-col justify-between p-4 overflow-hidden z-[2]">
+                <!-- Main Content Section -->
+                <div class="flex-1 flex flex-col justify-between">
+                    <!-- Top Section with Title and Collection -->
+                    <div class="space-y-2">
+                        <div class="transform translate-y-4 opacity-0 transition-all duration-300 delay-200 group-hover:translate-y-0 group-hover:opacity-100">
+                            <h3 class="text-white font-bold mb-2 typewriter-effect">
                                 {#if token.contractId === 797609}
                                     {token.metadata?.envoiName}
                                 {:else}
                                     <TokenName name={token.metadata?.name??String(token.tokenId)} tokenId={token.tokenId}></TokenName>
                                 {/if}
-                            </h1>
-                            
-                            <div class="space-y-4">
-                                <!-- Collection Info -->
-                                <div class="flex items-center space-x-2">
-                                    <i class="fas fa-layer-group text-purple-500"></i>
-                                    <a href="/collection/{token.contractId}" class="text-lg text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300">{collectionName}</a>
-                                </div>
-                                
-                                <!-- Owner Info -->
-                                <div class="flex items-center space-x-2">
-                                    <i class="fas fa-user text-purple-500"></i>
-                                    {#if token.isBurned}
-                                        <span class="text-red-500 font-medium"><i class="fas fa-fire"></i> Burned</span>
-                                    {:else}
-                                        <a href="/portfolio/{token.owner}" class="text-purple-600 dark:text-purple-400 hover:text-purple-700">{formattedOwner}</a>
-                                    {/if}
-                                </div>
-
-                                {#if token.metadata?.description}
-                                    <p class="text-gray-600 dark:text-gray-300 mt-4">{token.metadata.description}</p>
-                                {/if}
-                            </div>
+                            </h3>
                         </div>
+                        
+                        <div class="transform translate-y-4 opacity-0 transition-all duration-300 delay-250 group-hover:translate-y-0 group-hover:opacity-100">
+                            <p class="text-white/80 text-sm">Collection: <span on:click|stopPropagation|preventDefault={navigateToCollection} class="text-purple-400 hover:text-purple-300 transition-colors cursor-pointer">{collectionName}</span></p>
+                        </div>
+                        
+                        {#if token.rank && !token.metadata?.envoiName}
+                            <div class="transform translate-y-4 opacity-0 transition-all duration-300 delay-300 group-hover:translate-y-0 group-hover:opacity-100">
+                                <p class="text-white/80 text-sm">Rank: #{token.rank}</p>
+                            </div>
+                        {/if}
+                    </div>
 
-                        <!-- Action Buttons -->
-                        {#if showMenuIcon && (isTokenOwner || isTokenApproved || (listing && !listing.sale && !listing.delete && $selectedWallet))}
-                            <div class="flex flex-wrap gap-4 mt-8">
-                                {#if isTokenOwner || isTokenApproved}
-                                    <button on:click={sendToken} class="flex items-center space-x-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                                        <i class="fas fa-paper-plane"></i>
-                                        <span>Transfer</span>
-                                    </button>
-                                    {#if isTokenOwner}
-                                        <button on:click={approveToken} class="flex items-center space-x-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                                            <i class="fas fa-check-circle"></i>
-                                            <span>{token.approved != zeroAddress ? 'Change' : 'Set'} Approval</span>
-                                        </button>
-                                    {/if}
-                                    {#if (!listing || (listing && listing?.source === 'arcpay'))}
-                                        <button on:click={listArcpay} class="flex items-center space-x-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                                            <i class="fas fa-tag"></i>
-                                            <span>{listing ? 'Update' : 'List'} on NFT Navigator</span>
-                                        </button>
-                                    {/if}
-                                    {#if !listing || (listing && listing.source !== 'arcpay')}
-                                        <button on:click={listToken} class="flex items-center space-x-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                                            <i class="fas fa-tag"></i>
-                                            <div class="flex flex-row items-center gap-2">
-                                                <span>{listing ? 'Update/Cancel' : 'List'} on</span>
-                                                <img src={NautilusLogo} alt="Nautilus Logo" class="h-7 mt-1 bg-white rounded-full bg-opacity-60 p-1" />
-                                            </div>
-                                        </button>
-                                    {/if}
-                                    {#if listing}
-                                        <button on:click={cancelListing} class="flex items-center space-x-2 px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-                                            <i class="fas fa-times"></i>
-                                            <span>Cancel Listing</span>
-                                        </button>
-                                    {/if}
-                                {:else if listing && !listing.sale && !listing.delete && $selectedWallet}
-                                    {#if listing.source === 'arcpay'}
-                                        <button on:click={buyArcpay} class="flex items-center space-x-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                                            <i class="fas fa-shopping-cart"></i>
-                                            <span>Buy Now</span>
-                                        </button>
+                    <!-- Middle Section with Owner Details -->
+                    <div class="transform translate-y-4 opacity-0 transition-all duration-300 delay-350 group-hover:translate-y-0 group-hover:opacity-100">
+                        <p class="text-white/80 text-sm line-clamp-2">
+                            <span class="font-bold">Owner:</span>
+                            {#if token.isBurned}
+                                <span class="text-red-500 font-medium"><i class="fas fa-fire"></i> Burned</span>
+                            {:else}
+                                <a href="/portfolio/{token.owner}" class="text-purple-600 dark:text-purple-400 hover:text-purple-700 font-medium">
+                                    {#if token.ownerNFD}
+                                        {token.ownerNFD}
                                     {:else}
-                                        <button on:click={buyToken} class="flex items-center space-x-2 px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                                            <i class="fas fa-shopping-cart"></i>
-                                            <div class="flex flex-row items-center gap-2">
-                                                <span>Buy from</span>
-                                                <img src={NautilusLogo} alt="Nautilus Logo" class="h-7 mt-1 bg-white rounded-full bg-opacity-60 p-1" />
-                                            </div>
-                                        </button>
+                                        {formattedOwner}
                                     {/if}
-                                {/if}
+                                </a>
+                            {/if}
+                        </p>
+                    </div>
+
+                    <!-- Bottom Section with Buy Options and Properties/Metadata -->
+                    <div class="space-y-3">
+                        <!-- Buy Options -->
+                        {#if listing && !listing.sale && !listing.delete && $selectedWallet && listing.seller !== $selectedWallet.address}
+                            <div class="transform translate-y-4 opacity-0 transition-all duration-300 delay-400 group-hover:translate-y-0 group-hover:opacity-100 flex gap-2">
+                                <button on:click|stopPropagation|preventDefault={buyToken}
+                                        class="flex-1 flex flex-col items-center justify-center gap-1 px-3 py-2 bg-blue-500/90 hover:bg-blue-600/90 text-white rounded-lg transition-colors backdrop-blur-sm">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-shopping-cart text-sm"></i>
+                                        <span class="text-sm font-medium">Buy Now</span>
+                                        {#if currency}
+                                            <span class="text-sm font-bold">
+                                                ({(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName})
+                                            </span>
+                                        {/if}
+                                    </div>
+                                    <div class="text-xs text-white/80 flex items-center gap-1.5">
+                                        Powered by {#if listing.source === 'arcpay'}
+                                            NFT Navigator
+                                        {:else}
+                                            <img src={NautilusLogo} alt="Nautilus Logo" class="h-3.5 bg-white/90 rounded-full p-0.5" />
+                                        {/if}
+                                    </div>
+                                </button>
+                            </div>
+                        {/if}
+
+                        <!-- Properties or Metadata -->
+                        {#if token.metadata?.envoiName}
+                            <div class="transform translate-y-4 opacity-0 transition-all duration-300 delay-450 group-hover:translate-y-0 group-hover:opacity-100">
+                                <div class="space-y-2">
+                                    {#if token.metadata?.envoiMetadata}
+                                        <div class="flex flex-col gap-2">
+                                            {#if token.metadata.envoiMetadata.url}
+                                                <div class="flex items-center gap-2">
+                                                    <i class="fas fa-globe text-purple-400 w-4"></i>
+                                                    <a href={token.metadata.envoiMetadata.url} target="_blank" rel="noopener noreferrer" 
+                                                       class="text-purple-400 hover:text-purple-300 text-sm truncate">{token.metadata.envoiMetadata.url}</a>
+                                                </div>
+                                            {/if}
+                                            {#if token.metadata.envoiMetadata.location}
+                                                <div class="flex items-center gap-2">
+                                                    <i class="fas fa-map-marker-alt text-purple-400 w-4"></i>
+                                                    <span class="text-white/90 text-sm">{token.metadata.envoiMetadata.location}</span>
+                                                </div>
+                                            {/if}
+                                            {#if token.metadata.envoiMetadata['com.twitter']}
+                                                <div class="flex items-center gap-2">
+                                                    <i class="fab fa-twitter text-purple-400 w-4"></i>
+                                                    <a href="https://twitter.com/{token.metadata.envoiMetadata['com.twitter']}" target="_blank" 
+                                                       class="text-purple-400 hover:text-purple-300 text-sm">@{token.metadata.envoiMetadata['com.twitter']}</a>
+                                                </div>
+                                            {/if}
+                                            {#if token.metadata.envoiMetadata['com.github']}
+                                                <div class="flex items-center gap-2">
+                                                    <i class="fab fa-github text-purple-400 w-4"></i>
+                                                    <a href="https://github.com/{token.metadata.envoiMetadata['com.github']}" target="_blank" 
+                                                       class="text-purple-400 hover:text-purple-300 text-sm">{token.metadata.envoiMetadata['com.github']}</a>
+                                                </div>
+                                            {/if}
+                                        </div>
+                                    {/if}
+                                </div>
+                            </div>
+                        {:else if tokenProps.length > 0}
+                            <div class="transform translate-y-4 opacity-0 transition-all duration-300 delay-450 group-hover:translate-y-0 group-hover:opacity-100">
+                                <div class="flex flex-wrap gap-1.5">
+                                    {#each tokenProps.slice(0, 3) as prop}
+                                        <span class="text-xs px-2 py-1 rounded-full bg-white/15 text-white/90 backdrop-blur-sm border border-white/10">
+                                            {prop.trait_type}: {prop.value}
+                                        </span>
+                                    {/each}
+                                </div>
                             </div>
                         {/if}
                     </div>
                 </div>
             </div>
 
-            <!-- Details Section -->
-            <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-                <!-- Token Details -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Token Details</h2>
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
-                            <span class="text-gray-600 dark:text-gray-400">Token ID</span>
-                            <span class="font-medium">{token.metadata?.envoiName ?? token.tokenId} {#if collection}/ {collection.totalSupply}{/if}</span>
+            <!-- Menu Dropdown (Positioned relative to the button) -->
+            {#if showMenu}
+                <div class="fixed top-0 left-0 w-full h-full z-[15]" 
+                     on:click|stopPropagation|preventDefault={() => showMenu = false}
+                     on:mousedown|stopPropagation|preventDefault
+                     on:mouseup|stopPropagation|preventDefault></div>
+                <div class="absolute top-12 right-2 w-56 bg-gray-900/95 backdrop-blur-sm rounded-lg shadow-xl border border-white/10 z-[20] overflow-hidden"
+                     bind:this={menuRef}
+                     on:click|stopPropagation|preventDefault
+                     on:mousedown|stopPropagation|preventDefault
+                     on:mouseup|stopPropagation|preventDefault>
+                    {#if isTokenOwner || isTokenApproved}
+                        <div class="p-2 space-y-1">
+                            <button on:click={sendToken}
+                                    class="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/90 hover:bg-white/10 rounded-lg transition-colors">
+                                <i class="fas fa-paper-plane w-4"></i>
+                                <span>Transfer Token</span>
+                            </button>
+                            
+                            {#if isTokenOwner}
+                                <button on:click={approveToken}
+                                        class="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/90 hover:bg-white/10 rounded-lg transition-colors">
+                                    <i class="fas fa-check-circle w-4"></i>
+                                    <span>{token.approved != zeroAddress ? 'Change' : 'Set'} Approval</span>
+                                </button>
+                            {/if}
                         </div>
-                        {#if token.rank}
-                            <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
-                                <span class="text-gray-600 dark:text-gray-400">Ranking</span>
-                                <span class="font-medium">{token.rank}</span>
-                            </div>
-                        {/if}
-                        <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
-                            <span class="text-gray-600 dark:text-gray-400">Mint Round</span>
-                            <a href="https://explorer.voi.network/explorer/block/{token.mintRound}/transactions" target="_blank" 
-                               class="text-purple-600 dark:text-purple-400 hover:text-purple-700">{token.mintRound}</a>
-                        </div>
-                        {#if royaltyPercentage > 0}
-                            <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
-                                <span class="text-gray-600 dark:text-gray-400">Royalties</span>
-                                <span class="font-medium">{royaltyPercentage / 100}%</span>
-                            </div>
-                        {/if}
-                    </div>
-                </div>
 
-                <!-- Properties/Metadata -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-                        {#if token.contractId === 797609}
-                            Profile Information
-                        {:else}
-                            Properties
-                        {/if}
-                    </h2>
-                    {#if token.contractId === 797609 && token.metadata?.envoiMetadata}
-                        <div class="space-y-4">
-                            {#if token.metadata.envoiMetadata.url}
-                                <div class="flex items-center space-x-3 py-2 border-b border-gray-200 dark:border-gray-700">
-                                    <i class="fas fa-globe text-purple-500"></i>
-                                    <a href={token.metadata.envoiMetadata.url} target="_blank" rel="noopener noreferrer" 
-                                       class="text-purple-600 dark:text-purple-400 hover:text-purple-700">{token.metadata.envoiMetadata.url}</a>
-                                </div>
-                            {/if}
-                            {#if token.metadata.envoiMetadata.location}
-                                <div class="flex items-center space-x-3 py-2 border-b border-gray-200 dark:border-gray-700">
-                                    <i class="fas fa-map-marker-alt text-purple-500"></i>
-                                    <span class="text-gray-600 dark:text-gray-400">{token.metadata.envoiMetadata.location}</span>
-                                </div>
-                            {/if}
-                            {#if token.metadata.envoiMetadata['com.twitter']}
-                                <div class="flex items-center space-x-3 py-2 border-b border-gray-200 dark:border-gray-700">
-                                    <i class="fab fa-twitter text-purple-500"></i>
-                                    <a href="https://twitter.com/{token.metadata.envoiMetadata['com.twitter']}" target="_blank" 
-                                       class="text-purple-600 dark:text-purple-400 hover:text-purple-700">@{token.metadata.envoiMetadata['com.twitter']}</a>
-                                </div>
-                            {/if}
-                            {#if token.metadata.envoiMetadata['com.github']}
-                                <div class="flex items-center space-x-3 py-2 border-b border-gray-200 dark:border-gray-700">
-                                    <i class="fab fa-github text-purple-500"></i>
-                                    <a href="https://github.com/{token.metadata.envoiMetadata['com.github']}" target="_blank" 
-                                       class="text-purple-600 dark:text-purple-400 hover:text-purple-700">{token.metadata.envoiMetadata['com.github']}</a>
-                                </div>
-                            {/if}
-                            {#each Object.entries(token.metadata.envoiMetadata) as [key, value]}
-                                {#if !['url', 'location', 'com.twitter', 'com.github', 'avatar'].includes(key) && value}
-                                    <div class="flex items-center space-x-3 py-2 border-b border-gray-200 dark:border-gray-700">
-                                        <i class="fas fa-info-circle text-purple-500"></i>
-                                        <div class="flex-1">
-                                            <div class="text-sm text-gray-500 dark:text-gray-400">{key.replace('com.', '').charAt(0).toUpperCase() + key.replace('com.', '').slice(1)}</div>
-                                            {#if typeof value === 'string' && value.match(/^https?:\/\//)}
-                                                <a href={value} target="_blank" rel="noopener noreferrer" 
-                                                   class="text-purple-600 dark:text-purple-400 hover:text-purple-700">{value}</a>
-                                            {:else}
-                                                <span class="text-gray-900 dark:text-gray-100">{value}</span>
-                                            {/if}
-                                        </div>
+                        {#if (!listing || (listing && listing?.source === 'arcpay'))}
+                            <div class="border-t border-white/10 p-2">
+                                <button on:click={listArcpay}
+                                        class="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/90 hover:bg-white/10 rounded-lg transition-colors">
+                                    <i class="fas fa-tag w-4"></i>
+                                    <div class="flex flex-col items-start">
+                                        <span>{listing ? 'Update' : 'List'} on NFT Navigator</span>
+                                        <span class="text-xs text-white/60">via ArcPay</span>
                                     </div>
-                                {/if}
-                            {/each}
-                        </div>
-                    {:else}
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                            {#each tokenProps as prop}
-                                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                                    <div class="text-sm text-gray-500 dark:text-gray-400">{prop.trait_type}</div>
-                                    {#if prop.value && typeof prop.value === 'string' && prop.value.match(/^https?:\/\//)}
-                                        <a href={prop.value} target="_blank" rel="noopener noreferrer" 
-                                           class="text-purple-600 dark:text-purple-400 hover:text-purple-700">{prop.value}</a>
-                                    {:else}
-                                        <div class="font-medium text-gray-900 dark:text-gray-100">{prop.value}</div>
+                                </button>
+                            </div>
+                        {/if}
+
+                        {#if !listing || (listing && listing.source !== 'arcpay')}
+                            <div class="border-t border-white/10 p-2">
+                                <a href="https://nautilus.sh/#/collection/{token.contractId}/token/{token.tokenId}"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   on:click|stopPropagation={() => true}
+                                   class="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/90 hover:bg-white/10 rounded-lg transition-colors">
+                                    <i class="fas fa-external-link-alt w-4"></i>
+                                    <div class="flex flex-col items-start">
+                                        <span>{listing ? 'Manage' : 'List'} on Nautilus</span>
+                                        <span class="text-xs text-white/60">External Marketplace</span>
+                                    </div>
+                                </a>
+                            </div>
+                        {/if}
+
+                        {#if listing}
+                            <div class="border-t border-white/10 p-2">
+                                <button on:click={cancelListing}
+                                        class="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
+                                    <i class="fas fa-times w-4"></i>
+                                    <span>Cancel Listing</span>
+                                </button>
+                            </div>
+                        {/if}
+                    {:else if listing && !listing.sale && !listing.delete && $selectedWallet}
+                        <div class="p-2 space-y-1">
+                            <button on:click={buyToken}
+                                    class="w-full flex flex-col gap-1 px-3 py-2 text-sm text-white/90 hover:bg-white/10 rounded-lg transition-colors">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-shopping-cart w-4"></i>
+                                    <span>Buy Now</span>
+                                    {#if currency}
+                                        <span class="font-bold">
+                                            ({(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName})
+                                        </span>
                                     {/if}
                                 </div>
-                            {/each}
+                                <div class="text-xs text-white/60 flex items-center gap-1.5 pl-6">
+                                    Powered by {#if listing.source === 'arcpay'}
+                                        NFT Navigator
+                                    {:else}
+                                        <img src={NautilusLogo} alt="Nautilus Logo" class="h-3.5 bg-white/90 rounded-full p-0.5" />
+                                    {/if}
+                                </div>
+                            </button>
+                            
+                            <a href="https://nautilus.sh/#/collection/{token.contractId}/token/{token.tokenId}"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               on:click|stopPropagation={() => true}
+                               class="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/90 hover:bg-white/10 rounded-lg transition-colors">
+                                <i class="fas fa-external-link-alt w-4"></i>
+                                <div class="flex flex-col items-start">
+                                    <div class="flex items-center gap-2">
+                                        <span>View on</span>
+                                        <img src={NautilusLogo} alt="Nautilus Logo" class="h-5 bg-white/90 rounded-full p-0.5" />
+                                    </div>
+                                    <span class="text-xs text-white/60">External Marketplace</span>
+                                </div>
+                            </a>
                         </div>
                     {/if}
                 </div>
-            </div>
-        </div>
+            {/if}
+        </a>
     </div>
-{/if}
 
 {#if showSendTokenModal}
     <SendTokenModal bind:showModal={showSendTokenModal} bind:type={sendTokenModalType} bind:token={token} onAfterSend={onAfterSend} fromAddr={$selectedWallet?.address??''} />
@@ -817,7 +679,7 @@
     <ListTokenModal bind:showModal={showListTokenModal} bind:token={token} listing={listing} onAfterSend={onAfterSend} fromAddr={$selectedWallet?.address??''} />
 {/if}
 {#if waitingForConfirmationModal}
-    <div class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="fixed inset-0 z-[30] bg-black bg-opacity-50 flex items-center justify-center">
         <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg">
             <div class="text-center">
                 <div class="text-2xl font-bold text-red-500">Waiting for Confirmation</div>
@@ -831,47 +693,66 @@
     a {
         text-decoration: none;
     }
-    .badge {
-        margin: 0;
-        padding: 0;
-        color: white;
-        padding: 1px 10px;
-        font-size: 15px;
-        font-family: Arial, Helvetica, sans-serif;
-        text-align: center;
-        line-height: normal;
-        text-transform: uppercase;
-        background: #ed1b24;
+    .badge, .badge::before, .badge::after, .top-right {
+        display: none;
     }
 
-    .badge::before, .badge::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        margin: 0 -1px;
-        width: 100%;
-        height: 100%;
-        background: inherit;
-        min-width: 55px
+    .hidden {
+        display: none !important;
     }
 
-    .badge::before {
-        right: 100%
+    .typewriter-effect {
+        overflow: hidden;
+        border-right: 2px solid transparent;
+        white-space: nowrap;
+        animation: typing 1s steps(40, end), blink-caret 0.75s step-end infinite;
+        animation-play-state: paused;
     }
 
-    .badge::after {
-        left: 100%
+    .group:hover .typewriter-effect {
+        animation-play-state: running;
     }
 
-    .top-right {
-        position: absolute;
-        top: 0;
-        right: 0;
-        -ms-transform: translateX(20%) translateY(20%) rotate(45deg);
-        -webkit-transform: translateX(20%) translateY(20%) rotate(45deg);
-        transform: translateX(20%) translateY(20%) rotate(45deg);
-        -ms-transform-origin: top left;
-        -webkit-transform-origin: top left;
-        transform-origin: top left;
+    @keyframes typing {
+        from { width: 0 }
+        to { width: 100% }
+    }
+
+    @keyframes blink-caret {
+        from, to { border-color: transparent }
+        50% { border-color: white }
+    }
+
+    @media (hover: none) {
+        .group:active .opacity-0 {
+            opacity: 1;
+        }
+        .group:active .translate-y-4 {
+            transform: translateY(0);
+        }
+        .group:active .scale-105 {
+            transform: scale(1.05);
+        }
+        .group:active .typewriter-effect {
+            animation-play-state: running;
+        }
+    }
+
+    .line-clamp-3 {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    /* Ensure menu is always on top */
+    .z-50 {
+        z-index: 50;
+    }
+
+    /* Add backdrop blur to permanent elements */
+    .backdrop-blur-sm {
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
     }
 </style>

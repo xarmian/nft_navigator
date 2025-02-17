@@ -1,12 +1,13 @@
 <script lang="ts">
-    import type { Token } from '$lib/data/types';
+    import type { Token, Collection } from '$lib/data/types';
     import Modal from './Modal.svelte';
-    import TokenCard from './TokenCard.svelte';
+    import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
     import { onMount, onDestroy } from 'svelte';
     
     export let showModal: boolean;
     export let tokens: Token[] = [];
     export let collectionName: string;
+    export let collection: Collection | undefined;
     export let onClose: () => void = () => {};
 
     let currentPage = 1;
@@ -76,7 +77,7 @@
         <div class="modal-content w-full max-w-6xl mx-auto max-h-[calc(90vh-12rem)] overflow-y-auto" bind:this={modalContent}>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {#each tokens.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage) as token (String(token.contractId) + '_' + String(token.tokenId))}
-                    <TokenCard {token} />
+                    <TokenDetail {token} collection={collection} />
                 {/each}
             </div>
         </div>
@@ -114,7 +115,7 @@
 
             <div class="flex items-center gap-4">
                 <a 
-                    href="/collection/{contractId}/forsale" 
+                    href="/collection/{contractId}" 
                     class="px-3 py-1 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200"
                     on:click={() => showModal = false}
                 >

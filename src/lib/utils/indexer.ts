@@ -45,7 +45,7 @@ interface FetchFunction {
     (input: string | URL | Request, init?: RequestInit | undefined): Promise<Response>;
 }
 
-interface getTokensParams {
+export interface getTokensParams {
     contractId?: string | number;
     fetch?: FetchFunction | undefined;
     limit?: number | undefined;
@@ -174,7 +174,7 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
                     token.metadata = {
                         ...token.metadata,
                         envoiName: envoiData.name || token.metadata.name,
-                        image: envoiData.metadata.avatar || token.metadata.image,
+                        avatar: envoiData.metadata.avatar,
                         envoiMetadata: envoiData.metadata
                     };
                 }

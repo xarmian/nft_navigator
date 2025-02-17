@@ -1,77 +1,77 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
-    import TransactionTable from '$lib/component/ui/TransactionTable.svelte';
-	import NautilusButton from '$lib/component/ui/NautilusButton.svelte';
-	import HighforgeButton from '$lib/component/ui/HighforgeButton.svelte';
-	import NftGamesButton from '$lib/component/ui/NFTGamesButton.svelte';
+	import TokenDetailPage from '$lib/component/ui/TokenDetailPage.svelte';
     import FanIcon from '$lib/component/ui/icons/FanIcon.svelte';
-	import PixelPursuitButton from '$lib/component/ui/PixelPursuitButton.svelte';
-	import LoungeButton from '$lib/component/ui/LoungeButton.svelte';
+    import Share from '$lib/component/ui/Share.svelte';
 
     export let data: PageData;
-    let contractId = data.contractId;
     let token = data.token;
     let collection = data.collection;
-
-    let isMenuOpen = false;
-
-    function toggleMenu() {
-        isMenuOpen = !isMenuOpen;
-    }
-
-    function closeMenu(event: any) {
-        if (isMenuOpen && !event.target.closest('.hamburger-container')) {
-            isMenuOpen = false;
-        }
-    }
 </script>
-<svelte:window on:click={closeMenu} />
-<div class="sm:m-5 flex flex-col flex-wrap">
-    <div class="button-bar">
-        <div class="flex flex-row space-x-3">
-            <a class="content-evenly text-md bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 flex flex-row" href={`/collection/${token?.contractId}`}>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-full w-6 -mr-4 -mt-1">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                </svg>
-                <div class="flex flex-col">
-                    <FanIcon />
-                    Collection
+
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Breadcrumb Navigation -->
+    <div class="bg-white/80 dark:bg-gray-800/80 border-b border-gray-200 dark:border-gray-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center h-16 justify-between">
+                <nav class="flex" aria-label="Breadcrumb">
+                    <ol class="flex items-center space-x-4">
+                        <li>
+                            <div>
+                                <a href="/" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                                    <i class="fas fa-home"></i>
+                                    <span class="sr-only">Home</span>
+                                </a>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="flex items-center">
+                                <i class="fas fa-chevron-right text-gray-400 text-sm"></i>
+                                <a href="/collection/{token?.contractId}" class="ml-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-2 whitespace-nowrap">
+                                    <FanIcon />
+                                    <span>{collection?.highforgeData?.title || 'Collection'}</span>
+                                </a>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="flex items-center">
+                                <i class="fas fa-chevron-right text-gray-400 text-sm"></i>
+                                <span class="ml-4 text-gray-700 dark:text-gray-200 font-medium whitespace-nowrap">
+                                    {token?.metadata?.name || `Token ${token?.tokenId}`}
+                                </span>
+                            </div>
+                        </li>
+                    </ol>
+                </nav>
+                <div class="flex items-center">
+                    {#if token}
+                        <Share url={`https://nftnavigator.xyz/collection/${token.contractId}/token/${token.tokenId}`} 
+                               text="Check out {token.metadata?.name??String(token.tokenId)} on NFT Navigator @voinftnavigator! #Voiagers #VoiNFTs" />
+                    {/if}
                 </div>
-            </a>
-            {#if token}
-                <LoungeButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14 w-20 md:w-24 text-black"/>
-                <NautilusButton contractid={contractId} tokenid={String(token.tokenId)} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14 w-20 md:w-24"/>
-                <HighforgeButton buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14 w-20 md:w-24"/>
-                <PixelPursuitButton contractid={contractId} tokenid={String(token.tokenId)} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 text-black px-2 rounded-md cursor-pointer min-h-14 w-20 md:w-24"/>
-            {/if}
-            {#if collection?.gameData}
-                <!--<NftGamesButton contractid={contractId} buttonClass="flex flex-row whitespace-nowrap items-center space-x-2 bg-gray-100 dark:bg-gray-100 px-2 rounded-md cursor-pointer min-h-14 w-20 md:w-24"/>-->
-            {/if}
-            <!--<button class="mr-2 bg-gray-200 dark:bg-gray-600 opacity-50 !cursor-not-allowed" on:click={goToProjectPage}>Project Page <i class="fas fa-external-link-alt"></i></button>-->
+            </div>
         </div>
     </div>
-    {#if token}
-        <div class='mb-4'>
-            {#if collection}
-                <TokenDetail {token} {collection} format="large" />
-            {/if}
-        </div>
-        <TransactionTable {token}/>
-    {/if}
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {#if token && collection}
+            <TokenDetailPage {token} {collection} format="large" />
+        {/if}
+    </div>
 </div>
+
 <style>
-    .button-bar {
-        display: flex;
-        justify-content:left;
-        align-items: center;
-        margin-bottom: 1rem;
-        margin-left: 0.5rem;
+    /* Smooth transitions */
+    .transition-all {
+        transition-property: all;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 300ms;
     }
-    a {
-        padding: 0.5rem 1rem;
-        border: none;
-        border-radius: 0.5rem;
-        cursor: pointer;
+
+    /* Sticky header backdrop blur */
+    .backdrop-blur-md {
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
     }
 </style>
