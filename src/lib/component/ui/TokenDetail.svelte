@@ -401,7 +401,7 @@
                 </div>
             {:else}
                 <img src={imageUrl} 
-                     class="w-72 h-72 object-contain transition-transform duration-300 {!isExpanded && 'group-hover:scale-105'}" 
+                     class="w-72 h-72 object-cover transition-transform duration-300 {!isExpanded && 'group-hover:scale-105'}" 
                      alt={token.metadata?.name ?? `Token ${token.tokenId}`} 
                      loading="lazy" />
                 <!-- Add permanent token name that fades out on hover -->
