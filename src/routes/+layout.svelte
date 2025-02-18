@@ -34,7 +34,7 @@
 
 	$: metadata = $page.data.pageMetaTags ?? {};
 	$: pageName = metadata.title ?? 'Home | NFT Navigator';
-	$: description = metadata.description ?? 'Explore, search, and discover ARC-72 NFT Collections on the VOI Network';
+	$: description = metadata.description ?? 'Discover, collect, and trade unique NFTs on Voi Network. Join a vibrant community of creators and collectors.';
 	$: imageUrl = metadata.imageUrl ?? 'https://nftnavigator.xyz/android-chrome-192x192.png';
 	//const twitterHandle = metadata.twitterHandle;
 	$: siteName = metadata.siteName ?? ' NFT Navigator';
