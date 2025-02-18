@@ -4,8 +4,6 @@
     import { zeroAddress } from '$lib/data/constants';
     import { selectedWallet } from 'avm-wallet-svelte';
 	import SendTokenModal from './SendTokenModal.svelte';
-	import { goto, invalidate } from '$app/navigation';
-	import { page } from '$app/stores';
 	import { getCurrency } from '$lib/utils/currency';
 	import { onDestroy, onMount } from 'svelte';
 	import algosdk from 'algosdk';
@@ -28,7 +26,6 @@
 
     export let token: Token;
     export let collection: Collection | undefined;
-    export let showOwnerIcon = true;
     export let format = 'large';
     export let listing: Listing | null = null;
     export let showMenuIcon = true;
@@ -476,7 +473,11 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
                 <!-- Left Column - Image and Sale Badge -->
                 <div class="relative">
-                    <div class="group w-full h-auto aspect-[16/9] rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 transition-transform duration-300 hover:scale-[1.02] transform-gpu" on:click={handleImageClick}>
+                    <div class="group w-full h-auto rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 transition-transform duration-300 hover:scale-[1.02] transform-gpu" 
+                         on:click={handleImageClick}
+                         on:keydown={(e) => e.key === 'Enter' && handleImageClick()}
+                         role="button"
+                         tabindex="0">
                         {#if token.metadata?.envoiName}
                             <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/20 to-purple-600/20">
                                 <img src={token.metadata?.envoiMetadata?.avatar ?? '/blank_avatar.png'} 
@@ -499,6 +500,7 @@
                             <div class="absolute bottom-3 right-3 transition-opacity duration-200 {isTouchDevice ? (showZoomButton ? 'opacity-100' : 'opacity-0') : 'opacity-0 group-hover:opacity-100'}">
                                 <button
                                     class="w-10 h-10 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center text-white/80 hover:text-white transition-all duration-200 backdrop-blur-sm"
+                                    aria-label="Zoom"
                                     on:click|stopPropagation={() => showImageModal = true}
                                 >
                                     <i class="fas fa-expand-alt"></i>

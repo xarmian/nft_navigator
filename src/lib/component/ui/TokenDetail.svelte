@@ -1,13 +1,10 @@
 <script lang="ts">
-  import TokenDetailPage from './TokenDetailPage.svelte';
-
     import type { Token, Collection, Listing, Currency, Auction, Sale } from '$lib/data/types';
     import TokenName from '$lib/component/ui/TokenName.svelte';
     import { zeroAddress } from '$lib/data/constants';
     import { selectedWallet } from 'avm-wallet-svelte';
 	import SendTokenModal from './SendTokenModal.svelte';
-	import { goto, invalidate } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import { getCurrency } from '$lib/utils/currency';
 	import { onDestroy, onMount } from 'svelte';
 	import algosdk from 'algosdk';
@@ -16,12 +13,9 @@
 	import BuyTokenModal from './BuyTokenModal.svelte';
     import ListTokenModal from './ListTokenModal.svelte';
     import NautilusLogo from '$lib/assets/nautilus.svg';
-    import { buyToken as buyTokenArcpay, getListings as getListingsArcpay, listToken as listTokenArcpay, getTokenListing, cancelListing as cancelListingArcpay } from '$lib/arcpay';
+    import { listToken as listTokenArcpay, getTokenListing, cancelListing as cancelListingArcpay } from '$lib/arcpay';
     import type { Listing as AListing } from '$lib/arcpay';
-    import Share from '$lib/component/ui/Share.svelte';
     import { browser } from '$app/environment';
-    import { toast } from '@zerodevx/svelte-toast';
-    import { copy } from 'svelte-copy';
 
     export let token: Token;
     export let collection: Collection | undefined;
@@ -33,7 +27,6 @@
     //export let quality = 'normal';
 
     let formattedOwner = '';
-    let royaltyPercentage = 0;
     let isTokenOwner = false;
     let isTokenApproved = false;
     let showSendTokenModal = false;
@@ -41,7 +34,6 @@
     let showListTokenModal = false;
     let sendTokenModalType = 'send';
     let tokenProps: any[] = [];
-    let formattedApproved = '';
     let hidden = false;
     let showMenu = false;
     let menuRef: HTMLElement | null = null;
@@ -73,7 +65,7 @@
         }
     }
 
-    function toggleExpanded(e: MouseEvent) {
+    function toggleExpanded(e: MouseEvent | KeyboardEvent) {
         e.preventDefault();
         e.stopPropagation();
         isExpanded = !isExpanded;
@@ -150,7 +142,7 @@
                 }
 
                 // Extract the first two bytes and convert them to a number
-                royaltyPercentage = (bytes[0] << 8) | bytes[1];
+                // royaltyPercentage = (bytes[0] << 8) | bytes[1];
             }
 
             // map token.metadata.properties object of the form {"BACKGROUND":"Aquamarine","BODY":"Red","ON BODY":"Scar"}
@@ -168,9 +160,9 @@
                     ? `${token.owner.slice(0, 8)}...${token.owner.slice(-8)}`
                     : token.owner;
 
-            formattedApproved = token.approved ? token.approved.length > 8
-                ? `${token.approved.slice(0, 8)}...${token.approved.slice(-8)}`
-                : token.approved : '';
+            // formattedApproved = token.approved ? token.approved.length > 8
+            //     ? `${token.approved.slice(0, 8)}...${token.approved.slice(-8)}`
+            //     : token.approved : '';
         }
     }
 
@@ -256,10 +248,6 @@
 
     function buyToken() {
         showBuyTokenModal = true;        
-    }
-
-    function listToken() {
-        showListTokenModal = true;
     }
 
     async function listArcpay() {
@@ -404,6 +392,15 @@
                      class="w-72 h-72 object-cover transition-transform duration-300 {!isExpanded && 'group-hover:scale-105'}" 
                      alt={token.metadata?.name ?? `Token ${token.tokenId}`} 
                      loading="lazy" />
+                <!-- Owner Badge -->
+                {#if showOwnerIcon && isTokenOwner}
+                    <div class="absolute top-2 left-2 z-[4] transition-opacity duration-300 {isExpanded ? 'opacity-0' : 'opacity-90'}">
+                        <div class="flex items-center gap-2 bg-gradient-to-r from-green-600/90 to-green-800/90 rounded-lg px-3 py-1.5 shadow-lg backdrop-blur-sm">
+                            <i class="fas fa-user-check text-white/90"></i>
+                            <span class="text-white/90 text-xs font-medium">Owner</span>
+                        </div>
+                    </div>
+                {/if}
                 <!-- Add permanent token name that fades out on hover -->
                 <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-4 py-3 transition-opacity duration-300 {isExpanded ? 'opacity-0' : ''}">
                     <div class="flex items-center gap-3">
@@ -467,7 +464,10 @@
             
             <!-- Info Overlay -->
             <div class="absolute inset-0 bg-black/70 {isExpanded ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'} transition-opacity duration-300 flex flex-col justify-between p-4 overflow-hidden z-[2]"
-                 on:click|stopPropagation|preventDefault>
+                 on:click|stopPropagation|preventDefault
+                 on:keydown|stopPropagation|preventDefault={(e) => e.key === 'Enter' && toggleExpanded(e)}
+                 role="button"
+                 tabindex="0">
                 <!-- Main Content Section -->
                 <div class="flex-1 flex flex-col justify-between">
                     <!-- Top Section with Title and Collection -->
@@ -483,7 +483,12 @@
                         </div>
                         
                         <div class="transform {isExpanded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'} transition-all duration-300 delay-250">
-                            <p class="text-white/80 text-sm">Collection: <span on:click|stopPropagation|preventDefault={navigateToCollection} class="text-purple-400 hover:text-purple-300 transition-colors cursor-pointer">{collectionName}</span></p>
+                            <p class="text-white/80 text-sm">Collection: <span 
+                                on:click|stopPropagation|preventDefault={navigateToCollection}
+                                on:keydown|stopPropagation|preventDefault={(e) => e.key === 'Enter' && goto(`/collection/${token.contractId}`)}
+                                class="text-purple-400 hover:text-purple-300 transition-colors cursor-pointer"
+                                role="link"
+                                tabindex="0">{collectionName}</span></p>
                         </div>
                         
                         {#if token.rank && !token.metadata?.envoiName}
@@ -500,15 +505,18 @@
                             {#if token.isBurned}
                                 <span class="text-red-500 font-medium"><i class="fas fa-fire"></i> Burned</span>
                             {:else}
-                                <a href="/portfolio/{token.owner}" 
-                                   on:click={handleLinkClick}
-                                   class="text-purple-600 dark:text-purple-400 hover:text-purple-700 font-medium">
+                                <span 
+                                   on:click|stopPropagation|preventDefault={() => goto(`/portfolio/${token.owner}`)}
+                                   on:keydown|stopPropagation|preventDefault={(e) => e.key === 'Enter' && goto(`/portfolio/${token.owner}`)}
+                                   class="text-purple-600 dark:text-purple-400 hover:text-purple-700 font-medium cursor-pointer"
+                                   role="link"
+                                   tabindex="0">
                                     {#if token.ownerNFD}
                                         {token.ownerNFD}
                                     {:else}
                                         {formattedOwner}
                                     {/if}
-                                </a>
+                                </span>
                             {/if}
                         </p>
                     </div>
@@ -548,11 +556,15 @@
                                 <div class="space-y-2">
                                     {#if token.metadata?.envoiMetadata}
                                         <div class="flex flex-col gap-2">
-                                            {#if token.metadata.envoiMetadata.url}
+                                            {#if token?.metadata?.envoiMetadata?.url}
                                                 <div class="flex items-center gap-2">
                                                     <i class="fas fa-globe text-purple-400 w-4"></i>
-                                                    <a href={token.metadata.envoiMetadata.url} target="_blank" rel="noopener noreferrer" 
-                                                       class="text-purple-400 hover:text-purple-300 text-sm truncate">{token.metadata.envoiMetadata.url}</a>
+                                                    <span 
+                                                       on:click|stopPropagation|preventDefault={() => window.open(token?.metadata?.envoiMetadata?.url ?? '', '_blank', 'noopener,noreferrer')}
+                                                       on:keydown|stopPropagation|preventDefault={(e) => e.key === 'Enter' && window.open(token?.metadata?.envoiMetadata?.url ?? '', '_blank', 'noopener,noreferrer')}
+                                                       class="text-purple-400 hover:text-purple-300 text-sm truncate cursor-pointer"
+                                                       role="link"
+                                                       tabindex="0">{token?.metadata?.envoiMetadata?.url}</span>
                                                 </div>
                                             {/if}
                                             {#if token.metadata.envoiMetadata.location}
@@ -564,15 +576,23 @@
                                             {#if token.metadata.envoiMetadata['com.twitter']}
                                                 <div class="flex items-center gap-2">
                                                     <i class="fab fa-twitter text-purple-400 w-4"></i>
-                                                    <a href="https://twitter.com/{token.metadata.envoiMetadata['com.twitter']}" target="_blank" 
-                                                       class="text-purple-400 hover:text-purple-300 text-sm">@{token.metadata.envoiMetadata['com.twitter']}</a>
+                                                    <span 
+                                                       on:click|stopPropagation|preventDefault={() => window.open(`https://twitter.com/${token?.metadata?.envoiMetadata?.['com.twitter']}`, '_blank', 'noopener,noreferrer')}
+                                                       on:keydown|stopPropagation|preventDefault={(e) => e.key === 'Enter' && window.open(`https://twitter.com/${token?.metadata?.envoiMetadata?.['com.twitter']}`, '_blank', 'noopener,noreferrer')}
+                                                       class="text-purple-400 hover:text-purple-300 text-sm truncate cursor-pointer"
+                                                       role="link"
+                                                       tabindex="0">@{token?.metadata?.envoiMetadata?.['com.twitter']}</span>
                                                 </div>
                                             {/if}
                                             {#if token.metadata.envoiMetadata['com.github']}
                                                 <div class="flex items-center gap-2">
                                                     <i class="fab fa-github text-purple-400 w-4"></i>
-                                                    <a href="https://github.com/{token.metadata.envoiMetadata['com.github']}" target="_blank" 
-                                                       class="text-purple-400 hover:text-purple-300 text-sm">{token.metadata.envoiMetadata['com.github']}</a>
+                                                    <span 
+                                                       on:click|stopPropagation|preventDefault={() => window.open(`https://github.com/${token?.metadata?.envoiMetadata?.['com.github']}`, '_blank', 'noopener,noreferrer')}
+                                                       on:keydown|stopPropagation|preventDefault={(e) => e.key === 'Enter' && window.open(`https://github.com/${token?.metadata?.envoiMetadata?.['com.github']}`, '_blank', 'noopener,noreferrer')}
+                                                       class="text-purple-400 hover:text-purple-300 text-sm truncate cursor-pointer"
+                                                       role="link"
+                                                       tabindex="0">@{token?.metadata?.envoiMetadata?.['com.github']}</span>
                                                 </div>
                                             {/if}
                                         </div>
@@ -607,14 +627,22 @@
             <!-- Menu Dropdown (Positioned relative to the button) -->
             {#if showMenu}
                 <div class="fixed top-0 left-0 w-full h-full z-[15]" 
+                     role="button"
+                     tabindex="0"
                      on:click|stopPropagation|preventDefault={() => showMenu = false}
+                     on:keydown|stopPropagation|preventDefault={(e) => e.key === 'Escape' && (showMenu = false)}
                      on:mousedown|stopPropagation|preventDefault
-                     on:mouseup|stopPropagation|preventDefault></div>
+                     on:mouseup|stopPropagation|preventDefault
+                     aria-label="Close menu overlay"></div>
                 <div class="absolute top-12 right-2 w-56 bg-gray-900/95 backdrop-blur-sm rounded-lg shadow-xl border border-white/10 z-[20] overflow-hidden"
                      bind:this={menuRef}
+                     role="menu"
+                     tabindex="0"
                      on:click|stopPropagation|preventDefault
+                     on:keydown|stopPropagation|preventDefault={(e) => e.key === 'Escape' && (showMenu = false)}
                      on:mousedown|stopPropagation|preventDefault
-                     on:mouseup|stopPropagation|preventDefault>
+                     on:mouseup|stopPropagation|preventDefault
+                     aria-label="Token actions menu">
                     {#if isTokenOwner || isTokenApproved}
                         <div class="p-2 space-y-1">
                             <button on:click={sendToken}
@@ -647,17 +675,18 @@
 
                         {#if !listing || (listing && listing.source !== 'arcpay')}
                             <div class="border-t border-white/10 p-2">
-                                <a href="https://nautilus.sh/#/collection/{token.contractId}/token/{token.tokenId}"
-                                   target="_blank"
-                                   rel="noopener noreferrer"
-                                   on:click|stopPropagation={() => true}
-                                   class="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/90 hover:bg-white/10 rounded-lg transition-colors">
+                                <span
+                                   on:click|stopPropagation|preventDefault={() => window.open(`https://nautilus.sh/#/collection/${token.contractId}/token/${token.tokenId}`, '_blank')}
+                                   on:keydown|stopPropagation|preventDefault={(e) => e.key === 'Enter' && window.open(`https://nautilus.sh/#/collection/${token.contractId}/token/${token.tokenId}`, '_blank')}
+                                   class="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/90 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+                                   role="link"
+                                   tabindex="0">
                                     <i class="fas fa-external-link-alt w-4"></i>
                                     <div class="flex flex-col items-start">
                                         <span>{listing ? 'Manage' : 'List'} on Nautilus</span>
                                         <span class="text-xs text-white/60">External Marketplace</span>
                                     </div>
-                                </a>
+                                </span>
                             </div>
                         {/if}
 
@@ -692,20 +721,18 @@
                                 </div>
                             </button>
                             
-                            <a href="https://nautilus.sh/#/collection/{token.contractId}/token/{token.tokenId}"
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               on:click|stopPropagation={() => true}
-                               class="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/90 hover:bg-white/10 rounded-lg transition-colors">
+                            <span
+                               on:click|stopPropagation|preventDefault={() => window.open(`https://nautilus.sh/#/collection/${token.contractId}/token/${token.tokenId}`, '_blank')}
+                               on:keydown|stopPropagation|preventDefault={(e) => e.key === 'Enter' && window.open(`https://nautilus.sh/#/collection/${token.contractId}/token/${token.tokenId}`, '_blank')}
+                               class="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/90 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+                               role="link"
+                               tabindex="0">
                                 <i class="fas fa-external-link-alt w-4"></i>
                                 <div class="flex flex-col items-start">
-                                    <div class="flex items-center gap-2">
-                                        <span>View on</span>
-                                        <img src={NautilusLogo} alt="Nautilus Logo" class="h-5 bg-white/90 rounded-full p-0.5" />
-                                    </div>
+                                    <span>{listing ? 'Manage' : 'List'} on Nautilus</span>
                                     <span class="text-xs text-white/60">External Marketplace</span>
                                 </div>
-                            </a>
+                            </span>
                         </div>
                     {/if}
                 </div>
