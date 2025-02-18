@@ -241,6 +241,15 @@
             getMintDate();
         }
     }
+
+    // Add these reactive declarations after the other reactive declarations in the script section
+    $: totalMinted = collection?.globalState?.find((gs) => gs.key === 'totalMinted')?.value ? Number(collection.globalState.find((gs) => gs.key === 'totalMinted')?.value) : 0;
+    $: maxSupply = collection?.globalState?.find((gs) => gs.key === 'maxSupply')?.value ? Number(collection.globalState.find((gs) => gs.key === 'maxSupply')?.value) : 0;
+    $: launchStart = collection?.globalState?.find((gs) => gs.key === 'launchStart')?.value ? Number(collection.globalState.find((gs) => gs.key === 'launchStart')?.value) : 0;
+    $: launchEnd = collection?.globalState?.find((gs) => gs.key === 'launchEnd')?.value ? Number(collection.globalState.find((gs) => gs.key === 'launchEnd')?.value) : 0;
+    $: currentTime = Math.floor(Date.now() / 1000);
+    $: isMinting = maxSupply > 0 && totalMinted < maxSupply && (launchStart === 0 || currentTime >= launchStart) && (launchEnd === 0 || currentTime <= launchEnd);
+    $: mintProgress = maxSupply > 0 ? (totalMinted / maxSupply * 100).toFixed(1) : '0';
 </script>
 
 {#if collection}
@@ -299,6 +308,24 @@
                 </div>
                 <div class="flex flex-row pl-4 mt-auto w-full pt-4 bg-black bg-opacity-50 rounded-t-xl">
                     <div class="flex flex-row justify-between w-full mx-4 flex-wrap gap-y-2">
+                        {#if isMinting}
+                            <div class="w-full mb-3">
+                                <div class="flex justify-between items-center text-sm mb-1.5">
+                                    <span class="font-medium">Mint Progress</span>
+                                    <span class="text-blue-300">{totalMinted} / {maxSupply} ({mintProgress}%)</span>
+                                </div>
+                                <div class="w-full bg-gray-700 bg-opacity-50 rounded-full h-2">
+                                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500 relative" style="width: {mintProgress}%">
+                                        <div class="absolute -right-1 -top-1 w-4 h-4 bg-blue-500 rounded-full border-2 border-white"></div>
+                                    </div>
+                                </div>
+                                {#if launchEnd > 0}
+                                    <div class="text-xs text-gray-400 mt-1 text-right">
+                                        Mint Ends: {new Date(launchEnd * 1000).toLocaleString()}
+                                    </div>
+                                {/if}
+                            </div>
+                        {/if}
                         <div class="w-1/2 md:w-auto text-center md:text-left">
                             <div class="text-sm">Floor</div>
                             <div class="text-lg text-blue-300 cursor-pointer hover:text-blue-200 transition-colors" 
@@ -363,6 +390,7 @@
         </div>
     </div>
 </div>
+
 <!-- Mobile buttons container -->
 <div class="flex md:hidden justify-between gap-2 p-4 bg-black bg-opacity-50">
     <LoungeButton contractid={contractId} buttonClass="flex-1 flex flex-row items-center justify-center bg-gray-100 dark:bg-gray-100 px-2 py-2 rounded-md cursor-pointer text-black min-w-0"/>

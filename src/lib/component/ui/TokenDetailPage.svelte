@@ -457,7 +457,7 @@
                     <NautilusButton contractid={String(token.contractId)} tokenid={String(token.tokenId)}
                         buttonClass="flex items-center justify-center gap-3 p-3 rounded-xl bg-gradient-to-b from-white to-gray-100 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 w-[8rem] h-[3.5rem] relative after:absolute after:inset-0 after:rounded-xl after:bg-blue-100/0 hover:after:bg-blue-100/50 after:transition-colors" />
                     
-                    <HighforgeButton 
+                    <HighforgeButton contractid={String(token.contractId)}
                         buttonClass="flex items-center justify-center gap-3 p-3 rounded-xl bg-gradient-to-b from-white to-gray-100 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 w-[8rem] h-[3.5rem] relative after:absolute after:inset-0 after:rounded-xl after:bg-orange-100/0 hover:after:bg-orange-100/50 after:transition-colors" />
                     
                     <PixelPursuitButton contractid={String(token.contractId)} tokenid={String(token.tokenId)}
@@ -688,7 +688,7 @@
                             <span class="text-gray-600 dark:text-gray-400">Minted</span>
                             <a href={`https://explorer.voi.network/explorer/block/${token.mintRound}/transactions`} target="_blank" class="tooltip cursor-pointer">
                                 {#if mintDateTime}
-                                    <div class="tooltiptext flex flex-col space-y-1 w-auto whitespace-nowrap p-2 dark:bg-slate-700">
+                                    <div class="tooltiptext flex flex-col space-y-1 w-auto whitespace-nowrap p-2">
                                         <div class="dark:text-white">{mintDateTime}</div>
                                         <div class="text-xs text-blue-500 dark:text-blue-300">Click to view in explorer</div>
                                     </div>

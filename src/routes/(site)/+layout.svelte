@@ -170,6 +170,7 @@
 			</div>
 			<nav class="hidden lg:flex items-center space-x-6">
 				<a href="/" class="nav-link {currentPath == '' ? 'text-blue-500' : ''}">Home</a>
+				<a href="/collection" class="nav-link {currentPath == 'collection' ? 'text-blue-500' : ''}">Collections</a>
 				<a href="/forsale" class="nav-link {currentPath == 'forsale' ? 'text-blue-500' : ''}">For Sale</a>
 				<a href="/lounge{extensionRouteLounge}" class="nav-link {currentPath == 'lounge' ? 'text-blue-500' : ''}">Lounge</a>
 				<a href="/analytics{extensionRoute}" class="nav-link {currentPath == 'analytics' ? 'text-blue-500' : ''}">Analytics</a>
@@ -185,7 +186,7 @@
 			</nav>
 			<div class="flex items-center space-x-4">
 				<div class="hidden lg:block">
-					<CollectionSearch />
+					<CollectionSearch expandDirection="left" />
 				</div>
 				<div class="hidden lg:block">
 					<Web3Wallet availableWallets={['Kibisis','LuteWallet','Biatec Wallet','WalletConnect']}
@@ -218,8 +219,8 @@
 				<a href="/analytics{extensionRoute}" class="nav-link {currentPath == 'analytics' ? 'text-blue-500' : ''}">Analytics</a>
 				<a href="/portfolio" class="nav-link {currentPath == 'portfolio' ? 'text-blue-500' : ''}">My Portfolio</a>
 			</nav>
-			<div class="mt-4">
-				<CollectionSearch />
+			<div class="mt-4 z-50 relative">
+				<CollectionSearch expandDirection="right" isExpanded={true} />
 			</div>
 			<div class="mt-4 flex justify-center">
 				<Web3Wallet availableWallets={['Kibisis', 'LuteWallet', 'WalletConnect']}

@@ -288,6 +288,8 @@ export const getTransfers = async (params: {
 }): Promise<Transfer[]> => {
     const { contractId, tokenId, user, minRound, maxRound, minTime, maxTime, from } = params;
 
+    if (!params.fetch) params.fetch = fetch;
+
     /*if ((contractId && !tokenId) || (!contractId && tokenId)) {
         throw new Error('Both contractId and tokenId must be provided');
     }*/
@@ -321,7 +323,7 @@ export const getTransfers = async (params: {
     }
 
     try {
-        const data = await fetch(url).then((response) => response.json());
+        const data = await params.fetch(url).then((response) => response.json());
 
         // reverse sort by timestamp
         return data.transfers.map((transfer: ITransfer) => {
@@ -352,6 +354,9 @@ export const getSales = async (params: {
     fetch: FetchFunction 
 }): Promise<Sale[]> => {
     const { contractId, tokenId, user, sortBy, limit, minTime, maxTime } = params;
+
+    if (!params.fetch) params.fetch = fetch;
+    
     let url = `${indexerBaseURL}/mp/sales`;
     const paramsArray = [];
     if (contractId) {
@@ -378,7 +383,7 @@ export const getSales = async (params: {
     const urlParams = new URLSearchParams(paramsArray);
     url += '?' + urlParams.toString();
     try {
-        const response = await fetch(url);
+        const response = await params.fetch(url);
         const data = await response.json();
         return data.sales;
     } catch (err) {
