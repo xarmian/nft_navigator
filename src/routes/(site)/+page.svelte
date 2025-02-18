@@ -132,7 +132,7 @@
 
         <!-- Main Controls -->
         <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-            <div class="flex space-x-4 w-full md:w-auto">
+            <div class="flex space-x-4 w-full md:w-auto justify-center md:justify-start">
                 <button
                     class="{activeTab === 'all' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'} px-6 py-2.5 rounded-xl shadow-sm transition duration-300 font-medium flex items-center gap-2"
                     on:click={() => { activeTab = 'all'; $filters.mintable = false; }}
@@ -148,11 +148,11 @@
                     Mintable
                 </button>
             </div>
-            <div class="flex items-center space-x-4 w-full md:w-auto">
-                <div class="w-30">
+            <div class="flex justify-center md:justify-end w-full md:w-auto space-x-2 px-2 md:px-0">
+                <div class="flex-1 md:w-fit">
                     <Select options={[{id:'Popularity', name: 'Popularity'},{id: 'Mint', name: 'Mint Date'},{id: 'Name', name: 'Name'},{id: 'Randomize', name: 'Randomize'}]} bind:value={$sort.by} />
                 </div>
-                <div class="w-30">
+                <div class="flex-1 md:w-fit">
                     <Select options={[{id: 'Descending', name: 'Descending'},{id: 'Ascending', name: 'Ascending'}]} bind:value={$sort.direction} />
                 </div>
             </div>

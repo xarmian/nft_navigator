@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Collection } from '$lib/data/types';
+import { getImageUrl } from '$lib/utils/functions';
 import { getCollections } from '$lib/utils/indexer';
 import type { LayoutServerLoad } from '../../../$types';
 
@@ -11,9 +12,9 @@ export const load = (async ({ params, fetch }) => {
     const collection = collections.find((c) => c.contractId === collectionId)??null;
     const collectionName = (collection) ? collection?.highforgeData?.title ?? String(collection?.contractId) : 'All Collections';
 
-    const collectionOptions = [ { id: 0, name: 'All Collections' } ];
+    const collectionOptions = [ { id: 0, name: 'All Collections', imageUrl: '' } ];
     collections.forEach((collection) => {
-        collectionOptions.push({ id: collection.contractId, name: collection.highforgeData?.title ?? String(collection.contractId) });
+        collectionOptions.push({ id: collection.contractId, name: collection.highforgeData?.title ?? String(collection.contractId), imageUrl: '' });
     });
 
 

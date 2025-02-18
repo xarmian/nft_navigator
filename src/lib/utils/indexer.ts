@@ -281,14 +281,16 @@ export const getTransfers = async (params: {
     user?: string | undefined, 
     minRound?: string | undefined,
     maxRound?: string | undefined,
+    minTime?: number | undefined,
+    maxTime?: number | undefined,
     from?: string | undefined,
     fetch: FetchFunction 
 }): Promise<Transfer[]> => {
-    const { contractId, tokenId, user, minRound, maxRound, from } = params;
+    const { contractId, tokenId, user, minRound, maxRound, minTime, maxTime, from } = params;
 
-    if ((contractId && !tokenId) || (!contractId && tokenId)) {
+    /*if ((contractId && !tokenId) || (!contractId && tokenId)) {
         throw new Error('Both contractId and tokenId must be provided');
-    }
+    }*/
 
     if (!contractId && !tokenId && !user && !from) {
         throw new Error('At least one of contractId and tokenId, owner, or from must be provided');
@@ -307,6 +309,12 @@ export const getTransfers = async (params: {
     }
     if (maxRound) {
         url += `&max-round=${maxRound}`;
+    }
+    if (minTime) {
+        url += `&min-time=${minTime}`;
+    }
+    if (maxTime) {
+        url += `&max-time=${maxTime}`;
     }
     if (from) {
         url += `&from=${from}`;
