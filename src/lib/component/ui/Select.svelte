@@ -39,9 +39,8 @@
 	}
 
 	// Update search text when value changes
-	$: if (value && value !== 0 && !searchText) {
+	$: if (value && value !== 0 && !searchText && !isOpen) {
 		const selected = options.find(opt => opt.id === value);
-		console.log('selected', selected);
 		if (selected) {
 			searchText = selected.name;
 		}
