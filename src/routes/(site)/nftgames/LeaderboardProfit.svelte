@@ -6,8 +6,8 @@
 	import { onMount } from 'svelte';
 
 	export let sales: Sale[];
-	export let startDate: Date;
-	export let endDate: Date;
+	//export let startDate: Date;
+	//export let endDate: Date;
 
 	const VOI_DECIMALS = 6;
 	const VOI_FACTOR = Math.pow(10, VOI_DECIMALS);
@@ -34,7 +34,7 @@
 		const profitMap = new Map<string, ProfitEntry>();
 
 		// Sort sales by timestamp to process in chronological order
-		const sortedSales = [...sales].sort((a, b) => a.timestamp - b.timestamp);
+		const sortedSales = [...sales].sort((a, b) => a.timestamp - b.timestamp).filter(sale => sale.seller !== ZERO_ADDRESS);
 
 		sortedSales.forEach(sale => {
 			const tokenKey = `${sale.collectionId}_${sale.tokenId}`;
@@ -54,13 +54,10 @@
 			const sellerEntry = profitMap.get(sale.seller)!;
 			sellerEntry.totalTrades += 1;
 
-			// Calculate profit if base price exists
-			if (baseTokenPrices[tokenKey]) {
-				const profit = adjustedPrice - baseTokenPrices[tokenKey];
-				if (profit > 0) {
-					sellerEntry.totalProfit += profit;
-					sellerEntry.profitableTrades += 1;
-				}
+			const profit = adjustedPrice - (baseTokenPrices[tokenKey] || 0);
+			if (profit > 0) {
+				sellerEntry.totalProfit += profit;
+				sellerEntry.profitableTrades += 1;
 			}
 
 			// Update base price (always increases)
