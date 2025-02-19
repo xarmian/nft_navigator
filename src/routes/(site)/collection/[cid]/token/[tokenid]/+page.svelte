@@ -5,8 +5,8 @@
     import Share from '$lib/component/ui/Share.svelte';
 
     export let data: PageData;
-    let token = data.token;
-    let collection = data.collection;
+    $: token = data.token;
+    $: collection = data.collection;
 </script>
 
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900">

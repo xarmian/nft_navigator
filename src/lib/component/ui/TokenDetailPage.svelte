@@ -23,6 +23,7 @@
     import TransactionTable from '$lib/component/ui/TransactionTable.svelte';
     import { algodIndexer } from '$lib/utils/algod';
     import ImageModal from '$lib/component/ui/ImageModal.svelte';
+    import { getEnvoiNames } from '$lib/utils/envoi';
 
     export let token: Token;
     export let collection: Collection | undefined;
@@ -52,6 +53,7 @@
     let mintDateTime: string | null = null;
     let showZoomButton = false;
     let isTouchDevice = false;
+    let approvedSpender = '';
 
     $: imageUrl = (token) ? getTokenImageUrl(token,((format == 'small') ? 480 : 0)) : '';
 
@@ -140,6 +142,8 @@
                 isTokenApproved = token.approved === $selectedWallet.address ? true : false;
             }
 
+            getEnvoiNames([token.approved]).then((names) => approvedSpender = names[0]?.name ?? token.approved.slice(0, 8) + '...' + token.approved.slice(-8));
+
             if (token.metadata?.royalties) {
                 const decodedRoyalties = atob(token.metadata?.royalties);
 
@@ -167,10 +171,6 @@
             formattedOwner = token.ownerNFD ? token.ownerNFD as string : token.owner.length > 16
                     ? `${token.owner.slice(0, 8)}...${token.owner.slice(-8)}`
                     : token.owner;
-
-            formattedApproved = token.approved ? token.approved.length > 8
-                ? `${token.approved.slice(0, 8)}...${token.approved.slice(-8)}`
-                : token.approved : '';
         }
     }
 
@@ -688,7 +688,7 @@
                             <span class="text-gray-600 dark:text-gray-400">Minted</span>
                             <a href={`https://explorer.voi.network/explorer/block/${token.mintRound}/transactions`} target="_blank" class="tooltip cursor-pointer">
                                 {#if mintDateTime}
-                                    <div class="tooltiptext flex flex-col space-y-1 w-auto whitespace-nowrap p-2">
+                                    <div class="flex flex-col space-y-1 w-auto whitespace-nowrap p-2">
                                         <div class="dark:text-white">{mintDateTime}</div>
                                         <div class="text-xs text-blue-500 dark:text-blue-300">Click to view in explorer</div>
                                     </div>
@@ -697,6 +697,22 @@
                                 {/if}
                             </a>
                         </div>
+                        {#if token.approved && token.approved !== zeroAddress}
+                            <div class="flex justify-between items-center py-3 px-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors group">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-gray-600 dark:text-gray-400">Approved Spender</span>
+                                    <div class="tooltip">
+                                        <i class="fas fa-info-circle text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300"></i>
+                                        <div class="tooltiptext w-64 text-sm">
+                                            This address is approved to transfer the token on behalf of the owner (e.g., a marketplace contract).
+                                        </div>
+                                    </div>
+                                </div>
+                                <a href="/portfolio/{token.approved}" class="text-purple-600 dark:text-purple-400 hover:text-purple-700 font-medium">
+                                    {approvedSpender}
+                                </a>
+                            </div>
+                        {/if}
                         {#if royaltyPercentage > 0}
                             <div class="flex justify-between items-center py-3 px-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors">
                                 <span class="text-gray-600 dark:text-gray-400">Royalties</span>
@@ -839,6 +855,47 @@
 
     .hover\:shadow-2xl:hover {
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    /* Tooltip styles */
+    .tooltip {
+        position: relative;
+        display: inline-block;
+    }
+
+    .tooltip .tooltiptext {
+        visibility: hidden;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        text-align: center;
+        padding: 8px;
+        border-radius: 6px;
+        font-size: 14px;
+        white-space: normal;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    /* Add a small arrow to the tooltip */
+    .tooltip .tooltiptext::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
     }
 </style>
 
