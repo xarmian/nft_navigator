@@ -37,6 +37,7 @@
 	$: averagePrice = sales.length > 0 ? totalVolume / sales.length / VOI_FACTOR : 0;
 	$: uniqueBuyers = new Set(sales.map(s => s.buyer)).size;
 	$: uniqueSellers = new Set(sales.map(s => s.seller)).size;
+	$: uniqueCreators = new Set(collections.map(c => c.creator)).size;
 	$: participatingCollections = collections.length;
 
 	// Calculate additional statistics
@@ -199,6 +200,11 @@
 							<span class="opacity-75">Unique Sellers:</span>
 							<br />
 							<span class="font-bold">{uniqueSellers}</span>
+						</li>
+						<li>
+							<span class="opacity-75">Unique Creators:</span>
+							<br />
+							<span class="font-bold">{uniqueCreators}</span>
 						</li>
 					</ul>
 				{:else}

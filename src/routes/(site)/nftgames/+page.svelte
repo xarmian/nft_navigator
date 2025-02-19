@@ -120,7 +120,8 @@
 			const participants = new Set([
 				...gameSales.map(s => s.buyer),
 				...gameSales.map(s => s.seller),
-				...gamePeriodMints.map(m => m.to) // Add minters to participants
+				...gamePeriodMints.map(m => m.to), // Add minters to participants
+				...collections.map(c => c.creator)
 			]);
 			totalParticipants = participants.size;
 		} catch (error) {

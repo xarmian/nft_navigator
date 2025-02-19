@@ -90,18 +90,55 @@
 									{:else}
 										<img src="/blank_avatar_small.png" alt={collection?.highforgeData?.title ?? collection?.gameData?.title ?? `Collection #${stats.contractId}`} class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 dark:opacity-50" />
 									{/if}
-									<div class="flex flex-col">
-										<div class="flex items-center space-x-2">
-											<a href="/collection/{stats.contractId}" class="hover:text-blue-500">
-												<span class="font-medium">
-													{collection?.highforgeData?.title ?? collection?.gameData?.title ?? `Collection #${stats.contractId}`}
-												</span>
-											</a>
-											<a href="/analytics/{stats.contractId}" class="text-xs text-gray-500 hover:text-blue-500">
-												<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-													Analytics
-												</span>
-											</a>
+									<div class="flex flex-col w-full">
+										<div class="flex flex-wrap items-center gap-2 justify-between">
+											<div class="flex items-center space-x-2 min-w-[200px]">
+												<a href="/collection/{stats.contractId}" class="hover:text-blue-500">
+													<span class="font-medium">
+														{collection?.highforgeData?.title ?? collection?.gameData?.title ?? `Collection #${stats.contractId}`}
+													</span>
+												</a>
+												<a href="/analytics/{stats.contractId}" class="text-xs text-gray-500 hover:text-blue-500">
+													<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+														Analytics
+													</span>
+												</a>
+											</div>
+											{#if collection?.globalState}
+												{@const totalMinted = Number(collection.globalState.find((gs) => gs.key === 'totalMinted')?.value) || 0}
+												{@const maxSupply = Number(collection.globalState.find((gs) => gs.key === 'maxSupply')?.value) || 0}
+												{@const launchStart = Number(collection.globalState.find((gs) => gs.key === 'launchStart')?.value) || 0}
+												{@const launchEnd = Number(collection.globalState.find((gs) => gs.key === 'launchEnd')?.value) || 0}
+												{@const currentTime = Math.floor(Date.now() / 1000)}
+												{@const isMintable = maxSupply > 0 && totalMinted < maxSupply && 
+													(launchStart === 0 || currentTime >= launchStart) && 
+													(launchEnd === 0 || currentTime <= launchEnd)}
+												{#if isMintable}
+													<a href="https://highforge.io/project/{stats.contractId}" 
+														target="_blank" 
+														class="group relative flex items-center gap-3 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full px-3 py-1"
+														aria-label="Mint and View on Highforge">
+														<div class="absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+															Mint and View on Highforge
+														</div>
+														<div class="flex items-center gap-2 bg-green-500/10 rounded-full px-3 py-1">
+															<i class="fas fa-fire text-green-500"></i>
+															<span class="text-green-600 dark:text-green-400 font-medium">Minting</span>
+														</div>
+														<div class="flex items-center gap-2">
+															<div class="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+																<div class="bg-green-500 h-1.5 rounded-full" style="width: {(totalMinted / maxSupply * 100)}%"></div>
+															</div>
+															<span class="text-gray-500 whitespace-nowrap">{totalMinted}/{maxSupply}</span>
+														</div>
+														{#if collection.globalState.find((gs) => gs.key === 'price')?.value}
+															<div class="text-gray-500 whitespace-nowrap">
+																<span class="font-medium">{(Number(collection.globalState.find((gs) => gs.key === 'price')?.value) / Math.pow(10, 6)).toLocaleString()} VOI</span>
+															</div>
+														{/if}
+													</a>
+												{/if}
+											{/if}
 										</div>
 										{#if collection}
 											<div class="text-xs text-gray-500 mt-1">
