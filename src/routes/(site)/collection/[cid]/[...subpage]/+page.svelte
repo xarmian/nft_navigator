@@ -250,6 +250,26 @@
     $: currentTime = Math.floor(Date.now() / 1000);
     $: isMinting = maxSupply > 0 && totalMinted < maxSupply && (launchStart === 0 || currentTime >= launchStart) && (launchEnd === 0 || currentTime <= launchEnd);
     $: mintProgress = maxSupply > 0 ? (totalMinted / maxSupply * 100).toFixed(1) : '0';
+
+    // Add mint price calculations
+    $: publicPrice = collection?.globalState?.find((gs) => gs.key === 'price')?.value ? Number(collection.globalState.find((gs) => gs.key === 'price')?.value) / Math.pow(10, 6) : null;
+    $: wlPrice = collection?.globalState?.find((gs) => gs.key === 'wlPrice')?.value ? Number(collection.globalState.find((gs) => gs.key === 'wlPrice')?.value) / Math.pow(10, 6) : null;
+    $: currentPrice = currentTime < launchStart && currentTime >= launchStart ? wlPrice : publicPrice;
+    $: wlLaunchStart = collection?.globalState?.find((gs) => gs.key === 'wlLaunchStart')?.value ? Number(collection.globalState.find((gs) => gs.key === 'wlLaunchStart')?.value) : 0;
+
+    // Function to format dates consistently
+    function formatDateTime(timestamp: number) {
+        if (!timestamp) return null;
+        return new Date(timestamp * 1000).toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric',
+            hour12: true,
+            timeZoneName: 'short'
+        });
+    }
 </script>
 
 {#if collection}
@@ -260,8 +280,8 @@
     {/if}
     <div class="mask_dark flex justify-center h-full absolute w-full content-center">
         <div class="collection_detail w-1/2 flex justify-center content-center md:space-x-10 pr-2">
-            <div class="flex h-full place-items-center space-between flex-col space-y-1 w-3/4 md:flex-grow">
-                    <div class="p-4 overflow-auto mb-auto">
+            <div class="flex h-full place-items-center space-between flex-col space-y-1 w-full sm:w-3/4 md:flex-grow">
+                    <div class="p-0 sm:p-4 overflow-auto mb-auto">
                         {#if collectionDescription}
                             <div class="text-4xl font-bold md:text-left text-center">{data.collection?.highforgeData?.title??collectionName}</div>
                             <div class="text-md md:text-left text-center">{collectionDescription}</div>
@@ -326,7 +346,7 @@
                                 {/if}
                             </div>
                         {/if}
-                        <div class="w-1/2 md:w-auto text-center md:text-left">
+                        <div class="w-1/3 md:w-auto text-center md:text-left">
                             <div class="text-sm">Floor</div>
                             <div class="text-lg text-blue-300 cursor-pointer hover:text-blue-200 transition-colors" 
                                 on:click={() => {
@@ -336,7 +356,7 @@
                                 {data.floor}
                             </div>
                         </div>
-                        <div class="w-1/2 md:w-auto text-center md:text-left">
+                        <div class="w-1/3 md:w-auto text-center md:text-left">
                             <div class="text-sm">Ceiling</div>
                             <div class="text-lg text-blue-300 cursor-pointer hover:text-blue-200 transition-colors" 
                                 on:click={() => {
@@ -346,7 +366,7 @@
                                 {data.ceiling}
                             </div>
                         </div>
-                        <div class="tooltip w-1/2 md:w-auto text-center md:text-left">
+                        <div class="tooltip w-1/3 md:w-auto text-center md:text-left">
                             <div class="text-sm">Tokens</div>
                             <div class="text-lg text-blue-300 cursor-pointer hover:text-blue-200 transition-colors" 
                                 on:click={() => onSubpageChange('tokens')}>
@@ -358,29 +378,85 @@
                                 <div>Tokens Remaining: {collection?.totalSupply ? (collection.totalSupply - (collection.burnedSupply || 0)) : '-'}</div>
                             </div>
                         </div>
-                        <div class="w-1/2 md:w-auto text-center md:text-left">
+                        <div class="w-1/3 md:w-auto text-center md:text-left">
                             <div class="text-sm">Collectors</div>
                             <div class="text-lg text-blue-300 cursor-pointer hover:text-blue-200 transition-colors" 
                                 on:click={() => onSubpageChange('collectors')}>
                                 {collection?.uniqueOwners}
                             </div>
                         </div>
-                        <div class="w-1/2 md:w-auto text-center md:text-left">
+                        <div class="w-1/3 md:w-auto text-center md:text-left">
                             <div class="text-sm">Minted</div>
                             <div class="text-lg text-blue-300">
                                 <div class="tooltip cursor-pointer" on:click={() => collection?.mintRound && openExplorer(collection.mintRound)}>
                                     {mintDate ?? '-'}
                                     {#if mintDateTime}
-                                        <div class="tooltiptext flex flex-col space-y-1 w-auto whitespace-nowrap p-2 bg-slate-700">
-                                            <div>{mintDateTime}</div>
-                                            <div>Block #{collection?.mintRound}</div>
-                                            <div class="text-xs text-blue-300">Click to view in explorer</div>
+                                        <div class="tooltiptext w-[400px] p-4 bg-gray-800 border border-gray-700 rounded-lg shadow-xl">
+                                            <div class="text-base font-semibold mb-3 text-white border-b border-gray-700 pb-2">Collection Details</div>
+                                            
+                                            <!-- Collection Creation -->
+                                            <div class="mb-4">
+                                                <div class="text-xs text-gray-400 mb-1">Collection Created</div>
+                                                <div class="flex items-center gap-2 text-sm text-gray-200">
+                                                    <i class="fas fa-calendar text-blue-400"></i>
+                                                    <span>{mintDateTime}</span>
+                                                </div>
+                                                <div class="flex items-center gap-2 text-sm text-gray-200 mt-1">
+                                                    <i class="fas fa-cube text-blue-400"></i>
+                                                    <span>Block #{collection?.mintRound}</span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Mint Phases -->
+                                            <div class="space-y-3">
+                                                {#if wlLaunchStart}
+                                                    <div>
+                                                        <div class="text-xs text-gray-400 mb-1">Whitelist Launch Phase</div>
+                                                        <div class="bg-gray-900 rounded p-2">
+                                                            <div class="flex justify-between items-center text-sm">
+                                                                <div class="flex items-center gap-2 text-gray-200">
+                                                                    <i class="fas fa-clock text-purple-400"></i>
+                                                                    <span>{formatDateTime(wlLaunchStart)}</span>
+                                                                </div>
+                                                                {#if wlPrice}
+                                                                    <div class="flex items-center gap-2 text-gray-200">
+                                                                        <i class="fas fa-tag text-purple-400"></i>
+                                                                        <span>{wlPrice.toLocaleString()} VOI</span>
+                                                                    </div>
+                                                                {/if}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                {/if}
+
+                                                {#if launchStart}
+                                                    <div>
+                                                        <div class="text-xs text-gray-400 mb-1">Public Launch Phase</div>
+                                                        <div class="bg-gray-900 rounded p-2">
+                                                            <div class="flex justify-between items-center text-sm">
+                                                                <div class="flex items-center gap-2 text-gray-200">
+                                                                    <i class="fas fa-clock text-green-400"></i>
+                                                                    <span>{formatDateTime(launchStart)}</span>
+                                                                </div>
+                                                                {#if publicPrice}
+                                                                    <div class="flex items-center gap-2 text-gray-200">
+                                                                        <i class="fas fa-tag text-green-400"></i>
+                                                                        <span>{publicPrice.toLocaleString()} VOI</span>
+                                                                    </div>
+                                                                {/if}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                {/if}
+                                            </div>
+
+                                            <div class="text-[10px] text-blue-400 mt-3 text-center">Click to view creation block in explorer</div>
                                         </div>
                                     {/if}
                                 </div>
                             </div>
                         </div>
-                        <div class="w-1/2 md:w-auto text-center md:text-left">
+                        <div class="w-1/3 md:w-auto text-center md:text-left">
                             <div class="text-sm">Creator</div>
                             <div class="text-lg text-blue-300 hover:text-blue-200"><a href='/portfolio/{collection?.creator}'>{collection?.creatorName ?? collection?.creator.substring(0,8) + '...'}</a></div>
                         </div>
@@ -582,7 +658,6 @@
 
     .tooltip .tooltiptext {
         visibility: hidden;
-        text-align: center;
         border-radius: 6px;
         position: absolute;
         z-index: 100;
