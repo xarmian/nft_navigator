@@ -34,7 +34,7 @@
 		const profitMap = new Map<string, ProfitEntry>();
 
 		// Sort sales by timestamp to process in chronological order
-		const sortedSales = [...sales].sort((a, b) => a.timestamp - b.timestamp).filter(sale => sale.seller !== ZERO_ADDRESS);
+		const sortedSales = [...sales].sort((a, b) => a.timestamp - b.timestamp);
 
 		sortedSales.forEach(sale => {
 			const tokenKey = `${sale.collectionId}_${sale.tokenId}`;
