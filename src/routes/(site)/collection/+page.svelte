@@ -212,7 +212,7 @@
         {/if}
 
         <!-- Collections Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div class="flex flex-wrap gap-4">
             {#if isMounted}
                 {#each filterCollections.slice(0, displayCount) as collection (collection.contractId)}
                     <div in:fade={{ duration: 300, delay: 100 }}>
