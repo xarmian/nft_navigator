@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { getNFD } from '$lib/utils/nfd';
+import { getEnvoiNames } from '$lib/utils/envoi';
+import type { EnvoiNameResult } from '$lib/data/types';
 import type { Token } from '$lib/data/types';
 import { getCollections, getTokens } from '$lib/utils/indexer';
 import type { LayoutServerLoad } from '../../../$types';
@@ -10,18 +11,16 @@ import { get } from 'svelte/store';
 export const load = (async ({ params, fetch }) => {
 	const walletId: string | undefined = (((params.id??'').length) > 0) ? params.id : get(selectedWallet)?.address;
 
-	let walletNFD: null | string = null;
-	let walletAvatar: undefined | string = undefined;
+	let walletEnvoi: undefined | EnvoiNameResult = undefined;
+	//let walletAvatar: undefined | string = undefined;
 	let tokens: Token[] = [];
 	const approvals: Token[] = [];
 	const collections = await getCollections({ fetch });
 
 	try {
 		if (walletId) {
-			const nfd = await getNFD([walletId]);
-			const nfdObj: any = nfd.find((n: any) => n.key === walletId);
-			walletNFD = nfdObj?.replacementValue ?? undefined;
-			walletAvatar = nfdObj?.avatar ?? '/blank_avatar_small.png';
+			const nfd = await getEnvoiNames([walletId]);
+			walletEnvoi = nfd.find((n: any) => n.address === walletId);
 
 			// owned tokens
 			tokens = await getTokens({ owner: walletId, invalidate: true });
@@ -53,7 +52,7 @@ export const load = (async ({ params, fetch }) => {
 					contractId: token.contractId,
 						tokenId: token.tokenId,
 						owner: token.owner,
-						ownerNFD: walletNFD,
+						//ownerNFD: walletNFD,
 						metadataURI: token.metadataURI,
 						metadata: JSON.parse(token.metadata ?? '{}'),
 						mintRound: token['mint-round'],
@@ -71,16 +70,16 @@ export const load = (async ({ params, fetch }) => {
 	}
 
 	const pageMetaTags = {
-		title: 'Portfolio - ' + (walletNFD ?? walletId),
-		description: 'NFT Navigator Portfolio: ' + (walletNFD ?? walletId),
-		imageUrl: walletAvatar,
+		title: 'Portfolio - ' + (walletEnvoi?.name ?? walletId),
+		description: 'NFT Navigator Portfolio: ' + (walletEnvoi?.name ?? walletId),
+		imageUrl: walletEnvoi?.metadata?.avatar ?? '/blank_avatar_small.png',
 	};
 
 	return {
 		props: {
 			walletId,
-			walletNFD,
-			walletAvatar,
+			walletEnvoi,
+			//walletAvatar,
 			tokens,
 			approvals,
 			collections,

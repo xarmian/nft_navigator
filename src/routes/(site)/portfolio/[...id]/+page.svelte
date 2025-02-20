@@ -23,8 +23,9 @@
 
     export let data: PageData;
     $: walletId = data.props.walletId;
-    $: walletNFD = data.props.walletNFD;
-    $: walletAvatar = data.props.walletAvatar;
+    $: walletEnvoi = data.props.walletEnvoi;
+    $: console.log(walletEnvoi);   
+    //$: walletAvatar = data.props.walletAvatar;
     $: tokens = data.props.tokens;
     $: approvals = data.props.approvals;
     let collections = data.props.collections;
@@ -255,14 +256,14 @@
                 <div class="flex flex-col p-4 md:p-8 mt-2 mb-2 bg-slate-100 dark:bg-slate-800/95 shadow-2xl rounded-2xl space-y-4 max-w-3xl w-full">
                     <div class="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0 h-36">
                         <div class="flex flex-row space-x-4 flex-grow">
-                            {#if walletAvatar}
-                                <img src={walletAvatar} alt={walletNFD??formattedWallet} class="h-24 w-24 rounded-full place-self-start" />
+                            {#if walletEnvoi?.metadata?.avatar}
+                                <img src={walletEnvoi.metadata.avatar} alt={walletEnvoi.metadata.name??formattedWallet} class="h-24 w-24 rounded-full place-self-start" />
                             {/if}
                             <div class="flex flex-col flex-grow">
                                 <div class="flex flex-row space-x-2 text-2xl font-bold mb-0">
                                     <div class="text-blue dark:text-blue-100">
-                                        {walletNFD??formattedWallet}
-                                        {#if !walletNFD}
+                                        {walletEnvoi?.name??formattedWallet}
+                                        {#if !walletEnvoi?.name}
                                             <i use:copy={walletId} 
                                                class="fas fa-copy ml-2 cursor-pointer transition-all duration-200 hover:text-blue-500 active:scale-125" 
                                                on:svelte-copy={() => {
@@ -277,7 +278,7 @@
                                         {/if}
                                     </div>
                                 </div>
-                                {#if walletNFD}
+                                {#if walletEnvoi?.name}
                                     <div class="text-sm font-bold mb-4 text-left">
                                         {formattedWallet}
                                         <i use:copy={walletId} 
@@ -294,38 +295,36 @@
                                     </div>
                                 {/if}
                                 <!-- Add Envoi metadata if available -->
-                                {#if tokens.some(t => t.metadata?.envoiName)}
-                                    {#each tokens.filter(t => t.metadata?.envoiName && t.metadata?.envoiMetadata) as envoiToken, i}
+                                {#if walletEnvoi?.metadata}
                                         <div class="flex flex-col space-y-2">
-                                            {#if envoiToken.metadata?.envoiMetadata?.url}
+                                            {#if walletEnvoi.metadata.url}
                                                 <div class="flex items-center space-x-2">
                                                     <i class="fas fa-globe text-gray-600 dark:text-gray-300"></i>
-                                                    <a href={envoiToken.metadata.envoiMetadata.url} target="_blank" rel="noopener noreferrer" 
-                                                        class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm">{envoiToken.metadata.envoiMetadata.url}</a>
+                                                    <a href={walletEnvoi.metadata.url} target="_blank" rel="noopener noreferrer" 
+                                                        class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm">{walletEnvoi.metadata.url}</a>
                                                 </div>
                                             {/if}
-                                            {#if envoiToken.metadata?.envoiMetadata?.location}
+                                            {#if walletEnvoi.metadata.location}
                                                 <div class="flex items-center space-x-2">
                                                     <i class="fas fa-map-marker-alt text-gray-600 dark:text-gray-300"></i>
-                                                    <span class="text-gray-600 dark:text-gray-300 text-sm">{envoiToken.metadata.envoiMetadata.location}</span>
+                                                    <span class="text-gray-600 dark:text-gray-300 text-sm">{walletEnvoi.metadata.location}</span>
                                                 </div>
                                             {/if}
-                                            {#if envoiToken.metadata?.envoiMetadata?.['com.twitter']}
+                                            {#if walletEnvoi.metadata['com.twitter']}
                                                 <div class="flex items-center space-x-2">
                                                     <i class="fab fa-x-twitter text-gray-600 dark:text-gray-300"></i>
-                                                    <a href="https://twitter.com/{envoiToken.metadata.envoiMetadata['com.twitter']}" target="_blank" 
-                                                        class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm">@{envoiToken.metadata.envoiMetadata['com.twitter']}</a>
+                                                    <a href="https://x.com/{walletEnvoi.metadata['com.twitter']}" target="_blank" 
+                                                        class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm">@{walletEnvoi.metadata['com.twitter']}</a>
                                                 </div>
                                             {/if}
-                                            {#if envoiToken.metadata?.envoiMetadata?.['com.github']}
+                                            {#if walletEnvoi.metadata['com.github']}
                                                 <div class="flex items-center space-x-2">
                                                     <i class="fab fa-github text-gray-600 dark:text-gray-300"></i>
-                                                    <a href="https://github.com/{envoiToken.metadata.envoiMetadata['com.github']}" target="_blank" 
-                                                        class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm">{envoiToken.metadata.envoiMetadata['com.github']}</a>
+                                                    <a href="https://github.com/{walletEnvoi.metadata['com.github']}" target="_blank" 
+                                                        class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm">{walletEnvoi.metadata['com.github']}</a>
                                                 </div>
                                             {/if}
                                         </div>
-                                    {/each}
                                 {/if}
                             </div>
                         </div>
@@ -339,6 +338,10 @@
                             <div class="flex flex-col space-y-2">
                                 <a href="https://explorer.voi.network/explorer/account/{walletId}" target="_blank" class="text-blue-500 hover:text-blue-700 underline text-sm text-right">
                                     Voi Explorer
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>
+                                <a href="https://voirewards.com/wallet/{walletId}" target="_blank" class="text-blue-500 hover:text-blue-700 underline text-sm text-right">
+                                    Voirewards Portfolio
                                     <i class="fas fa-external-link-alt"></i>
                                 </a>
                                 <div class="hidden">
