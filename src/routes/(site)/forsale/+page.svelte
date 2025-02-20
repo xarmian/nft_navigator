@@ -2,20 +2,17 @@
 	import type { PageData } from './$types';
     import type { Collection, Token } from '$lib/data/types';
     import { filters, saleSort as sort, viewMode, collectionStore, currencies } from '../../../stores/collection';
-    import TokenCard from '$lib/component/ui/TokenCard.svelte';
-    import Switch from '$lib/component/ui/Switch.svelte';
     import Select from '$lib/component/ui/Select.svelte';
     import CollectionPreview from '$lib/component/ui/CollectionPreview.svelte';
     import CollectionPreviewModal from '$lib/component/ui/CollectionPreviewModal.svelte';
 	import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
     
     export let data: PageData;
-    let voiGames: object[] = data.voiGames;
     let tokens: Token[] = data.tokens;
     let filterTokens: Token[] = [];
     let textFilter = '';
     let lastSort = { by: '', direction: '' };
-    let lastFilter = { text: '', currency: '', voiGames: false };
+    let lastFilter = { text: '', currency: ''};
 
     let collectionGroups: {
         name: string;
@@ -29,8 +26,7 @@
     function filterAndSortTokens() {
         // Only refilter if filters changed
         if (lastFilter.text !== textFilter || 
-            lastFilter.currency !== $filters.currency || 
-            lastFilter.voiGames !== $filters.voiGames) {
+            lastFilter.currency !== $filters.currency) {
             
             filterTokens = tokens.filter((t: Token) => {
                 return (textFilter == ''
@@ -39,17 +35,10 @@
                     && ($filters.currency == '*' || t.marketData?.currency === Number($filters.currency));
             });
 
-            if ($filters.voiGames) {
-                filterTokens = filterTokens.filter((t: Token) => 
-                    voiGames.find((v: any) => v.applicationID === t.contractId)
-                );
-            }
-
             // Update last filter state
             lastFilter = {
                 text: textFilter,
-                currency: $filters.currency,
-                voiGames: $filters.voiGames
+                currency: $filters.currency
             };
         }
 
@@ -204,7 +193,7 @@
     let showPreviewModal = false;
     let selectedCollectionTokens: Token[] = [];
     let selectedCollectionName = '';
-    let selectedCollection: Collection | null = null;
+    let selectedCollection: Collection | undefined = undefined;
 
     function handlePreviewClick(group: { name: string; tokens: Token[] }, event: MouseEvent) {
         event.preventDefault();
@@ -232,6 +221,121 @@
             <h1 class="text-2xl font-bold">NFTs For Sale</h1>
         </div>
 
+        <!-- Stats Bar -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {#if tokens.length > 0}
+                <!-- Total Tokens -->
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Total Tokens</p>
+                            <p class="text-2xl font-semibold">{tokens.length}</p>
+                        </div>
+                        <div class="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                            <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total Collections -->
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Collections</p>
+                            <p class="text-2xl font-semibold">{new Set(tokens.map(t => t.contractId)).size}</p>
+                        </div>
+                        <div class="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                            <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Floor Price -->
+                {@const floorToken = tokens.reduce((min, t) => 
+                    (!min || (t.marketData?.price && t.marketData.price < min.marketData!.price!)) ? t : min, 
+                    tokens.find(t => t.marketData?.price)
+                )}
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Floor Price</p>
+                            <p class="text-2xl font-semibold">
+                                {(floorToken?.marketData?.price! / (10 ** 6)).toLocaleString()} VOI
+                            </p>
+                        </div>
+                        <div class="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                            <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    {#if floorToken}
+                        <a href="/collection/{floorToken.contractId}/token/{floorToken.tokenId}" class="flex items-center gap-2 mt-2 group">
+                            <div class="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex-shrink-0">
+                                <img 
+                                    src={floorToken.metadata?.image} 
+                                    alt={floorToken.metadata?.name} 
+                                    class="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                                />
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-500">
+                                    {floorToken.metadata?.name}
+                                </p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                    {$collectionStore.find(c => c.contractId === floorToken.contractId)?.highforgeData?.title ?? 'Unknown Collection'}
+                                </p>
+                            </div>
+                        </a>
+                    {/if}
+                </div>
+
+                <!-- Highest Price -->
+                {@const highestToken = tokens.reduce((max, t) => 
+                    (!max || (t.marketData?.price && t.marketData.price > max.marketData!.price!)) ? t : max, 
+                    tokens.find(t => t.marketData?.price)
+                )}
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Highest Price</p>
+                            <p class="text-2xl font-semibold">
+                                {(highestToken?.marketData?.price! / (10 ** 6)).toLocaleString()} VOI
+                            </p>
+                        </div>
+                        <div class="p-2 bg-red-100 dark:bg-red-900 rounded-lg">
+                            <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                            </svg>
+                        </div>
+                    </div>
+                    {#if highestToken}
+                        <a href="/collection/{highestToken.contractId}/token/{highestToken.tokenId}" class="flex items-center gap-2 mt-2 group">
+                            <div class="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex-shrink-0">
+                                <img 
+                                    src={highestToken.metadata?.image} 
+                                    alt={highestToken.metadata?.name} 
+                                    class="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                                />
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-500">
+                                    {highestToken.metadata?.name}
+                                </p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                    {$collectionStore.find(c => c.contractId === highestToken.contractId)?.highforgeData?.title ?? 'Unknown Collection'}
+                                </p>
+                            </div>
+                        </a>
+                    {/if}
+                </div>
+            {/if}
+        </div>
+
         <!-- Controls -->
         <div class="flex flex-col gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
             <!-- Search bar with icon -->
@@ -252,6 +356,7 @@
                     <button 
                         class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                         on:click={() => { textFilter = ''; inputElement.focus(); }}
+                        aria-label="Clear search"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
@@ -288,7 +393,7 @@
                         </div>
 
                         <!-- Currency Filter -->
-                        <div class="flex items-center hidden">
+                        <div class="items-center hidden">
                             <Select 
                                 label="Currency"
                                 options={[
@@ -337,7 +442,7 @@
             </div>
 
             <!-- Active Filters -->
-            {#if textFilter || $filters.currency !== '*' || $filters.voiGames}
+            {#if textFilter || $filters.currency !== '*'}
                 <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
                     <span class="text-sm text-gray-500 dark:text-gray-400">Active filters:</span>
                     {#if textFilter}
@@ -350,17 +455,11 @@
                             Currency: {$currencies.find(c => c.assetId === Number($filters.currency))?.symbol || 'Unknown'}
                         </span>
                     {/if}
-                    {#if $filters.voiGames}
-                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                            VOI Games
-                        </span>
-                    {/if}
                     <button 
                         class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
                         on:click={() => {
                             textFilter = '';
                             $filters.currency = '*';
-                            $filters.voiGames = false;
                         }}
                     >
                         Clear all
