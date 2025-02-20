@@ -233,7 +233,7 @@
                                                    target="_blank"
                                                    rel="noopener noreferrer" 
                                                    class="flex items-center gap-2 text-purple-400 hover:text-purple-300 text-sm">
-                                                    <i class="fab fa-twitter w-4"></i>
+                                                    <i class="fab fa-x-twitter w-4"></i>
                                                     <span>@{creatorMetadata['com.twitter']}</span>
                                                 </a>
                                             {/if}

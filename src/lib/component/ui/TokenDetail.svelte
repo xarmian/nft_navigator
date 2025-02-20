@@ -358,15 +358,6 @@
         goto(`/collection/${token.contractId}`);
     }
 
-    function handleLinkClick(e: MouseEvent) {
-        e.preventDefault();
-        e.stopPropagation();
-        const href = (e.currentTarget as HTMLAnchorElement).getAttribute('href');
-        if (href) {
-            goto(href);
-        }
-    }
-
 </script>
     <div class="shadow-md rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative overflow-hidden {hidden ? 'hidden' : ''}" style="display: {hidden ? 'none' : 'block'}">
         <a href="/collection/{token.contractId}/token/{token.tokenId}" 
@@ -401,20 +392,32 @@
                         </div>
                     </div>
                 {/if}
-                <!-- Add permanent token name that fades out on hover -->
-                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-4 py-3 transition-opacity duration-300 {isExpanded ? 'opacity-0' : ''}">
-                    <div class="flex items-center gap-3">
-                        <div class="flex-1">
-                            <h3 class="text-white font-bold text-lg">
-                                <TokenName name={token.metadata?.name??String(token.tokenId)} tokenId={token.tokenId}></TokenName>
+                    <!-- Always visible overlay content -->
+                    <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 to-transparent">
+                        <div class="space-y-1">
+                            <h3 class="text-white font-bold text-lg truncate">
+                                {#if token.contractId === 797609}
+                                    {token.metadata?.envoiName}
+                                {:else}
+                                    <TokenName name={token.metadata?.name??String(token.tokenId)} tokenId={token.tokenId}></TokenName>
+                                {/if}
                             </h3>
-                            <p class="text-white/80 text-sm">{collectionName}</p>
-                            {#if token.rank}
-                                <p class="text-purple-400 text-sm">Rank #{token.rank}</p>
-                            {/if}
+                            <div class="flex items-center justify-between text-sm">
+                                <button
+                                   class="text-gray-400 hover:text-white text-sm flex items-center gap-1"
+                                   on:click|preventDefault|stopPropagation={() => goto(`/portfolio/${token.owner}`)}>
+                                    <i class="fas fa-user text-xs"></i>
+                                    {formattedOwner}
+                                </button>
+                                {#if token.rank && !token.metadata?.envoiName}
+                                    <span class="text-yellow-500 flex items-center gap-1">
+                                        <i class="fas fa-trophy text-sm"></i>
+                                        #{token.rank}
+                                    </span>
+                                {/if}
+                            </div>
                         </div>
                     </div>
-                </div>
             {/if}
 
             <!-- Permanent Sale Badge -->
@@ -575,7 +578,7 @@
                                             {/if}
                                             {#if token.metadata.envoiMetadata['com.twitter']}
                                                 <div class="flex items-center gap-2">
-                                                    <i class="fab fa-twitter text-purple-400 w-4"></i>
+                                                    <i class="fab fa-x-twitter text-purple-400 w-4"></i>
                                                     <span 
                                                        on:click|stopPropagation|preventDefault={() => window.open(`https://twitter.com/${token?.metadata?.envoiMetadata?.['com.twitter']}`, '_blank', 'noopener,noreferrer')}
                                                        on:keydown|stopPropagation|preventDefault={(e) => e.key === 'Enter' && window.open(`https://twitter.com/${token?.metadata?.envoiMetadata?.['com.twitter']}`, '_blank', 'noopener,noreferrer')}

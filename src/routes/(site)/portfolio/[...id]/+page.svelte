@@ -296,37 +296,35 @@
                                 <!-- Add Envoi metadata if available -->
                                 {#if tokens.some(t => t.metadata?.envoiName)}
                                     {#each tokens.filter(t => t.metadata?.envoiName && t.metadata?.envoiMetadata) as envoiToken, i}
-                                        {#if i === 0}
-                                            <div class="flex flex-col space-y-2">
-                                                {#if envoiToken.metadata?.envoiMetadata?.url}
-                                                    <div class="flex items-center space-x-2">
-                                                        <i class="fas fa-globe text-gray-600 dark:text-gray-300"></i>
-                                                        <a href={envoiToken.metadata.envoiMetadata.url} target="_blank" rel="noopener noreferrer" 
-                                                           class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm">{envoiToken.metadata.envoiMetadata.url}</a>
-                                                    </div>
-                                                {/if}
-                                                {#if envoiToken.metadata?.envoiMetadata?.location}
-                                                    <div class="flex items-center space-x-2">
-                                                        <i class="fas fa-map-marker-alt text-gray-600 dark:text-gray-300"></i>
-                                                        <span class="text-gray-600 dark:text-gray-300 text-sm">{envoiToken.metadata.envoiMetadata.location}</span>
-                                                    </div>
-                                                {/if}
-                                                {#if envoiToken.metadata?.envoiMetadata?.['com.twitter']}
-                                                    <div class="flex items-center space-x-2">
-                                                        <i class="fab fa-twitter text-gray-600 dark:text-gray-300"></i>
-                                                        <a href="https://twitter.com/{envoiToken.metadata.envoiMetadata['com.twitter']}" target="_blank" 
-                                                           class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm">@{envoiToken.metadata.envoiMetadata['com.twitter']}</a>
-                                                    </div>
-                                                {/if}
-                                                {#if envoiToken.metadata?.envoiMetadata?.['com.github']}
-                                                    <div class="flex items-center space-x-2">
-                                                        <i class="fab fa-github text-gray-600 dark:text-gray-300"></i>
-                                                        <a href="https://github.com/{envoiToken.metadata.envoiMetadata['com.github']}" target="_blank" 
-                                                           class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm">{envoiToken.metadata.envoiMetadata['com.github']}</a>
-                                                    </div>
-                                                {/if}
-                                            </div>
-                                        {/if}
+                                        <div class="flex flex-col space-y-2">
+                                            {#if envoiToken.metadata?.envoiMetadata?.url}
+                                                <div class="flex items-center space-x-2">
+                                                    <i class="fas fa-globe text-gray-600 dark:text-gray-300"></i>
+                                                    <a href={envoiToken.metadata.envoiMetadata.url} target="_blank" rel="noopener noreferrer" 
+                                                        class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm">{envoiToken.metadata.envoiMetadata.url}</a>
+                                                </div>
+                                            {/if}
+                                            {#if envoiToken.metadata?.envoiMetadata?.location}
+                                                <div class="flex items-center space-x-2">
+                                                    <i class="fas fa-map-marker-alt text-gray-600 dark:text-gray-300"></i>
+                                                    <span class="text-gray-600 dark:text-gray-300 text-sm">{envoiToken.metadata.envoiMetadata.location}</span>
+                                                </div>
+                                            {/if}
+                                            {#if envoiToken.metadata?.envoiMetadata?.['com.twitter']}
+                                                <div class="flex items-center space-x-2">
+                                                    <i class="fab fa-x-twitter text-gray-600 dark:text-gray-300"></i>
+                                                    <a href="https://twitter.com/{envoiToken.metadata.envoiMetadata['com.twitter']}" target="_blank" 
+                                                        class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm">@{envoiToken.metadata.envoiMetadata['com.twitter']}</a>
+                                                </div>
+                                            {/if}
+                                            {#if envoiToken.metadata?.envoiMetadata?.['com.github']}
+                                                <div class="flex items-center space-x-2">
+                                                    <i class="fab fa-github text-gray-600 dark:text-gray-300"></i>
+                                                    <a href="https://github.com/{envoiToken.metadata.envoiMetadata['com.github']}" target="_blank" 
+                                                        class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm">{envoiToken.metadata.envoiMetadata['com.github']}</a>
+                                                </div>
+                                            {/if}
+                                        </div>
                                     {/each}
                                 {/if}
                             </div>

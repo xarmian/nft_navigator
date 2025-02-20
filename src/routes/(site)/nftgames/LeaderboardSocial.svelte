@@ -59,7 +59,7 @@
 				rel="noopener noreferrer"
 				class="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
 			>
-				<i class="fab fa-twitter"></i>
+				<i class="fab fa-x-twitter"></i>
 				Follow @voinftnavigator
 			</a>
 		</div>

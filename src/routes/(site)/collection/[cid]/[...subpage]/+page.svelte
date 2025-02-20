@@ -304,7 +304,7 @@
                                 {/if}
                                 {#if creatorEnvoiMetadata['com.twitter']}
                                     <div class="flex items-center space-x-2">
-                                        <i class="fab fa-twitter text-gray-300"></i>
+                                        <i class="fab fa-x-twitter text-gray-300"></i>
                                         <a href="https://twitter.com/{creatorEnvoiMetadata['com.twitter']}" target="_blank" 
                                            class="text-blue-400 hover:text-blue-300 text-sm">@{creatorEnvoiMetadata['com.twitter']}</a>
                                     </div>

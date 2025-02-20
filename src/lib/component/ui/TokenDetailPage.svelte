@@ -749,7 +749,7 @@
                             {/if}
                             {#if token.metadata.envoiMetadata['com.twitter']}
                                 <div class="flex items-center gap-4 py-3 px-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors">
-                                    <i class="fab fa-twitter text-purple-500 w-6"></i>
+                                    <i class="fab fa-x-twitter text-purple-500 w-6"></i>
                                     <a href="https://twitter.com/{token.metadata.envoiMetadata['com.twitter']}" target="_blank" 
                                        class="text-purple-600 dark:text-purple-400 hover:text-purple-700">@{token.metadata.envoiMetadata['com.twitter']}</a>
                                 </div>
