@@ -244,7 +244,7 @@
             </div>
         </div>
     {:else if walletId}
-        <div class="relative w-full h-52 overflow-visible">
+        <div class="relative w-full h-auto min-h-[14rem] md:h-52 overflow-visible">
             <div class="flex h-full w-full absolute blur-xsm -z-10 opacity-60">
                 {#each headerTokens as token (token)}
                     {#if token.metadata}
@@ -252,21 +252,41 @@
                     {/if}
                 {/each}
             </div>
-            <div class="flex justify-center items-center w-full mx-2 absolute top-8">
+            <div class="flex justify-center items-center w-full sm:mx-2 absolute sm:top-8">
                 <div class="flex flex-col p-4 md:p-8 mt-2 mb-2 bg-slate-100 dark:bg-slate-800/95 shadow-2xl rounded-2xl space-y-4 max-w-3xl w-full">
-                    <div class="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0 h-36">
-                        <div class="flex flex-row space-x-4 flex-grow">
-                            {#if walletEnvoi?.metadata?.avatar}
-                                <img src={walletEnvoi.metadata.avatar} alt={walletEnvoi.metadata.name??formattedWallet} class="h-24 w-24 rounded-full place-self-start" />
-                            {/if}
-                            <div class="flex flex-col flex-grow">
-                                <div class="flex flex-row space-x-2 text-2xl font-bold mb-0">
-                                    <div class="text-blue dark:text-blue-100">
-                                        {walletEnvoi?.name??formattedWallet}
-                                        {#if !walletEnvoi?.name}
+                    <!-- Profile Section -->
+                    <div class="flex flex-col space-y-4">
+                        <!-- Avatar and Name Section -->
+                        <div class="flex flex-col md:flex-row md:space-x-6 space-y-4 md:space-y-0">
+                            <div class="flex flex-row space-x-4 flex-grow">
+                                {#if walletEnvoi?.metadata?.avatar}
+                                    <img src={walletEnvoi.metadata.avatar} alt={walletEnvoi.metadata.name??formattedWallet} class="h-24 w-24 rounded-full place-self-start" />
+                                {/if}
+                                <div class="flex flex-col flex-grow">
+                                    <div class="flex flex-row space-x-2 text-2xl font-bold mb-2">
+                                        <div class="text-blue dark:text-blue-100">
+                                            {walletEnvoi?.name??formattedWallet}
+                                            {#if !walletEnvoi?.name}
+                                                <i use:copy={walletId} 
+                                                   class="fas fa-copy ml-2 cursor-pointer transition-all duration-200 hover:text-blue-500 active:scale-125" 
+                                                   on:copy={() => {
+                                                       toast.push({
+                                                           msg: `<div class="flex items-center"><i class="fas fa-check-circle text-green-500 mr-2"></i>Address copied to clipboard</div>`,
+                                                           theme: {
+                                                               '--toastBackground': '#48BB78',
+                                                               '--toastBarBackground': '#2F855A'
+                                                           }
+                                                       });
+                                                   }}></i>
+                                            {/if}
+                                        </div>
+                                    </div>
+                                    {#if walletEnvoi?.name}
+                                        <div class="text-sm font-bold mb-3 text-left">
+                                            {formattedWallet}
                                             <i use:copy={walletId} 
                                                class="fas fa-copy ml-2 cursor-pointer transition-all duration-200 hover:text-blue-500 active:scale-125" 
-                                               on:svelte-copy={() => {
+                                               on:copy={() => {
                                                    toast.push({
                                                        msg: `<div class="flex items-center"><i class="fas fa-check-circle text-green-500 mr-2"></i>Address copied to clipboard</div>`,
                                                        theme: {
@@ -275,33 +295,16 @@
                                                        }
                                                    });
                                                }}></i>
-                                        {/if}
-                                    </div>
-                                </div>
-                                {#if walletEnvoi?.name}
-                                    <div class="text-sm font-bold mb-4 text-left">
-                                        {formattedWallet}
-                                        <i use:copy={walletId} 
-                                           class="fas fa-copy ml-2 cursor-pointer transition-all duration-200 hover:text-blue-500 active:scale-125" 
-                                           on:svelte-copy={() => {
-                                               toast.push({
-                                                   msg: `<div class="flex items-center"><i class="fas fa-check-circle text-green-500 mr-2"></i>Address copied to clipboard</div>`,
-                                                   theme: {
-                                                       '--toastBackground': '#48BB78',
-                                                       '--toastBarBackground': '#2F855A'
-                                                   }
-                                               });
-                                           }}></i>
-                                    </div>
-                                {/if}
-                                <!-- Add Envoi metadata if available -->
-                                {#if walletEnvoi?.metadata}
-                                        <div class="flex flex-col space-y-2">
+                                        </div>
+                                    {/if}
+                                    <!-- Envoi metadata -->
+                                    {#if walletEnvoi?.metadata}
+                                        <div class="flex flex-col space-y-1.5">
                                             {#if walletEnvoi.metadata.url}
                                                 <div class="flex items-center space-x-2">
                                                     <i class="fas fa-globe text-gray-600 dark:text-gray-300"></i>
                                                     <a href={walletEnvoi.metadata.url} target="_blank" rel="noopener noreferrer" 
-                                                        class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm">{walletEnvoi.metadata.url}</a>
+                                                        class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm truncate">{walletEnvoi.metadata.url}</a>
                                                 </div>
                                             {/if}
                                             {#if walletEnvoi.metadata.location}
@@ -325,29 +328,36 @@
                                                 </div>
                                             {/if}
                                         </div>
-                                {/if}
-                            </div>
-                        </div>
-                        <div class="flex flex-col justify-between space-y-2 md:w-48">
-                            {#if voiBalance != undefined}
-                                <div class="flex flex-row items-center justify-end space-x-2">
-                                    <div class="text-lg font-bold text-green-500 dark:text-green-300">{(voiBalance / Math.pow(10,6)).toLocaleString()}</div>
-                                    <div class="text-md font-bold text-gray-500 dark:text-gray-300">VOI</div>
+                                    {/if}
                                 </div>
-                            {/if}
-                            <div class="flex flex-col space-y-2">
-                                <a href="https://explorer.voi.network/explorer/account/{walletId}" target="_blank" class="text-blue-500 hover:text-blue-700 underline text-sm text-right">
-                                    Voi Explorer
-                                    <i class="fas fa-external-link-alt"></i>
-                                </a>
-                                <a href="https://voirewards.com/wallet/{walletId}" target="_blank" class="text-blue-500 hover:text-blue-700 underline text-sm text-right">
-                                    Voirewards Portfolio
-                                    <i class="fas fa-external-link-alt"></i>
-                                </a>
-                                <div class="hidden">
-                                    <a href="https://shellyssandbox.xyz/#/account/{walletId}" target="_blank" class="text-blue-500 hover:text-blue-700 underline text-sm">
-                                        ARC-200 Balances
-                                        <i class="fas fa-external-link-alt"></i>
+                            </div>
+
+                            <div class="flex flex-col justify-between space-x-2 space-y-2">
+                                {#if voiBalance != undefined}
+                                    <div class="flex flex-row items-center justify-end space-x-2 place-self-end">
+                                        <div class="text-lg font-bold text-green-500 dark:text-green-300">{(voiBalance / Math.pow(10,6)).toLocaleString()}</div>
+                                        <div class="text-md font-bold text-gray-500 dark:text-gray-300">VOI</div>
+                                    </div>
+                                {/if}
+
+                                <div class="flex flex-row md:flex-col md:space-y-2 space-x-2 md:space-x-0 place-items-center">
+                                    <a href="https://explorer.voi.network/explorer/account/{walletId}" 
+                                       target="_blank" 
+                                       class="inline-flex flex-col items-center px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md w-full">
+                                        <div class="flex items-center text-white">
+                                            <i class="fas fa-search mr-2"></i>
+                                            <span>View Account</span>
+                                        </div>
+                                        <span class="text-blue-200 text-xs font-normal mt-0.5">on Voi Explorer</span>
+                                    </a>
+                                    <a href="https://voirewards.com/wallet/{walletId}" 
+                                       target="_blank" 
+                                       class="inline-flex flex-col items-center px-4 py-2 text-sm font-medium bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md w-full">
+                                        <div class="flex items-center text-white">
+                                            <i class="fas fa-chart-line mr-2"></i>
+                                            <span>View Portfolio</span>
+                                        </div>
+                                        <span class="text-purple-200 text-xs font-normal mt-0.5">on Voirewards</span>
                                     </a>
                                 </div>
                             </div>
@@ -363,15 +373,15 @@
         <div>
             <Tabs style="underline" defaultClass="flex place-items-end rounded-lg divide-x rtl:divide-x-reverse divide-gray-200 shadow dark:divide-gray-700 justify-center relative">
                 <TabItem open>
-                    <div slot="title">
-                        <div class="inline">Portfolio</div>
+                    <div slot="title" class="flex items-center space-x-2">
+                        <span>Portfolio</span>
                         <Indicator color="blue" size="xl" class="text-xs font-bold text-white">
                             {tokens.length}
                         </Indicator>
                     </div>
                     <div class="flex flex-col" bind:this={containerRef}>
                         <div class="flex justify-center w-full">
-                            <div class="flex flex-col md:flex-row justify-between items-center gap-4 p-4" style="width: var(--token-area-width, 100%);">
+                            <div class="flex flex-col md:flex-row justify-between items-center gap-4 p-4 w-full max-w-7xl">
                                 <div class="w-full md:w-auto flex-grow">
                                     <input
                                         type="text"
@@ -399,14 +409,13 @@
                                             <i class="fas fa-sort-{sortDirection === 'asc' ? 'up' : 'down'}"></i>
                                         </button>
                                     </div>
-                                    <label class="flex items-center gap-2 hidden">
-                                        <input
-                                            type="checkbox"
-                                            bind:checked={showListedOnly}
-                                            class="form-checkbox h-5 w-5 text-blue-600"
-                                        />
-                                        <span>Listed Only</span>
-                                    </label>
+                                    <button
+                                        on:click={() => multiselectMode = !multiselectMode}
+                                        class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+                                    >
+                                        <i class="fas fa-check-square mr-2"></i>
+                                        {multiselectMode ? 'Exit Select Mode' : 'Select Multiple'}
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -438,9 +447,11 @@
                     </div>
                 </TabItem>
                 <TabItem>
-                    <div slot="title">
-                        <div class="inline">Approvals</div>
-                        <Indicator color="blue" size="xl" class="text-xs font-bold text-white">{approvals.length}</Indicator>
+                    <div slot="title" class="flex items-center space-x-2">
+                        <span>Approvals</span>
+                        <Indicator color="blue" size="xl" class="text-xs font-bold text-white">
+                            {approvals.length}
+                        </Indicator>
                     </div>
                     <div class="flex justify-center">
                         <div class="text-sm bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 max-w-fit">
@@ -462,37 +473,17 @@
                     </div>
                 </TabItem>
                 <TabItem>
-                    <div slot="title">
-                        <div class="inline">Transactions</div>
+                    <div slot="title" class="flex items-center space-x-2">
+                        <span>Transactions</span>
                     </div>
                     <div class="m-4">
                         <TransactionTable owner={walletId} />
                     </div>
                 </TabItem>
-                <!--<TabItem>
-                    <div slot="title">
-                        <div class="inline">
-                            Quests
-                            <div class="text-xs bg-yellow-200 text-black border-black rounded-xl inline p-1 align-super">new!</div>
-                        </div>
-                    </div>
-                    <div class="m-4">
-                        <QuestsTable wallet={walletId} />
-                    </div>
-                </TabItem>-->
-                <a
-                    href="#"
-                    on:click|preventDefault={() => multiselectMode = !multiselectMode}
-                    class="text-blue-500 hover:text-blue-700 underline flex items-center absolute right-4 bottom-2"
-                >
-                    <i class="fas fa-check-square mr-2"></i>
-                    {multiselectMode ? 'Exit Select' : 'Select Multiple'}
-                </a>
-
             </Tabs>
         </div>
         {#if multiselectMode}
-            <div class="fixed bottom-0 right-0 p-4 flex space-x-2">
+            <div class="fixed bottom-0 right-0 p-4 flex space-x-2 z-10">
                 <button class="bg-blue-500 text-white rounded-lg p-2" on:click={() => clearMultiSelectMode()}>
                     Cancel
                 </button>
