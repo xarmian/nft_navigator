@@ -91,7 +91,7 @@
     $: totalTokens = tokens?.length ?? 0;
     $: burnedTokens = tokens?.filter(t => t.isBurned)?.length ?? 0;
     $: uniqueCollectors = new Set(tokens?.map(t => t.owner)).size;
-    $: userTokenCount = tokens?.filter(t => t.owner === wallet.address)?.length ?? 0;
+    $: userTokenCount = (wallet && tokens) ? tokens?.filter(t => t.owner === wallet.address)?.length ?? 0 : 0;
 
     $: tabs = [ 
         {id: 'tokens', name: 'All Tokens', count: totalTokens, sortable: true}, 
