@@ -7,6 +7,8 @@
 	import MultiCollectionView from '$lib/component/ui/MultiCollectionView.svelte';
     import { fade, fly } from 'svelte/transition';
     import LoadingSpinner from '$lib/component/ui/LoadingSpinner.svelte';
+    import { selectedWallet } from "avm-wallet-svelte";
+    import { getTokens } from "$lib/utils/indexer";
     
     export let data: PageData;
     let collections: Collection[] = data.collections;
@@ -17,6 +19,23 @@
     let isMounted = false;
     let activeTab = 'all';
     let isLoading = false;
+    let wallet: any = null;
+    let userCollections: Collection[] = [];
+
+    // Subscribe to wallet changes
+    selectedWallet.subscribe((value) => {
+        wallet = value;
+        if (wallet) {
+            getTokens({ owner: wallet.address, fetch }).then((userTokens) => {
+                userCollections = collections.filter((collection) => {
+                    return userTokens.some((token) => token.contractId == collection.contractId);
+                });
+                if (activeTab === 'mine') {
+                    filterCollections = userCollections;
+                }
+            });
+        }
+    });
 
     onMount(async () => {
         isMounted = true;
@@ -30,7 +49,9 @@
 
     $: {
         if (isMounted) {
-            if ($filters.mintable) {
+            if (activeTab === 'mine') {
+                filterCollections = userCollections;
+            } else if ($filters.mintable) {
                 filterCollections = collections.filter((c: Collection) => {
                     if (c.globalState) {
                         const launchStart = Number(c.globalState.find((gs) => gs.key === 'launchStart')?.value);
@@ -121,6 +142,13 @@
                 >
                     <i class="fas fa-fire"></i>
                     Mintable
+                </button>
+                <button
+                    class="{activeTab === 'mine' ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'} px-6 py-2.5 rounded-xl shadow-sm transition duration-300 font-medium flex items-center gap-2"
+                    on:click={() => { activeTab = 'mine'; $filters.mintable = false; }}
+                >
+                    <i class="fas fa-user"></i>
+                    Mine
                 </button>
             </div>
             <div class="flex justify-center md:justify-end w-full md:w-auto space-x-2 px-2 md:px-0">
