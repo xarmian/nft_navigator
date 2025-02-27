@@ -57,7 +57,7 @@
 	$: socialPool = totalPool * 0.05;
 
 	// Progress towards 1M VOI goal
-	$: poolProgress = (totalPool / 2_000_000) * 100;
+	$: poolProgress = (totalPool / 3_000_000) * 100;
 </script>
 
 <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
