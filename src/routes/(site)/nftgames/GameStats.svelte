@@ -68,7 +68,7 @@
 			{#if isGameStarted}
 				<p class="text-lg mb-2">
 					<span class="font-bold">{formatNumber(totalPool)} VOI</span>
-					<span class="text-sm opacity-75"> of 2M goal</span>
+					<span class="text-sm opacity-75"> of 3M goal</span>
 				</p>
 				
 				<!-- Custom Progress Bar -->
