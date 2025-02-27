@@ -57,6 +57,7 @@
 		"arcpay-sdk": "^0.0.17",
 		"chart.js": "^4.4.7",
 		"compare-versions": "^6.1.0",
+		"csv-parse": "^5.6.0",
 		"d3": "^7.9.0",
 		"d3-scale": "github:d3/d3-scale",
 		"echarts": "^5.6.0",
