@@ -19,11 +19,12 @@
 	
 	onMount(async () => {
 		try {
-			const poolAddress1 = 'GAMESB74MIL32A5FZTS2F4YYDGG6YQKBO6TDG6PHITCIIVQAA77GE253CQ';
+			/*const poolAddress1 = 'GAMESB74MIL32A5FZTS2F4YYDGG6YQKBO6TDG6PHITCIIVQAA77GE253CQ';
 			const poolAddress2 = 'JFHP4IL4D3I4FDQFWGFDMCZLFSLGQAL4OZGQQKTPEE4SSW6JXSYQPZY2PM';
 			const poolAccount1 = await algodClient.accountInformation(poolAddress1).do();
 			const poolAccount2 = await algodClient.accountInformation(poolAddress2).do();
-			poolBalance = poolAccount1.amount + (poolAccount2.amount * .667);
+			poolBalance = poolAccount1.amount + (poolAccount2.amount * .667);*/
+			poolBalance = 1028560939799.29;
 		} catch (error) {
 			console.error('Error fetching pool balance:', error);
 		}
