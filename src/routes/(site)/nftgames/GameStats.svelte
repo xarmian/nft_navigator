@@ -25,6 +25,7 @@
 			const poolAccount2 = await algodClient.accountInformation(poolAddress2).do();
 			poolBalance = poolAccount1.amount + (poolAccount2.amount * .667);*/
 			poolBalance = 1028560939799.29;
+			
 		} catch (error) {
 			console.error('Error fetching pool balance:', error);
 		}
