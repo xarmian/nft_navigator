@@ -1,10 +1,8 @@
 <script lang="ts">
-    import { inview } from 'svelte-inview';
 	import type { PageData } from './$types';
     import type { Token } from '$lib/data/types';
     import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
 	import { A } from 'flowbite-svelte';
-    import { Tabs, TabItem, Indicator } from 'flowbite-svelte';
     import { onMount, onDestroy, type EventDispatcher } from 'svelte';
     import { selectedWallet } from 'avm-wallet-svelte';
 	import { goto, invalidateAll } from '$app/navigation';
@@ -14,13 +12,8 @@
     import Device from 'svelte-device-info';
     import { getWalletBalance, getCurrency } from '$lib/utils/currency';
 	import TransactionTable from '$lib/component/ui/TransactionTable.svelte';
-	import QuestsTable from '$lib/component/ui/QuestsTable.svelte';
     import { getImageUrl } from '$lib/utils/functions';
-	// import Select from '$lib/component/ui/Select.svelte';
-    import SendTokenModal from '$lib/component/ui/SendTokenModal.svelte';
-    import Share from '$lib/component/ui/Share.svelte';
-    import { page } from '$app/stores';
-    // Import new components
+	import SendTokenModal from '$lib/component/ui/SendTokenModal.svelte';
     import PortfolioAnalytics from '$lib/component/ui/PortfolioAnalytics.svelte';
     import PortfolioSettings from '$lib/component/ui/PortfolioSettings.svelte';
 
@@ -50,9 +43,6 @@
     // Map to store NFTs grouped by collection
     $: collectionGroups = new Map<string, Token[]>();
     
-    // Mock value for analytics tab to fix linter errors
-    const totalVOIValue = 1205.75;
-
     // Settings variables
     let hidePortfolioValue = false;
     let hideActivity = false;
@@ -380,7 +370,7 @@
                         <div class="flex flex-col md:flex-row justify-between w-full gap-4">
                             <div>
                                 <h1 class="text-xl md:text-3xl font-bold mb-2 flex items-center justify-center md:justify-start gap-2">
-                                    {walletEnvoi?.name ?? 'Voi Explorer'}
+                                    {walletEnvoi?.name ?? ''}
                                     {#if $selectedWallet?.address === walletId}
                                         <span class="text-xs bg-green-500 text-white px-2 py-1 rounded-full">Your Wallet</span>
                                     {/if}
@@ -397,7 +387,8 @@
                                                        '--toastBarBackground': '#2F855A'
                                                    }
                                                });
-                                           }}>
+                                           }}
+                                           aria-label="Copy wallet address">
                                         <i class="fas fa-copy"></i>
                                     </button>
                                 </div>
@@ -727,7 +718,7 @@
 
                     <!-- Analytics Tab -->
                     <div class:hidden={currentTab !== 'analytics'}>
-                        <PortfolioAnalytics {tokens} {collections} {totalVOIValue} {walletId} />
+                        <PortfolioAnalytics {tokens} {collections} {walletId} />
                     </div>
 
                     <!-- Settings Tab -->
@@ -780,8 +771,4 @@
     {/if}
 </div>
 <style>
-    .blur-xsm {
-        --tw-blur: blur(2px);
-       filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
-    }
 </style>
