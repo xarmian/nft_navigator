@@ -2,10 +2,13 @@
 	import type { Sale } from '$lib/data/types';
 	import { formatNumber } from '$lib/utils/format';
 	import { getNFD } from '$lib/utils/nfd';
-	import type { AggregatedNFD } from '$lib/utils/nfd';
 	import { onMount } from 'svelte';
+	import SpinWheel from './SpinWheel.svelte';
+	import Raffle from './Raffle.svelte';
+	import type { ProfitEntry, BaseLeaderboardEntry } from './types';
 
 	export let sales: Sale[];
+	export let showDrawing: boolean;
 	//export let startDate: Date;
 	//export let endDate: Date;
 
@@ -13,20 +16,16 @@
 	const VOI_FACTOR = Math.pow(10, VOI_DECIMALS);
 	const ZERO_ADDRESS = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
 
-	interface ProfitEntry {
-		address: string;
-		nfd: AggregatedNFD | null;
-		totalProfit: number;
-		profitableTrades: number;
-		totalTrades: number;
-	}
+	let profitLeaderboard: ProfitEntry[] = [];
+	let loading = true;
+	let showSpinWheel = false;
+	let showRaffle = false;
+	let selectedWinners: ProfitEntry[] = [];
+	let drawingMethod: 'wheel' | 'raffle' = 'raffle';
 
 	interface TokenBasePrices {
 		[key: string]: number; // contractId_tokenId -> base price
 	}
-
-	let profitLeaderboard: ProfitEntry[] = [];
-	let loading = true;
 
 	onMount(async () => {
 		// Track base prices for each token
@@ -83,6 +82,9 @@
 			}
 		});
 
+		// Get top 25 for prize drawing
+		selectedWinners = profitLeaderboard.slice(0, 25);
+
 		loading = false;
 	});
 
@@ -96,13 +98,90 @@
 	function calculateSuccessRate(entry: ProfitEntry): string {
 		return ((entry.profitableTrades / entry.totalTrades) * 100).toFixed(1);
 	}
+
+	function downloadCSV() {
+		const csvContent = profitLeaderboard.map((entry, index) => {
+			const position = index + 1;
+			const address = entry.address;
+			const name = entry.nfd ? entry.nfd.replacementValue : address;
+			const volume = Math.round(entry.totalProfit);
+			
+			return `${position},"${address}","${name}",${volume}`;
+		}).join('\n');
+
+		const header = 'Position,Address,Name,Volume (VOI)\n';
+		const blob = new Blob([header + csvContent], { type: 'text/csv' });
+		const url = window.URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.setAttribute('href', url);
+		a.setAttribute('download', 'leaderboard.csv');
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		window.URL.revokeObjectURL(url);
+	}
+
+	function openDrawing() {
+		if (drawingMethod === 'wheel') {
+			showSpinWheel = true;
+		} else {
+			showRaffle = true;
+		}
+	}
+
+	function closeSpinWheel() {
+		showSpinWheel = false;
+	}
+
+	function closeRaffle() {
+		showRaffle = false;
+	}
+
+	function handleWinner(event: CustomEvent<{winner: BaseLeaderboardEntry}>) {
+		console.log('Winner selected:', event.detail.winner as ProfitEntry);
+		// You could save this winner, display it prominently, etc.
+	}
 </script>
 
 <div class="space-y-4">
 	<div class="flex justify-between items-center">
 		<h2 class="text-2xl font-bold">Profit Leaderboard</h2>
-		<div class="px-3 py-1 bg-green-500 text-white rounded-full text-sm">
-			42.5% of Prize Pool
+		<div class="flex gap-4 items-center">
+			{#if showDrawing}
+				<button 
+					on:click={downloadCSV}
+					class="px-3 py-1 bg-blue-500 text-white rounded-full text-sm hover:bg-blue-600 transition-colors"
+					disabled={loading}
+				>
+					Download CSV
+				</button>
+			
+				<div class="flex items-center bg-gray-100 dark:bg-gray-700 rounded-full p-1">
+					<button 
+						class="px-3 py-1 rounded-full text-sm {drawingMethod === 'wheel' ? 'bg-green-500 text-white' : 'text-gray-600 dark:text-gray-300'}"
+						on:click={() => drawingMethod = 'wheel'}
+					>
+						<i class="fas fa-sync mr-1"></i> Wheel
+					</button>
+					<button 
+						class="px-3 py-1 rounded-full text-sm {drawingMethod === 'raffle' ? 'bg-green-500 text-white' : 'text-gray-600 dark:text-gray-300'}"
+						on:click={() => drawingMethod = 'raffle'}
+					>
+						<i class="fas fa-ticket-alt mr-1"></i> Raffle
+					</button>
+				</div>
+				
+				<button 
+					on:click={openDrawing}
+					class="px-3 py-1 bg-green-500 text-white rounded-full text-sm hover:bg-green-600 transition-colors"
+					disabled={loading || selectedWinners.length === 0}
+				>
+					<i class="fas fa-random mr-1"></i> Draw Winner
+				</button>
+			{/if}
+			<div class="px-3 py-1 bg-green-500 text-white rounded-full text-sm">
+				42.5% of Prize Pool
+			</div>
 		</div>
 	</div>
 
@@ -164,8 +243,34 @@
 			</table>
 		</div>
 
-		<p class="text-center text-sm opacity-75 hidden">
-			Top 25 traders will be entered into raffle for prizes
+		<p class="text-center text-sm opacity-75 mt-4">
+			Top 25 traders will be entered into drawing for profit category prizes.
+			<button 
+				on:click={openDrawing}
+				class="text-green-500 hover:text-green-600 hover:underline"
+			>
+				Click here to draw the winners using {drawingMethod === 'wheel' ? 'the wheel' : 'a raffle'}.
+			</button>
 		</p>
 	{/if}
 </div> 
+
+{#if showSpinWheel}
+	<SpinWheel 
+		entries={selectedWinners} 
+		valueProperty="totalProfit" 
+		colorScheme="green"
+		on:close={closeSpinWheel}
+		on:winner={handleWinner}
+	/>
+{/if}
+
+{#if showRaffle}
+	<Raffle 
+		entries={selectedWinners} 
+		valueProperty="totalProfit" 
+		colorScheme="green"
+		on:close={closeRaffle}
+		on:winner={handleWinner}
+	/>
+{/if} 
