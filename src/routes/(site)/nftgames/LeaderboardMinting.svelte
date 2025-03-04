@@ -5,12 +5,19 @@
 	import { onMount } from 'svelte';
 	import { gameStats, mintingLeaderboard } from '../../../stores/gameStats';
 	import { getImageUrl } from '$lib/utils/functions';
+	import SpinWheel from './SpinWheel.svelte';
+	import Raffle from './Raffle.svelte';
+	import type { BaseLeaderboardEntry } from './types';
 
 	export let collections: Collection[] = [];
 	export let startDate: Date;
 	export let endDate: Date;
 
 	let loading = true;
+	let showSpinWheel = false;
+	let showRaffle = false;
+	let selectedWinners: BaseLeaderboardEntry[] = [];
+	let drawingMethod: 'wheel' | 'raffle' = 'wheel';
 
 	// Convert dates to timestamps (in seconds)
 	$: startTimestampNum = Math.floor(startDate.getTime() / 1000);
@@ -42,14 +49,75 @@
 		}
 
 		loading = false;
+		
+		// Prepare top collections for the prize wheel
+		prepareWinners();
 	});
+	
+	function prepareWinners() {
+		// Convert the top 25 collections into BaseLeaderboardEntry format for the wheel
+		selectedWinners = $mintingLeaderboard.slice(0, 25).map(stats => {
+			const collection = collections.find(c => c.contractId === stats.contractId);
+			return {
+				address: collection?.creator || "Unknown Creator",
+				nfd: null, // NFD will be resolved when we get it from the API
+				contractId: stats.contractId,
+				totalMintVolume: stats.totalValue
+			};
+		});
+	}
+	
+	function openDrawing() {
+		if (drawingMethod === 'wheel') {
+			showSpinWheel = true;
+		} else {
+			showRaffle = true;
+		}
+	}
+
+	function closeSpinWheel() {
+		showSpinWheel = false;
+	}
+
+	function closeRaffle() {
+		showRaffle = false;
+	}
+
+	function handleWinner(event: CustomEvent<{winner: BaseLeaderboardEntry}>) {
+		console.log('Winner selected:', event.detail.winner);
+		// You could save this winner, display it prominently, etc.
+	}
 </script>
 
 <div class="space-y-4">
 	<div class="flex justify-between items-center">
 		<h2 class="text-2xl font-bold">Collection Minting Leaderboard</h2>
-		<div class="px-3 py-1 bg-amber-500 text-white rounded-full text-sm">
-			10% of Prize Pool
+		<div class="flex gap-4 items-center">
+			<div class="flex items-center bg-gray-100 dark:bg-gray-700 rounded-full p-1">
+				<button 
+					class="px-3 py-1 rounded-full text-sm {drawingMethod === 'wheel' ? 'bg-amber-500 text-white' : 'text-gray-600 dark:text-gray-300'}"
+					on:click={() => drawingMethod = 'wheel'}
+				>
+					<i class="fas fa-sync mr-1"></i> Wheel
+				</button>
+				<button 
+					class="px-3 py-1 rounded-full text-sm {drawingMethod === 'raffle' ? 'bg-amber-500 text-white' : 'text-gray-600 dark:text-gray-300'}"
+					on:click={() => drawingMethod = 'raffle'}
+				>
+					<i class="fas fa-ticket-alt mr-1"></i> Raffle
+				</button>
+			</div>
+			
+			<button 
+				on:click={openDrawing}
+				class="px-3 py-1 bg-amber-500 text-white rounded-full text-sm hover:bg-amber-600 transition-colors"
+				disabled={loading || $mintingLeaderboard.length === 0}
+			>
+				<i class="fas fa-random mr-1"></i> Draw Winner
+			</button>
+			<div class="px-3 py-1 bg-amber-500 text-white rounded-full text-sm">
+				10% of Prize Pool
+			</div>
 		</div>
 	</div>
 
@@ -161,8 +229,36 @@
 			</table>
 		</div>
 
-		<p class="text-center text-sm text-gray-500 mt-4 hidden">
-			Top 25 collections will be entered into raffle for prizes
+		<p class="text-center text-sm text-gray-500 mt-4">
+			Top 25 collections will be entered into drawing for minting category prizes.
+			<button 
+				on:click={openDrawing}
+				class="text-amber-500 hover:text-amber-600 hover:underline"
+			>
+				Click here to draw the winners using {drawingMethod === 'wheel' ? 'the wheel' : 'a raffle'}.
+			</button>
 		</p>
 	{/if}
 </div> 
+
+{#if showSpinWheel}
+	<SpinWheel 
+		entries={selectedWinners} 
+		valueProperty="totalMintVolume" 
+		nameProperty="contractId"
+		colorScheme="amber"
+		on:close={closeSpinWheel}
+		on:winner={handleWinner}
+	/>
+{/if}
+
+{#if showRaffle}
+	<Raffle 
+		entries={selectedWinners} 
+		valueProperty="totalMintVolume" 
+		nameProperty="contractId"
+		colorScheme="amber"
+		on:close={closeRaffle}
+		on:winner={handleWinner}
+	/>
+{/if} 

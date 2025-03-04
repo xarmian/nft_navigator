@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { formatNumber } from '$lib/utils/format';
+	import SpinWheel from './SpinWheel.svelte';
+	import Raffle from './Raffle.svelte';
+	import type { BaseLeaderboardEntry } from './types';
 
 	interface SocialEntry {
 		username: string;
@@ -12,6 +15,11 @@
 	let socialLeaderboard: SocialEntry[] = [];
 	let loading = true;
 	let error: string | null = null;
+	let showSpinWheel = false;
+	let showRaffle = false;
+	// Using any[] to avoid type issues while maintaining functionality
+	let selectedWinners: any[] = [];
+	let drawingMethod: 'wheel' | 'raffle' = 'wheel';
 
 	export let startDate: Date;
 	export let endDate: Date;
@@ -22,6 +30,10 @@
 			const response = await fetch('/api/social');
 			if (!response.ok) throw new Error('Failed to fetch social data');
 			socialLeaderboard = await response.json();
+			
+			// Prepare data for the spin wheel
+			prepareWinners();
+			
 			loading = false;
 		} catch (err) {
 			console.error('Error loading social data:', err);
@@ -29,6 +41,40 @@
 			loading = false;
 		}
 	});
+	
+	function prepareWinners() {
+		// Format data for the wheel, using a simple structure with any type
+		selectedWinners = socialLeaderboard.slice(0, 25).map(entry => ({
+			address: entry.username,
+			nfd: {
+				key: entry.username,
+				replacementValue: entry.projectName || entry.username,
+				avatar: null
+			},
+			points: entry.points
+		}));
+	}
+
+	function openDrawing() {
+		if (drawingMethod === 'wheel') {
+			showSpinWheel = true;
+		} else {
+			showRaffle = true;
+		}
+	}
+
+	function closeSpinWheel() {
+		showSpinWheel = false;
+	}
+
+	function closeRaffle() {
+		showRaffle = false;
+	}
+
+	function handleWinner(event: CustomEvent<{winner: any}>) {
+		console.log('Winner selected:', event.detail.winner);
+		// You could save this winner, display it prominently, etc.
+	}
 
 	function getPositionClass(index: number): string {
 		if (index === 0) return 'text-yellow-500'; // Gold
@@ -56,8 +102,32 @@
 <div class="space-y-4">
 	<div class="flex justify-between items-center mb-6">
 		<h2 class="text-2xl font-bold">Social Engagement</h2>
-		<div class="px-3 py-1 bg-pink-500 text-white rounded-full text-sm">
-			5% of Prize Pool
+		<div class="flex gap-4 items-center">
+			<div class="flex items-center bg-gray-100 dark:bg-gray-700 rounded-full p-1">
+				<button 
+					class="px-3 py-1 rounded-full text-sm {drawingMethod === 'wheel' ? 'bg-pink-500 text-white' : 'text-gray-600 dark:text-gray-300'}"
+					on:click={() => drawingMethod = 'wheel'}
+				>
+					<i class="fas fa-sync mr-1"></i> Wheel
+				</button>
+				<button 
+					class="px-3 py-1 rounded-full text-sm {drawingMethod === 'raffle' ? 'bg-pink-500 text-white' : 'text-gray-600 dark:text-gray-300'}"
+					on:click={() => drawingMethod = 'raffle'}
+				>
+					<i class="fas fa-ticket-alt mr-1"></i> Raffle
+				</button>
+			</div>
+			
+			<button 
+				on:click={openDrawing}
+				class="px-3 py-1 bg-pink-500 text-white rounded-full text-sm hover:bg-pink-600 transition-colors"
+				disabled={loading || (error !== null) || socialLeaderboard.length === 0}
+			>
+				<i class="fas fa-random mr-1"></i> Draw Winner
+			</button>
+			<div class="px-3 py-1 bg-pink-500 text-white rounded-full text-sm">
+				5% of Prize Pool
+			</div>
 		</div>
 	</div>
 
@@ -177,5 +247,37 @@
 				</tbody>
 			</table>
 		</div>
+		
+		<p class="text-center text-sm text-gray-400 mt-4">
+			Top 25 projects will be entered into drawing for social engagement prizes.
+			<button 
+				on:click={openDrawing}
+				class="text-pink-500 hover:text-pink-600 hover:underline"
+			>
+				Click here to draw the winners using {drawingMethod === 'wheel' ? 'the wheel' : 'a raffle'}.
+			</button>
+		</p>
 	{/if}
 </div> 
+
+{#if showSpinWheel}
+	<SpinWheel 
+		entries={selectedWinners} 
+		valueProperty="points" 
+		nameProperty="nfd" 
+		colorScheme="pink"
+		on:close={closeSpinWheel}
+		on:winner={handleWinner}
+	/>
+{/if}
+
+{#if showRaffle}
+	<Raffle 
+		entries={selectedWinners} 
+		valueProperty="points" 
+		nameProperty="nfd" 
+		colorScheme="pink"
+		on:close={closeRaffle}
+		on:winner={handleWinner}
+	/>
+{/if} 

@@ -4,6 +4,9 @@
 	import { getNFD } from '$lib/utils/nfd';
 	import type { AggregatedNFD } from '$lib/utils/nfd';
 	import { onMount } from 'svelte';
+	import SpinWheel from './SpinWheel.svelte';
+	import Raffle from './Raffle.svelte';
+	import type { VolumeEntry, BaseLeaderboardEntry } from './types';
 
 	export let sales: Sale[];
 	export let startDate: Date;
@@ -13,15 +16,12 @@
 	const VOI_FACTOR = Math.pow(10, VOI_DECIMALS);
 	const ZERO_ADDRESS = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
 
-	interface VolumeEntry {
-		address: string;
-		nfd: AggregatedNFD | null;
-		volume: number;
-		transactions: number;
-	}
-
 	let volumeLeaderboard: VolumeEntry[] = [];
 	let loading = true;
+	let showSpinWheel = false;
+	let showRaffle = false;
+	let selectedWinners: VolumeEntry[] = [];
+	let drawingMethod: 'wheel' | 'raffle' = 'wheel';
 
 	$: {
 		if (sales.length > 0 && loading) {
@@ -47,13 +47,14 @@
 					volumeMap.set(sale.buyer, {
 						address: sale.buyer,
 						nfd: null,
-						volume: 0,
-						transactions: 0
+						totalVolume: 0,
+						buys: 0,
+						sells: 0
 					});
 				}
 				const buyerEntry = volumeMap.get(sale.buyer)!;
-				buyerEntry.volume += adjustedPrice;
-				buyerEntry.transactions += 1;
+				buyerEntry.totalVolume += adjustedPrice;
+				buyerEntry.buys += 1;
 			} else {
 				secondarySaleCount++;
 				// For secondary sales, both buyer and seller get volume points
@@ -62,33 +63,35 @@
 					volumeMap.set(sale.buyer, {
 						address: sale.buyer,
 						nfd: null,
-						volume: 0,
-						transactions: 0
+						totalVolume: 0,
+						buys: 0,
+						sells: 0
 					});
 				}
 				const buyerEntry = volumeMap.get(sale.buyer)!;
-				buyerEntry.volume += adjustedPrice;
-				buyerEntry.transactions += 1;
+				buyerEntry.totalVolume += adjustedPrice;
+				buyerEntry.buys += 1;
 
 				// Add seller volume
 				if (!volumeMap.has(sale.seller)) {
 					volumeMap.set(sale.seller, {
 						address: sale.seller,
 						nfd: null,
-						volume: 0,
-						transactions: 0
+						totalVolume: 0,
+						buys: 0,
+						sells: 0
 					});
 				}
 				const sellerEntry = volumeMap.get(sale.seller)!;
-				sellerEntry.volume += adjustedPrice;
-				sellerEntry.transactions += 1;
+				sellerEntry.totalVolume += adjustedPrice;
+				sellerEntry.sells += 1;
 			}
 		});
 
 		// Convert to array and sort by volume
 		volumeLeaderboard = Array.from(volumeMap.values())
 			.filter(entry => entry.address !== ZERO_ADDRESS) // Exclude zero address
-			.sort((a, b) => b.volume - a.volume)
+			.sort((a, b) => b.totalVolume - a.totalVolume)
 			.slice(0, 50); // Top 50 traders
 
 		// Resolve NFDs for addresses
@@ -102,6 +105,9 @@
 			}
 		});
 
+		// Get top 25 for prize drawing
+		selectedWinners = volumeLeaderboard.slice(0, 25);
+
 		loading = false;
 	}
 
@@ -111,13 +117,93 @@
 		if (index === 2) return 'text-amber-600';
 		return 'text-gray-600';
 	}
+
+	function downloadCSV() {
+		const csvContent = volumeLeaderboard.map((entry, index) => {
+			const position = index + 1;
+			const address = entry.address;
+			const name = entry.nfd ? entry.nfd.replacementValue : address;
+			const volume = Math.round(entry.totalVolume);
+			
+			return `${position},"${address}","${name}",${volume}`;
+		}).join('\n');
+
+		const header = 'Position,Address,Name,Volume (VOI)\n';
+		const blob = new Blob([header + csvContent], { type: 'text/csv' });
+		const url = window.URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.setAttribute('href', url);
+		a.setAttribute('download', 'volume_leaderboard.csv');
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		window.URL.revokeObjectURL(url);
+	}
+
+	function openDrawing() {
+		if (drawingMethod === 'wheel') {
+			showSpinWheel = true;
+		} else {
+			showRaffle = true;
+		}
+	}
+
+	function openSpinWheel() {
+		showSpinWheel = true;
+	}
+
+	function closeSpinWheel() {
+		showSpinWheel = false;
+	}
+
+	function closeRaffle() {
+		showRaffle = false;
+	}
+
+	function handleWinner(event: CustomEvent<{winner: BaseLeaderboardEntry}>) {
+		const winner = event.detail.winner as VolumeEntry;
+		console.log('Winner selected:', winner);
+		// You could save this winner, display it prominently, etc.
+	}
 </script>
 
 <div class="space-y-4">
 	<div class="flex justify-between items-center">
 		<h2 class="text-2xl font-bold">Volume Leaderboard</h2>
-		<div class="px-3 py-1 bg-blue-500 text-white rounded-full text-sm">
-			42.5% of Prize Pool
+		<div class="flex gap-4 items-center">
+			<button 
+				on:click={downloadCSV}
+				class="px-3 py-1 bg-blue-500 text-white rounded-full text-sm hover:bg-blue-600 transition-colors"
+				disabled={loading}
+			>
+				Download CSV
+			</button>
+
+			<div class="flex items-center bg-gray-100 dark:bg-gray-700 rounded-full p-1">
+				<button 
+					class="px-3 py-1 rounded-full text-sm {drawingMethod === 'wheel' ? 'bg-green-500 text-white' : 'text-gray-600 dark:text-gray-300'}"
+					on:click={() => drawingMethod = 'wheel'}
+				>
+					<i class="fas fa-sync mr-1"></i> Wheel
+				</button>
+				<button 
+					class="px-3 py-1 rounded-full text-sm {drawingMethod === 'raffle' ? 'bg-green-500 text-white' : 'text-gray-600 dark:text-gray-300'}"
+					on:click={() => drawingMethod = 'raffle'}
+				>
+					<i class="fas fa-ticket-alt mr-1"></i> Raffle
+				</button>
+			</div>
+			
+			<button 
+				on:click={openDrawing}
+				class="px-3 py-1 bg-blue-500 text-white rounded-full text-sm hover:bg-blue-600 transition-colors"
+				disabled={loading || selectedWinners.length === 0}
+			>
+				<i class="fas fa-random mr-1"></i> Draw Winner
+			</button>
+			<div class="px-3 py-1 bg-blue-500 text-white rounded-full text-sm">
+				42.5% of Prize Pool
+			</div>
 		</div>
 	</div>
 
@@ -163,10 +249,10 @@
 								</a>
 							</td>
 							<td class="text-right p-2 font-medium">
-								{formatNumber(entry.volume)} VOI
+								{formatNumber(entry.totalVolume)} VOI
 							</td>
 							<td class="text-right p-2 text-sm opacity-75">
-								{entry.transactions}
+								{entry.buys + entry.sells}
 							</td>
 						</tr>
 					{/each}
@@ -174,8 +260,34 @@
 			</table>
 		</div>
 
-		<p class="text-center text-sm opacity-75 hidden">
-			Top 25 traders will be entered into raffle for prizes
+		<p class="text-center text-sm opacity-75 mt-4">
+			Top 25 traders will be entered into drawing for volume category prizes.
+			<button 
+				on:click={openDrawing}
+				class="text-blue-500 hover:text-blue-600 hover:underline"
+			>
+				Click here to draw the winners using {drawingMethod === 'wheel' ? 'the wheel' : 'a raffle'}.
+			</button>
 		</p>
 	{/if}
 </div> 
+
+{#if showSpinWheel}
+	<SpinWheel 
+		entries={selectedWinners} 
+		valueProperty="totalVolume" 
+		colorScheme="blue"
+		on:close={closeSpinWheel}
+		on:winner={handleWinner}
+	/>
+{/if} 
+
+{#if showRaffle}
+	<Raffle 
+		entries={selectedWinners} 
+		valueProperty="totalVolume" 
+		colorScheme="blue"
+		on:close={closeRaffle}
+		on:winner={handleWinner}
+	/>
+{/if} 
