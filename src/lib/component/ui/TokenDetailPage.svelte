@@ -30,6 +30,7 @@
     export let format = 'large';
     export let listing: Listing | null = null;
     export let showMenuIcon = true;
+    export let isModal = false;
     //export let quality = 'normal';
 
     let formattedOwner = '';
@@ -444,38 +445,41 @@
 
 </script>
 
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-4 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-7xl mx-auto">
+<div class="{isModal ? 'bg-gray-900' : 'min-h-screen bg-gray-50 dark:bg-gray-900 py-4 px-4 sm:px-6 lg:px-8'}">
+    <div class="{isModal ? '' : 'max-w-7xl mx-auto'}">
         <!-- Main Content Card -->
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
-            <!-- Top Integration Bar -->
-            <div class="w-full bg-gray-50 dark:bg-gray-900/50 p-4 border-b border-gray-200 dark:border-gray-700">
-                <div class="flex items-center justify-end gap-4">
-                    <LoungeButton contractid={String(token.contractId)} 
-                        buttonClass="flex items-center justify-center gap-3 p-3 rounded-xl text-black bg-gradient-to-b from-white to-gray-100 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 w-[8rem] h-[3.5rem] relative after:absolute after:inset-0 after:rounded-xl after:bg-purple-100/0 hover:after:bg-purple-100/50 after:transition-colors" />
-                    
-                    <NautilusButton contractid={String(token.contractId)} tokenid={String(token.tokenId)}
-                        buttonClass="flex items-center justify-center gap-3 p-3 rounded-xl bg-gradient-to-b from-white to-gray-100 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 w-[8rem] h-[3.5rem] relative after:absolute after:inset-0 after:rounded-xl after:bg-blue-100/0 hover:after:bg-blue-100/50 after:transition-colors" />
-                    
-                    <HighforgeButton contractid={String(token.contractId)}
-                        buttonClass="flex items-center justify-center gap-3 p-3 rounded-xl bg-gradient-to-b from-white to-gray-100 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 w-[8rem] h-[3.5rem] relative after:absolute after:inset-0 after:rounded-xl after:bg-orange-100/0 hover:after:bg-orange-100/50 after:transition-colors" />
-                    
-                    <PixelPursuitButton contractid={String(token.contractId)} tokenid={String(token.tokenId)}
-                        buttonClass="flex items-center justify-center gap-3 p-3 rounded-xl bg-gradient-to-b from-white to-gray-100 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 w-[8rem] h-[3.5rem] relative after:absolute after:inset-0 after:rounded-xl after:bg-green-100/0 hover:after:bg-green-100/50 after:transition-colors" />
-                    
-                    {#if collection?.gameData}
-                        <NftGamesButton contractid={String(token.contractId)}
-                            buttonClass="flex items-center justify-center gap-3 p-3 rounded-xl bg-gradient-to-b from-white to-gray-100 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 w-[8rem] h-[3.5rem] relative after:absolute after:inset-0 after:rounded-xl after:bg-red-100/0 hover:after:bg-red-100/50 after:transition-colors" />
-                    {/if}
+        <div class="{isModal ? '' : 'bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden'}">
+            {#if !isModal}
+                <!-- Top Integration Bar -->
+                <div class="w-full bg-gray-50 dark:bg-gray-900/50 p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-end gap-4">
+                        <LoungeButton contractid={String(token.contractId)} 
+                            buttonClass="flex items-center justify-center gap-3 p-3 rounded-xl text-black bg-gradient-to-b from-white to-gray-100 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 w-[8rem] h-[3.5rem] relative after:absolute after:inset-0 after:rounded-xl after:bg-purple-100/0 hover:after:bg-purple-100/50 after:transition-colors" />
+                        
+                        <NautilusButton contractid={String(token.contractId)} tokenid={String(token.tokenId)}
+                            buttonClass="flex items-center justify-center gap-3 p-3 rounded-xl bg-gradient-to-b from-white to-gray-100 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 w-[8rem] h-[3.5rem] relative after:absolute after:inset-0 after:rounded-xl after:bg-blue-100/0 hover:after:bg-blue-100/50 after:transition-colors" />
+                        
+                        <HighforgeButton contractid={String(token.contractId)}
+                            buttonClass="flex items-center justify-center gap-3 p-3 rounded-xl bg-gradient-to-b from-white to-gray-100 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 w-[8rem] h-[3.5rem] relative after:absolute after:inset-0 after:rounded-xl after:bg-orange-100/0 hover:after:bg-orange-100/50 after:transition-colors" />
+                        
+                        <PixelPursuitButton contractid={String(token.contractId)} tokenid={String(token.tokenId)}
+                            buttonClass="flex items-center justify-center gap-3 p-3 rounded-xl bg-gradient-to-b from-white to-gray-100 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 w-[8rem] h-[3.5rem] relative after:absolute after:inset-0 after:rounded-xl after:bg-green-100/0 hover:after:bg-green-100/50 after:transition-colors" />
+                        
+                        {#if collection?.gameData}
+                            <NftGamesButton contractid={String(token.contractId)}
+                                buttonClass="flex items-center justify-center gap-3 p-3 rounded-xl bg-gradient-to-b from-white to-gray-100 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 w-[8rem] h-[3.5rem] relative after:absolute after:inset-0 after:rounded-xl after:bg-red-100/0 hover:after:bg-red-100/50 after:transition-colors" />
+                        {/if}
+                    </div>
                 </div>
-            </div>
+            {/if}
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
-                <!-- Left Column - Image and Sale Badge -->
-                <div class="relative">
-                    <div class="group w-full h-auto rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 transition-transform duration-300 hover:scale-[1.02] transform-gpu" 
-                         on:click={handleImageClick}
-                         on:keydown={(e) => e.key === 'Enter' && handleImageClick()}
+            <!-- Main Content Grid -->
+            <div class="grid grid-cols-1 {isModal ? 'lg:grid-cols-5 gap-4 p-6' : 'lg:grid-cols-2 gap-8 p-8'}">
+                <!-- Left Column - Image -->
+                <div class="relative {isModal ? 'lg:col-span-2' : ''}">
+                    <div class="group w-full h-auto rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800/50 transition-transform duration-300 hover:scale-[1.02] transform-gpu" 
+                         on:click={() => showImageModal = true}
+                         on:keydown={(e) => e.key === 'Enter' && (showImageModal = true)}
                          role="button"
                          tabindex="0">
                         {#if token.metadata?.envoiName}
@@ -493,25 +497,23 @@
                                 </div>
                             </div>
                         {:else}
-                            <div class="w-full h-full flex items-center justify-center">
-                                <img src={imageUrl} class="max-w-full max-h-full object-contain" alt={token.metadata?.name ?? `Token ${token.tokenId}`} />
-                            </div>
-                            <!-- Zoom icon -->
-                            <div class="absolute bottom-3 right-3 transition-opacity duration-200 {isTouchDevice ? (showZoomButton ? 'opacity-100' : 'opacity-0') : 'opacity-0 group-hover:opacity-100'}">
-                                <button
-                                    class="w-10 h-10 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center text-white/80 hover:text-white transition-all duration-200 backdrop-blur-sm"
-                                    aria-label="Zoom"
-                                    on:click|stopPropagation={() => showImageModal = true}
-                                >
+                            <img src={imageUrl} 
+                                 class="w-full h-auto object-contain aspect-square" 
+                                 alt={token.metadata?.name ?? `Token ${token.tokenId}`} 
+                                 loading="lazy" />
+
+                            <!-- Zoom Icon -->
+                            <div class="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div class="p-2 bg-black/60 rounded-full text-white/90 hover:text-white">
                                     <i class="fas fa-expand-alt"></i>
-                                </button>
+                                </div>
                             </div>
                         {/if}
                     </div>
                     
                     <!-- Sale Badge -->
                     {#if listing && !listing.sale && !listing.delete}
-                        <div class="absolute top-4 left-4">
+                        <div class="absolute top-4 right-4">
                             <div class="flex items-center gap-2 bg-gradient-to-r from-purple-600/90 to-purple-800/90 rounded-lg px-4 py-2 shadow-lg backdrop-blur-sm">
                                 <i class="fas {listing?.type === 'dutch_auction' ? 'fa-gavel' : 'fa-tag'} text-white/90"></i>
                                 <div class="flex flex-col">
@@ -533,11 +535,11 @@
                     {/if}
                 </div>
                 
-                <!-- Right Column - Token Info and Actions -->
-                <div class="flex flex-col justify-between space-y-6">
+                <!-- Right Column - Token Info -->
+                <div class="{isModal ? 'lg:col-span-3' : ''} flex flex-col justify-between space-y-4">
                     <!-- Token Info -->
-                    <div class="space-y-6">
-                        <h1 class="text-4xl font-bold text-gray-900 dark:text-white">
+                    <div class="space-y-4">
+                        <h1 class="{isModal ? 'text-3xl' : 'text-4xl'} font-bold text-gray-900 dark:text-white">
                             {#if token.contractId === 797609}
                                 {token.metadata?.envoiName}
                             {:else}
@@ -545,7 +547,7 @@
                             {/if}
                         </h1>
                         
-                        <div class="space-y-4">
+                        <div class="space-y-3">
                             <!-- Collection Link -->
                             <div class="flex items-center space-x-3">
                                 <div class="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
@@ -567,30 +569,32 @@
                             </div>
 
                             {#if token.metadata?.description}
-                                <p class="text-gray-600 dark:text-gray-300 mt-4 leading-relaxed">{token.metadata.description}</p>
+                                <p class="text-gray-600 dark:text-gray-300 mt-2 leading-relaxed {isModal ? 'line-clamp-3' : ''}">{token.metadata.description}</p>
                             {/if}
                         </div>
                     </div>
 
                     <!-- Action Buttons -->
                     {#if showMenuIcon && (isTokenOwner || isTokenApproved || (listing && !listing.sale && !listing.delete && $selectedWallet))}
-                        <div class="flex flex-wrap gap-4">
+                        <div class="flex flex-wrap gap-3">
                             {#if isTokenOwner || isTokenApproved}
                                 <button on:click={sendToken} 
-                                        class="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 shadow-lg hover:shadow-xl">
+                                        class="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 shadow-lg hover:shadow-xl">
                                     <i class="fas fa-paper-plane"></i>
                                     <span>Transfer</span>
                                 </button>
                                 
                                 {#if isTokenOwner}
                                     <button on:click={approveToken}
-                                            class="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 shadow-lg hover:shadow-xl">
+                                            class="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 shadow-lg hover:shadow-xl">
                                         <i class="fas fa-check-circle"></i>
                                         <span>{token.approved != zeroAddress ? 'Change' : 'Set'} Approval</span>
                                     </button>
                                 {/if}
+                            {/if}
 
-                                {#if (!listing || (listing && listing?.source === 'arcpay'))}
+                            {#if !isModal}
+                                {#if isTokenOwner || isTokenApproved}
                                     <button on:click={listArcpay}
                                             class="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 shadow-lg hover:shadow-xl">
                                         <i class="fas fa-tag"></i>
@@ -616,7 +620,9 @@
                                         <span>Cancel Listing</span>
                                     </button>
                                 {/if}
-                            {:else if listing && !listing.sale && !listing.delete && $selectedWallet}
+                            {/if}
+
+                            {#if !isModal && listing && !listing.sale && !listing.delete && $selectedWallet}
                                 {#if listing.source !== 'arcpay'}
                                     <button on:click={buyToken}
                                             class="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 shadow-lg hover:shadow-xl">
@@ -645,161 +651,163 @@
                     {/if}
                 </div>
             </div>
-        </div>
 
-        <!-- Tabs Navigation -->
-        <div class="mt-8 mb-6 border-b border-gray-200 dark:border-gray-700">
-            <div class="flex gap-8">
-                <button class="px-4 py-2 font-medium text-sm {activeTab === 'details' ? 'text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
-                        on:click={() => setActiveTab('details')}>
-                    <i class="fas fa-info-circle mr-2"></i>
-                    Details & Properties
-                </button>
-                <button class="px-4 py-2 font-medium text-sm {activeTab === 'transactions' ? 'text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
-                        on:click={() => setActiveTab('transactions')}>
-                    <i class="fas fa-exchange-alt mr-2"></i>
-                    Transaction History
-                </button>
-            </div>
-        </div>
+            {#if !isModal}
+                <!-- Tab Section -->
+                <div class="mt-0 mb-6 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex gap-8">
+                        <button class="px-4 py-2 font-medium text-sm {activeTab === 'details' ? 'text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
+                                on:click={() => setActiveTab('details')}>
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Details & Properties
+                        </button>
+                        <button class="px-4 py-2 font-medium text-sm {activeTab === 'transactions' ? 'text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
+                                on:click={() => setActiveTab('transactions')}>
+                            <i class="fas fa-exchange-alt mr-2"></i>
+                            Transaction History
+                        </button>
+                    </div>
+                </div>
+            {/if}
 
-        <!-- Tab Content -->
-        {#if activeTab === 'details'}
-            <!-- Details Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <!-- Token Details -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl hover:scale-[1.01]">
-                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
-                        <i class="fas fa-info-circle text-purple-500"></i>
-                        Token Details
-                    </h2>
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center py-3 px-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors">
-                            <span class="text-gray-600 dark:text-gray-400">Token ID</span>
-                            <span class="font-medium text-gray-900 dark:text-white">{token.metadata?.envoiName ?? token.tokenId} {#if collection}/ {collection.totalSupply}{/if}</span>
-                        </div>
-                        {#if token.rank}
-                            <div class="flex justify-between items-center py-3 px-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors">
-                                <span class="text-gray-600 dark:text-gray-400">Ranking</span>
-                                <span class="font-medium text-gray-900 dark:text-white">#{token.rank}</span>
+            <!-- Tab Content -->
+            {#if activeTab === 'details'}
+                <!-- Details Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 pt-0">
+                    <!-- Token Details -->
+                    <div class="bg-gray-50 dark:bg-gray-900/50 rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl hover:scale-[1.01] border border-gray-100 dark:border-gray-700/50">
+                        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
+                            <i class="fas fa-info-circle text-purple-500"></i>
+                            Token Details
+                        </h2>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center py-3 px-4 rounded-lg bg-white dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors">
+                                <span class="text-gray-600 dark:text-gray-400">Token ID</span>
+                                <span class="font-medium text-gray-900 dark:text-white">{token.metadata?.envoiName ?? token.tokenId} {#if collection}/ {collection.totalSupply}{/if}</span>
                             </div>
-                        {/if}
-                        <div class="flex justify-between items-center py-3 px-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors">
-                            <span class="text-gray-600 dark:text-gray-400">Minted</span>
-                            <a href={`https://explorer.voi.network/explorer/block/${token.mintRound}/transactions`} target="_blank" class="tooltip cursor-pointer">
-                                {#if mintDateTime}
-                                    <div class="flex flex-col space-y-1 w-auto whitespace-nowrap p-2">
-                                        <div class="dark:text-white">{mintDateTime}</div>
-                                        <div class="text-xs text-blue-500 dark:text-blue-300">Click to view in explorer</div>
-                                    </div>
-                                {:else}
-                                    <span class="text-purple-600 dark:text-purple-400 hover:text-purple-700 font-medium">{token.mintRound}</span>
-                                {/if}
-                            </a>
-                        </div>
-                        {#if token.approved && token.approved !== zeroAddress}
-                            <div class="flex justify-between items-center py-3 px-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors group">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-gray-600 dark:text-gray-400">Approved Spender</span>
-                                    <div class="tooltip">
-                                        <i class="fas fa-info-circle text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300"></i>
-                                        <div class="tooltiptext w-64 text-sm">
-                                            This address is approved to transfer the token on behalf of the owner (e.g., a marketplace contract).
-                                        </div>
-                                    </div>
+                            {#if token.rank}
+                                <div class="flex justify-between items-center py-3 px-4 rounded-lg bg-white dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors">
+                                    <span class="text-gray-600 dark:text-gray-400">Ranking</span>
+                                    <span class="font-medium text-gray-900 dark:text-white">#{token.rank}</span>
                                 </div>
-                                <a href="/portfolio/{token.approved}" class="text-purple-600 dark:text-purple-400 hover:text-purple-700 font-medium">
-                                    {approvedSpender}
+                            {/if}
+                            <div class="flex justify-between items-center py-3 px-4 rounded-lg bg-white dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors">
+                                <span class="text-gray-600 dark:text-gray-400">Minted</span>
+                                <a href={`https://explorer.voi.network/explorer/block/${token.mintRound}/transactions`} target="_blank" class="tooltip cursor-pointer">
+                                    {#if mintDateTime}
+                                        <div class="flex flex-col space-y-1 w-auto whitespace-nowrap p-2">
+                                            <div class="dark:text-white">{mintDateTime}</div>
+                                            <div class="text-xs text-blue-500 dark:text-blue-300">Click to view in explorer</div>
+                                        </div>
+                                    {:else}
+                                        <span class="text-purple-600 dark:text-purple-400 hover:text-purple-700 font-medium">{token.mintRound}</span>
+                                    {/if}
                                 </a>
                             </div>
-                        {/if}
-                        {#if royaltyPercentage > 0}
-                            <div class="flex justify-between items-center py-3 px-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors">
-                                <span class="text-gray-600 dark:text-gray-400">Royalties</span>
-                                <span class="font-medium text-gray-900 dark:text-white">{royaltyPercentage / 100}%</span>
+                            {#if token.approved && token.approved !== zeroAddress}
+                                <div class="flex justify-between items-center py-3 px-4 rounded-lg bg-white dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors group">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-gray-600 dark:text-gray-400">Approved Spender</span>
+                                        <div class="tooltip">
+                                            <i class="fas fa-info-circle text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300"></i>
+                                            <div class="tooltiptext w-64 text-sm">
+                                                This address is approved to transfer the token on behalf of the owner (e.g., a marketplace contract).
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <a href="/portfolio/{token.approved}" class="text-purple-600 dark:text-purple-400 hover:text-purple-700 font-medium">
+                                        {approvedSpender}
+                                    </a>
+                                </div>
+                            {/if}
+                            {#if royaltyPercentage > 0}
+                                <div class="flex justify-between items-center py-3 px-4 rounded-lg bg-white dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors">
+                                    <span class="text-gray-600 dark:text-gray-400">Royalties</span>
+                                    <span class="font-medium text-gray-900 dark:text-white">{royaltyPercentage / 100}%</span>
+                                </div>
+                            {/if}
+                        </div>
+                    </div>
+
+                    <!-- Properties -->
+                    <div class="bg-gray-50 dark:bg-gray-900/50 rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl hover:scale-[1.01] border border-gray-100 dark:border-gray-700/50">
+                        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
+                            <i class="fas fa-tags text-purple-500"></i>
+                            {#if token.contractId === 797609}
+                                Profile Information
+                            {:else}
+                                Properties
+                            {/if}
+                        </h2>
+                        {#if token.contractId === 797609 && token.metadata?.envoiMetadata}
+                            <div class="space-y-4">
+                                {#if token.metadata.envoiMetadata.url}
+                                    <div class="flex items-center gap-4 py-3 px-4 rounded-lg bg-white dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors">
+                                        <i class="fas fa-globe text-purple-500 w-6"></i>
+                                        <a href={token.metadata.envoiMetadata.url} target="_blank" rel="noopener noreferrer" 
+                                           class="text-purple-600 dark:text-purple-400 hover:text-purple-700">{token.metadata.envoiMetadata.url}</a>
+                                    </div>
+                                {/if}
+                                {#if token.metadata.envoiMetadata.location}
+                                    <div class="flex items-center gap-4 py-3 px-4 rounded-lg bg-white dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors">
+                                        <i class="fas fa-map-marker-alt text-purple-500 w-6"></i>
+                                        <span class="text-gray-900 dark:text-white">{token.metadata.envoiMetadata.location}</span>
+                                    </div>
+                                {/if}
+                                {#if token.metadata.envoiMetadata['com.twitter']}
+                                    <div class="flex items-center gap-4 py-3 px-4 rounded-lg bg-white dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors">
+                                        <i class="fab fa-x-twitter text-purple-500 w-6"></i>
+                                        <a href="https://twitter.com/{token.metadata.envoiMetadata['com.twitter']}" target="_blank" 
+                                           class="text-purple-600 dark:text-purple-400 hover:text-purple-700">@{token.metadata.envoiMetadata['com.twitter']}</a>
+                                    </div>
+                                {/if}
+                                {#if token.metadata.envoiMetadata['com.github']}
+                                    <div class="flex items-center gap-4 py-3 px-4 rounded-lg bg-white dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors">
+                                        <i class="fab fa-github text-purple-500 w-6"></i>
+                                        <a href="https://github.com/{token.metadata.envoiMetadata['com.github']}" target="_blank" 
+                                           class="text-purple-600 dark:text-purple-400 hover:text-purple-700">{token.metadata.envoiMetadata['com.github']}</a>
+                                    </div>
+                                {/if}
+                                {#each Object.entries(token.metadata.envoiMetadata) as [key, value]}
+                                    {#if !['url', 'location', 'com.twitter', 'com.github', 'avatar'].includes(key) && value}
+                                        <div class="flex items-center gap-4 py-3 px-4 rounded-lg bg-white dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors">
+                                            <i class="fas fa-info-circle text-purple-500 w-6"></i>
+                                            <div class="flex-1">
+                                                <div class="text-sm text-gray-500 dark:text-gray-400">{key.replace('com.', '').charAt(0).toUpperCase() + key.replace('com.', '').slice(1)}</div>
+                                                {#if typeof value === 'string' && value.match(/^https?:\/\//)}
+                                                    <a href={value} target="_blank" rel="noopener noreferrer" 
+                                                       class="text-purple-600 dark:text-purple-400 hover:text-purple-700">{value}</a>
+                                                {:else}
+                                                    <span class="text-gray-900 dark:text-white">{value}</span>
+                                                {/if}
+                                            </div>
+                                        </div>
+                                    {/if}
+                                {/each}
+                            </div>
+                        {:else}
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                {#each tokenProps as prop}
+                                    <div class="p-4 rounded-lg bg-white dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-all duration-300 transform hover:scale-[1.02]">
+                                        <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">{prop.trait_type}</div>
+                                        {#if prop.value && typeof prop.value === 'string' && prop.value.match(/^https?:\/\//)}
+                                            <a href={prop.value} target="_blank" rel="noopener noreferrer" 
+                                               class="text-purple-600 dark:text-purple-400 hover:text-purple-700 font-medium">{prop.value}</a>
+                                        {:else}
+                                            <div class="font-medium text-gray-900 dark:text-white">{prop.value}</div>
+                                        {/if}
+                                    </div>
+                                {/each}
                             </div>
                         {/if}
                     </div>
                 </div>
-
-                <!-- Properties -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl hover:scale-[1.01]">
-                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
-                        <i class="fas fa-tags text-purple-500"></i>
-                        {#if token.contractId === 797609}
-                            Profile Information
-                        {:else}
-                            Properties
-                        {/if}
-                    </h2>
-                    {#if token.contractId === 797609 && token.metadata?.envoiMetadata}
-                        <div class="space-y-4">
-                            {#if token.metadata.envoiMetadata.url}
-                                <div class="flex items-center gap-4 py-3 px-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors">
-                                    <i class="fas fa-globe text-purple-500 w-6"></i>
-                                    <a href={token.metadata.envoiMetadata.url} target="_blank" rel="noopener noreferrer" 
-                                       class="text-purple-600 dark:text-purple-400 hover:text-purple-700">{token.metadata.envoiMetadata.url}</a>
-                                </div>
-                            {/if}
-                            {#if token.metadata.envoiMetadata.location}
-                                <div class="flex items-center gap-4 py-3 px-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors">
-                                    <i class="fas fa-map-marker-alt text-purple-500 w-6"></i>
-                                    <span class="text-gray-900 dark:text-white">{token.metadata.envoiMetadata.location}</span>
-                                </div>
-                            {/if}
-                            {#if token.metadata.envoiMetadata['com.twitter']}
-                                <div class="flex items-center gap-4 py-3 px-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors">
-                                    <i class="fab fa-x-twitter text-purple-500 w-6"></i>
-                                    <a href="https://twitter.com/{token.metadata.envoiMetadata['com.twitter']}" target="_blank" 
-                                       class="text-purple-600 dark:text-purple-400 hover:text-purple-700">@{token.metadata.envoiMetadata['com.twitter']}</a>
-                                </div>
-                            {/if}
-                            {#if token.metadata.envoiMetadata['com.github']}
-                                <div class="flex items-center gap-4 py-3 px-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors">
-                                    <i class="fab fa-github text-purple-500 w-6"></i>
-                                    <a href="https://github.com/{token.metadata.envoiMetadata['com.github']}" target="_blank" 
-                                       class="text-purple-600 dark:text-purple-400 hover:text-purple-700">{token.metadata.envoiMetadata['com.github']}</a>
-                                </div>
-                            {/if}
-                            {#each Object.entries(token.metadata.envoiMetadata) as [key, value]}
-                                {#if !['url', 'location', 'com.twitter', 'com.github', 'avatar'].includes(key) && value}
-                                    <div class="flex items-center gap-4 py-3 px-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors">
-                                        <i class="fas fa-info-circle text-purple-500 w-6"></i>
-                                        <div class="flex-1">
-                                            <div class="text-sm text-gray-500 dark:text-gray-400">{key.replace('com.', '').charAt(0).toUpperCase() + key.replace('com.', '').slice(1)}</div>
-                                            {#if typeof value === 'string' && value.match(/^https?:\/\//)}
-                                                <a href={value} target="_blank" rel="noopener noreferrer" 
-                                                   class="text-purple-600 dark:text-purple-400 hover:text-purple-700">{value}</a>
-                                            {:else}
-                                                <span class="text-gray-900 dark:text-white">{value}</span>
-                                            {/if}
-                                        </div>
-                                    </div>
-                                {/if}
-                            {/each}
-                        </div>
-                    {:else}
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                            {#each tokenProps as prop}
-                                <div class="p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-purple-50 dark:hover:bg-gray-700 transition-all duration-300 transform hover:scale-[1.02]">
-                                    <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">{prop.trait_type}</div>
-                                    {#if prop.value && typeof prop.value === 'string' && prop.value.match(/^https?:\/\//)}
-                                        <a href={prop.value} target="_blank" rel="noopener noreferrer" 
-                                           class="text-purple-600 dark:text-purple-400 hover:text-purple-700 font-medium">{prop.value}</a>
-                                    {:else}
-                                        <div class="font-medium text-gray-900 dark:text-white">{prop.value}</div>
-                                    {/if}
-                                </div>
-                            {/each}
-                        </div>
-                    {/if}
+            {:else if activeTab === 'transactions'}
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+                    <TransactionTable {token} />
                 </div>
-            </div>
-        {:else if activeTab === 'transactions'}
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-                <TransactionTable {token} />
-            </div>
-        {/if}
+            {/if}
+        </div>
     </div>
 </div>
 

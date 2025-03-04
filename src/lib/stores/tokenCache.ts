@@ -65,6 +65,8 @@ function createTokenCache() {
                             token.metadata?.name?.toLowerCase().includes(searchText.toLowerCase()) ||
                             token.traits?.some(trait => trait.toLowerCase().includes(searchText.toLowerCase())) ||
                             token.tokenId.toString().includes(searchText.toLowerCase()) ||
+                            token.owner.toLowerCase().includes(searchText.toLowerCase()) ||
+                            token.ownerNFD?.toLowerCase().includes(searchText.toLowerCase()) ||
                             (token.contractId === 797609 && token.metadata?.envoiName?.toLowerCase().includes(searchText.toLowerCase()))
                         ) &&
                         // Filter visibility

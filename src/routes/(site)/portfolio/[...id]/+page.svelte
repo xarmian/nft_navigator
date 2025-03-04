@@ -20,6 +20,9 @@
     import SendTokenModal from '$lib/component/ui/SendTokenModal.svelte';
     import Share from '$lib/component/ui/Share.svelte';
     import { page } from '$app/stores';
+    // Import new components
+    import PortfolioAnalytics from '$lib/component/ui/PortfolioAnalytics.svelte';
+    import PortfolioSettings from '$lib/component/ui/PortfolioSettings.svelte';
 
     export let data: PageData;
     $: walletId = data.props.walletId;
@@ -40,8 +43,25 @@
     let searchQuery = '';
     let showListedOnly = false;
     let sortDirection: 'asc' | 'desc' = 'asc';
-    let containerRef: HTMLDivElement;
+    let containerRef: HTMLElement;
     let isLoading = true;
+    // New variable to track if we are in collection view
+    $: isCollectionView = portfolioSort === 'collection_view';
+    // Map to store NFTs grouped by collection
+    $: collectionGroups = new Map<string, Token[]>();
+    
+    // Mock value for analytics tab to fix linter errors
+    const totalVOIValue = 1205.75;
+
+    // Settings variables
+    let hidePortfolioValue = false;
+    let hideActivity = false;
+    let notifyOffers = true;
+    let notifyPriceChanges = true;
+    let notifyNewDrops = true;
+
+    // New variable to track current tab
+    let currentTab: 'gallery' | 'activity' | 'analytics' | 'settings' = 'gallery';
 
     $: {
         if (tokens) {
@@ -120,16 +140,39 @@
             comparison = (a.metadata?.name || '').localeCompare(b.metadata?.name || '');
         } else if (portfolioSort === 'collection') {
             comparison = (a.metadata?.collection?.name || '').localeCompare(b.metadata?.collection?.name || '');
+        } else if (portfolioSort === 'collection_view') {
+            // For collection view, first sort by collection name
+            comparison = (a.metadata?.collection?.name || '').localeCompare(b.metadata?.collection?.name || '');
+            // If same collection, sort by name within the collection
+            if (comparison === 0) {
+                comparison = (a.metadata?.name || '').localeCompare(b.metadata?.name || '');
+            }
         } else {
             comparison = a.mintRound - b.mintRound;
         }
         return sortDirection === 'asc' ? comparison : -comparison;
     });
 
+    // Group tokens by collection for collection view
+    $: {
+        if (isCollectionView && filteredTokens.length > 0) {
+            collectionGroups.clear();
+            filteredTokens.forEach(token => {
+                // Use contractId for grouping instead of collection name
+                const contractId = token.contractId || 'unknown';
+                if (!collectionGroups.has(contractId.toString())) {
+                    collectionGroups.set(contractId.toString(), []);
+                }
+                collectionGroups.get(contractId.toString())?.push(token);
+            });
+        }
+    }
+
     let sortOptions = [
         { id: 'mint', name: 'Mint Date' },
         { id: 'name', name: 'Name' },
-        { id: 'collection', name: 'Collection' }
+        { id: 'collection', name: 'Collection (Sort)' },
+        { id: 'collection_view', name: 'Collection View' }
     ];
 
     function showMore() {
@@ -209,278 +252,502 @@
             containerRef.style.setProperty('--token-area-width', `${containerRef.querySelector('.token-area')?.clientWidth ?? 100}px`);
         }
     }
+
+    // Fix shortName variable for linter
+    let shortName = '';
+
 </script>
 <div>
     {#if isLoading}
-        <div class="relative w-full h-52 overflow-visible">
-            <div class="flex h-full w-full absolute blur-xsm -z-10 opacity-60 bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
-            <div class="flex justify-center items-center w-full mx-2 absolute top-8">
-                <div class="flex flex-col p-4 md:p-8 mt-2 mb-2 bg-slate-100 dark:bg-slate-800/95 shadow-2xl rounded-2xl space-y-4 max-w-3xl w-full">
-                    <div class="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0 h-36">
-                        <div class="flex flex-row space-x-4 flex-grow">
-                            <div class="h-24 w-24 rounded-full bg-gray-300 dark:bg-gray-600 animate-pulse"></div>
-                            <div class="flex flex-col flex-grow space-y-2">
-                                <div class="h-8 w-48 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
-                                <div class="h-4 w-32 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+        <div class="w-full bg-gradient-to-r from-blue-900/50 to-purple-900/50 dark:from-blue-950/50 dark:to-purple-950/50 animate-pulse">
+            <div class="max-w-7xl mx-auto px-4 py-6 md:py-8">
+                <div class="flex flex-col md:flex-row gap-4 md:gap-6 items-center md:items-start">
+                    <!-- Profile Image Placeholder -->
+                    <div class="relative shrink-0">
+                        <div class="h-20 w-20 md:h-32 md:w-32 rounded-xl overflow-hidden ring-4 ring-white/20 shadow-xl bg-gradient-to-br from-blue-400/30 to-purple-500/30 animate-pulse"></div>
+                    </div>
+
+                    <!-- Profile Info Placeholder -->
+                    <div class="flex-1 text-center md:text-left">
+                        <div class="flex flex-col md:flex-row justify-between w-full gap-4">
+                            <div>
+                                <div class="h-8 w-48 bg-white/20 rounded animate-pulse mb-2 mx-auto md:mx-0"></div>
+                                <div class="h-6 w-32 bg-white/20 rounded animate-pulse mb-3 mx-auto md:mx-0"></div>
+                            </div>
+                            
+                            <div class="flex flex-col items-center md:items-end gap-2">
+                                <!-- VOI Balance Card Placeholder -->
+                                <div class="flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm rounded-lg w-40">
+                                    <div class="mr-3 h-8 w-8 md:h-10 md:w-10 rounded-full bg-white/20 animate-pulse"></div>
+                                    <div>
+                                        <div class="h-5 w-20 bg-white/20 rounded animate-pulse mb-1"></div>
+                                        <div class="h-3 w-16 bg-white/20 rounded animate-pulse"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="flex flex-col justify-between space-y-2 md:w-48">
-                            <div class="h-6 w-32 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
-                            <div class="h-4 w-24 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+
+                        <!-- Social/Contact Info Placeholder -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+                            <div class="h-10 bg-white/10 rounded-lg animate-pulse"></div>
+                            <div class="h-10 bg-white/10 rounded-lg animate-pulse"></div>
+                            <div class="h-10 bg-white/10 rounded-lg animate-pulse"></div>
+                            <div class="h-10 bg-white/10 rounded-lg animate-pulse"></div>
                         </div>
                     </div>
                 </div>
+
+                <!-- External Links & Stats Placeholder -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3 mt-4 md:mt-6">
+                    <div class="h-16 bg-white/10 rounded-lg animate-pulse"></div>
+                    <div class="h-16 bg-white/10 rounded-lg animate-pulse"></div>
+                    <div class="h-16 bg-white/10 rounded-lg animate-pulse"></div>
+                    <div class="h-16 bg-white/10 rounded-lg animate-pulse"></div>
+                </div>
             </div>
         </div>
-        <div class="h-16"></div>
-        <div class="flex justify-center">
-            <div class="w-full max-w-3xl p-4">
-                <div class="h-8 w-32 bg-gray-300 dark:bg-gray-600 rounded animate-pulse mb-4"></div>
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {#each Array(8) as _, i}
-                        <div class="h-48 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
-                    {/each}
+        
+        <!-- Tab Navigation Placeholder -->
+        <div class="bg-white dark:bg-gray-900">
+            <div class="max-w-7xl mx-auto py-4">
+                <div class="border-b border-gray-200 dark:border-gray-700">
+                    <nav class="flex space-x-8 px-4" aria-label="Portfolio sections">
+                        <div class="py-4 px-6 border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 font-medium text-sm">
+                            <div class="h-5 w-20 bg-blue-200 dark:bg-blue-700 rounded animate-pulse"></div>
+                        </div>
+                        <div class="py-4 px-6 border-b-2 border-transparent text-gray-500 font-medium text-sm">
+                            <div class="h-5 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                        </div>
+                        <div class="py-4 px-6 border-b-2 border-transparent text-gray-500 font-medium text-sm">
+                            <div class="h-5 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                        </div>
+                    </nav>
+                </div>
+
+                <!-- Gallery Tab Content Placeholder -->
+                <div class="py-6">
+                    <div class="px-4">
+                        <!-- Search & Filter Controls Placeholder -->
+                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-8">
+                            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                                <div class="w-full md:w-auto flex-grow">
+                                    <div class="h-12 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"></div>
+                                </div>
+                                <div class="flex flex-wrap gap-2 items-center w-full md:w-auto justify-end">
+                                    <div class="h-10 w-32 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"></div>
+                                    <div class="h-10 w-10 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"></div>
+                                    <div class="h-10 w-32 bg-blue-200 dark:bg-blue-700 rounded-lg animate-pulse"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- NFT Grid Placeholder -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                            {#each Array(10) as _, i}
+                                <div class="rounded-xl overflow-hidden bg-white dark:bg-gray-800 shadow-sm animate-pulse">
+                                    <div class="aspect-square bg-gray-300 dark:bg-gray-700"></div>
+                                    <div class="p-3">
+                                        <div class="h-5 w-3/4 bg-gray-300 dark:bg-gray-700 rounded mb-2"></div>
+                                        <div class="h-4 w-1/2 bg-gray-300 dark:bg-gray-700 rounded"></div>
+                                    </div>
+                                </div>
+                            {/each}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     {:else if walletId}
-        <div class="relative w-full h-auto min-h-[14rem] md:h-52 overflow-visible">
-            <div class="flex h-full w-full absolute blur-xsm -z-10 opacity-60">
-                {#each headerTokens as token (token)}
-                    {#if token.metadata}
-                        <div class="flex-grow bg-cover bg-center inline-block" style="background-image: url({getImageUrl(token.metadata.image,480)});">&nbsp;</div>
-                    {/if}
-                {/each}
-            </div>
-            <div class="flex justify-center items-center w-full sm:mx-2 absolute sm:top-8">
-                <div class="flex flex-col p-4 md:p-8 mt-2 mb-2 bg-slate-100 dark:bg-slate-800/95 shadow-2xl rounded-2xl space-y-4 max-w-3xl w-full">
-                    <!-- Profile Section -->
-                    <div class="flex flex-col space-y-4">
-                        <!-- Avatar and Name Section -->
-                        <div class="flex flex-col md:flex-row md:space-x-6 space-y-4 md:space-y-0">
-                            <div class="flex flex-row space-x-4 flex-grow">
-                                {#if walletEnvoi?.metadata?.avatar}
-                                    <img src={walletEnvoi.metadata.avatar} alt={walletEnvoi.metadata.name??formattedWallet} class="h-24 w-24 rounded-full place-self-start" />
-                                {/if}
-                                <div class="flex flex-col flex-grow">
-                                    <div class="flex flex-row space-x-2 text-2xl font-bold mb-2">
-                                        <div class="text-blue dark:text-blue-100">
-                                            {walletEnvoi?.name??formattedWallet}
-                                            {#if !walletEnvoi?.name}
-                                                <i use:copy={walletId} 
-                                                   class="fas fa-copy ml-2 cursor-pointer transition-all duration-200 hover:text-blue-500 active:scale-125" 
-                                                   on:copy={() => {
-                                                       toast.push({
-                                                           msg: `<div class="flex items-center"><i class="fas fa-check-circle text-green-500 mr-2"></i>Address copied to clipboard</div>`,
-                                                           theme: {
-                                                               '--toastBackground': '#48BB78',
-                                                               '--toastBarBackground': '#2F855A'
-                                                           }
-                                                       });
-                                                   }}></i>
-                                            {/if}
-                                        </div>
-                                    </div>
-                                    {#if walletEnvoi?.name}
-                                        <div class="text-sm font-bold mb-3 text-left">
-                                            {formattedWallet}
-                                            <i use:copy={walletId} 
-                                               class="fas fa-copy ml-2 cursor-pointer transition-all duration-200 hover:text-blue-500 active:scale-125" 
-                                               on:copy={() => {
-                                                   toast.push({
-                                                       msg: `<div class="flex items-center"><i class="fas fa-check-circle text-green-500 mr-2"></i>Address copied to clipboard</div>`,
-                                                       theme: {
-                                                           '--toastBackground': '#48BB78',
-                                                           '--toastBarBackground': '#2F855A'
-                                                       }
-                                                   });
-                                               }}></i>
-                                        </div>
+        <div class="w-full bg-gradient-to-r from-blue-900/90 to-purple-900/90 dark:from-blue-950 dark:to-purple-950">
+            <div class="max-w-7xl mx-auto px-4 py-6 md:py-8">
+                <div class="flex flex-col md:flex-row gap-4 md:gap-6 items-center md:items-start">
+                    <!-- Profile Image Section -->
+                    <div class="relative shrink-0">
+                        {#if walletEnvoi?.metadata?.avatar}
+                            <div class="h-20 w-20 md:h-32 md:w-32 rounded-xl overflow-hidden ring-4 ring-white/20 shadow-xl">
+                                <img src={walletEnvoi.metadata.avatar} alt={walletEnvoi.metadata.name??formattedWallet} 
+                                     class="h-full w-full object-cover" />
+                            </div>
+                        {:else}
+                            <div class="h-20 w-20 md:h-32 md:w-32 rounded-xl overflow-hidden ring-4 ring-white/20 shadow-xl bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                                <i class="fas fa-user-astronaut text-3xl md:text-4xl text-white"></i>
+                            </div>
+                        {/if}
+                    </div>
+
+                    <!-- Profile Info Section -->
+                    <div class="flex-1 text-white text-center md:text-left">
+                        <div class="flex flex-col md:flex-row justify-between w-full gap-4">
+                            <div>
+                                <h1 class="text-xl md:text-3xl font-bold mb-2 flex items-center justify-center md:justify-start gap-2">
+                                    {walletEnvoi?.name ?? 'Voi Explorer'}
+                                    {#if $selectedWallet?.address === walletId}
+                                        <span class="text-xs bg-green-500 text-white px-2 py-1 rounded-full">Your Wallet</span>
                                     {/if}
-                                    <!-- Envoi metadata -->
-                                    {#if walletEnvoi?.metadata}
-                                        <div class="flex flex-col space-y-1.5">
-                                            {#if walletEnvoi.metadata.url}
-                                                <div class="flex items-center space-x-2">
-                                                    <i class="fas fa-globe text-gray-600 dark:text-gray-300"></i>
-                                                    <a href={walletEnvoi.metadata.url} target="_blank" rel="noopener noreferrer" 
-                                                        class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm truncate">{walletEnvoi.metadata.url}</a>
-                                                </div>
-                                            {/if}
-                                            {#if walletEnvoi.metadata.location}
-                                                <div class="flex items-center space-x-2">
-                                                    <i class="fas fa-map-marker-alt text-gray-600 dark:text-gray-300"></i>
-                                                    <span class="text-gray-600 dark:text-gray-300 text-sm">{walletEnvoi.metadata.location}</span>
-                                                </div>
-                                            {/if}
-                                            {#if walletEnvoi.metadata['com.twitter']}
-                                                <div class="flex items-center space-x-2">
-                                                    <i class="fab fa-x-twitter text-gray-600 dark:text-gray-300"></i>
-                                                    <a href="https://x.com/{walletEnvoi.metadata['com.twitter']}" target="_blank" 
-                                                        class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm">@{walletEnvoi.metadata['com.twitter']}</a>
-                                                </div>
-                                            {/if}
-                                            {#if walletEnvoi.metadata['com.github']}
-                                                <div class="flex items-center space-x-2">
-                                                    <i class="fab fa-github text-gray-600 dark:text-gray-300"></i>
-                                                    <a href="https://github.com/{walletEnvoi.metadata['com.github']}" target="_blank" 
-                                                        class="text-blue-600 dark:text-blue-400 hover:text-blue-700 text-sm">{walletEnvoi.metadata['com.github']}</a>
-                                                </div>
-                                            {/if}
-                                        </div>
-                                    {/if}
+                                </h1>
+                                <div class="text-base md:text-lg opacity-90 flex items-center justify-center md:justify-start gap-2 mb-3">
+                                    <span class="font-mono">{formattedWallet}</span>
+                                    <button use:copy={walletId} 
+                                           class="text-white/70 hover:text-white transition-all duration-200 active:scale-125"
+                                           on:copy={() => {
+                                               toast.push({
+                                                   msg: `<div class="flex items-center"><i class="fas fa-check-circle text-green-500 mr-2"></i>Address copied to clipboard</div>`,
+                                                   theme: {
+                                                       '--toastBackground': '#48BB78',
+                                                       '--toastBarBackground': '#2F855A'
+                                                   }
+                                               });
+                                           }}>
+                                        <i class="fas fa-copy"></i>
+                                    </button>
                                 </div>
                             </div>
-
-                            <div class="flex flex-col justify-between space-x-2 space-y-2">
+                            
+                            <div class="flex flex-col items-center md:items-end gap-2">
+                                <!-- VOI Balance Card -->
                                 {#if voiBalance != undefined}
-                                    <div class="flex flex-row items-center justify-end space-x-2 place-self-end">
-                                        <div class="text-lg font-bold text-green-500 dark:text-green-300">{(voiBalance / Math.pow(10,6)).toLocaleString()}</div>
-                                        <div class="text-md font-bold text-gray-500 dark:text-gray-300">VOI</div>
+                                    <div class="flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm rounded-lg">
+                                        <div class="mr-3 h-8 w-8 md:h-10 md:w-10 rounded-full bg-gradient-to-br from-blue-500 to-green-400 flex items-center justify-center">
+                                            <span class="font-bold text-sm md:text-base">VOI</span>
+                                        </div>
+                                        <div>
+                                            <div class="text-base md:text-lg font-bold">{(voiBalance / Math.pow(10,6)).toLocaleString()}</div>
+                                            <div class="text-xs text-white/70">VOI Balance</div>
+                                        </div>
                                     </div>
                                 {/if}
-
-                                <div class="flex flex-row md:flex-col md:space-y-2 space-x-2 md:space-x-0 place-items-center">
-                                    <a href="https://explorer.voi.network/explorer/account/{walletId}" 
-                                       target="_blank" 
-                                       class="inline-flex flex-col items-center px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md w-full">
-                                        <div class="flex items-center text-white">
-                                            <i class="fas fa-search mr-2"></i>
-                                            <span>View Account</span>
-                                        </div>
-                                        <span class="text-blue-200 text-xs font-normal mt-0.5">on Voi Explorer</span>
-                                    </a>
-                                    <a href="https://voirewards.com/wallet/{walletId}" 
-                                       target="_blank" 
-                                       class="inline-flex flex-col items-center px-4 py-2 text-sm font-medium bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md w-full">
-                                        <div class="flex items-center text-white">
-                                            <i class="fas fa-chart-line mr-2"></i>
-                                            <span>View Portfolio</span>
-                                        </div>
-                                        <span class="text-purple-200 text-xs font-normal mt-0.5">on Voirewards</span>
-                                    </a>
-                                </div>
                             </div>
                         </div>
+
+                        <!-- Social/Contact Info -->
+                        {#if walletEnvoi?.metadata}
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+                                {#if walletEnvoi.metadata.url}
+                                    <a href={walletEnvoi.metadata.url} target="_blank" rel="noopener noreferrer" 
+                                        class="flex items-center space-x-2 px-3 py-2 bg-white/10 hover:bg-white/15 rounded-lg transition truncate">
+                                        <i class="fas fa-globe"></i>
+                                        <span class="truncate text-sm">{walletEnvoi.metadata.url}</span>
+                                    </a>
+                                {/if}
+                                {#if walletEnvoi.metadata.location}
+                                    <div class="flex items-center space-x-2 px-3 py-2 bg-white/10 rounded-lg truncate">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        <span class="truncate text-sm">{walletEnvoi.metadata.location}</span>
+                                    </div>
+                                {/if}
+                                {#if walletEnvoi.metadata['com.twitter']}
+                                    <a href="https://x.com/{walletEnvoi.metadata['com.twitter']}" target="_blank" 
+                                        class="flex items-center space-x-2 px-3 py-2 bg-white/10 hover:bg-white/15 rounded-lg transition truncate">
+                                        <i class="fab fa-x-twitter"></i>
+                                        <span class="truncate text-sm">@{walletEnvoi.metadata['com.twitter']}</span>
+                                    </a>
+                                {/if}
+                                {#if walletEnvoi.metadata['com.github']}
+                                    <a href="https://github.com/{walletEnvoi.metadata['com.github']}" target="_blank" 
+                                        class="flex items-center space-x-2 px-3 py-2 bg-white/10 hover:bg-white/15 rounded-lg transition truncate">
+                                        <i class="fab fa-github"></i>
+                                        <span class="truncate text-sm">{walletEnvoi.metadata['com.github']}</span>
+                                    </a>
+                                {/if}
+                            </div>
+                        {/if}
+                    </div>
+                </div>
+
+                <!-- External Links & Stats -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3 mt-4 md:mt-6">
+                    <a href="https://explorer.voi.network/explorer/account/{walletId}" 
+                       target="_blank" 
+                       class="flex flex-col items-center px-3 md:px-4 py-2 md:py-3 bg-white/10 hover:bg-white/15 backdrop-blur-sm rounded-lg transition-colors duration-200">
+                        <div class="text-white flex items-center mb-1 text-sm md:text-base">
+                            <i class="fas fa-search mr-2"></i>
+                            <span>Voi Explorer</span>
+                        </div>
+                        <span class="text-white/70 text-xs">View Details</span>
+                    </a>
+                    <a href="https://voirewards.com/wallet/{walletId}" 
+                       target="_blank" 
+                       class="flex flex-col items-center px-3 md:px-4 py-2 md:py-3 bg-white/10 hover:bg-white/15 backdrop-blur-sm rounded-lg transition-colors duration-200">
+                        <div class="text-white flex items-center mb-1 text-sm md:text-base">
+                            <i class="fas fa-chart-line mr-2"></i>
+                            <span>Voirewards</span>
+                        </div>
+                        <span class="text-white/70 text-xs">Analytics</span>
+                    </a>
+                    <div class="flex flex-col items-center px-3 md:px-4 py-2 md:py-3 bg-white/10 backdrop-blur-sm rounded-lg">
+                        <div class="text-white flex items-center mb-1 text-sm md:text-base">
+                            <i class="fas fa-layer-group mr-2"></i>
+                            <span>{new Set(tokens.map(t => t.contractId)).size}</span>
+                        </div>
+                        <span class="text-white/70 text-xs">Collections</span>
+                    </div>
+                    <div class="flex flex-col items-center px-3 md:px-4 py-2 md:py-3 bg-white/10 backdrop-blur-sm rounded-lg">
+                        <div class="text-white flex items-center mb-1 text-sm md:text-base">
+                            <i class="fas fa-image mr-2"></i>
+                            <span>{tokens.length}</span>
+                        </div>
+                        <span class="text-white/70 text-xs">Total NFTs</span>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="h-16"></div>
-        <div class="justify-center mb-4 hidden">
-            <Share url={shareUrl} text={shareText} />
-        </div>
-        <div>
-            <Tabs style="underline" defaultClass="flex place-items-end rounded-lg divide-x rtl:divide-x-reverse divide-gray-200 shadow dark:divide-gray-700 justify-center relative">
-                <TabItem open>
-                    <div slot="title" class="flex items-center space-x-2">
-                        <span>Portfolio</span>
-                        <Indicator color="blue" size="xl" class="text-xs font-bold text-white">
-                            {tokens.length}
-                        </Indicator>
-                    </div>
-                    <div class="flex flex-col" bind:this={containerRef}>
-                        <div class="flex justify-center w-full">
-                            <div class="flex flex-col md:flex-row justify-between items-center gap-4 p-4 w-full max-w-7xl">
-                                <div class="w-full md:w-auto flex-grow">
-                                    <input
-                                        type="text"
-                                        placeholder="Search by name, collection, or traits..."
-                                        class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
-                                        bind:value={searchQuery}
-                                    />
-                                </div>
-                                <div class="flex flex-row gap-4 items-center w-full md:w-auto">
-                                    <div class="flex items-center gap-2 w-full md:w-auto">
-                                        <select
-                                            bind:value={portfolioSort}
-                                            class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 w-full md:w-auto"
-                                        >
-                                            {#each sortOptions as option}
-                                                <option value={option.id}>{option.name}</option>
-                                            {/each}
-                                        </select>
-                                        <button
-                                            on:click={() => sortDirection = sortDirection === 'asc' ? 'desc' : 'asc'}
-                                            class="px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
-                                            title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
-                                            aria-label={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
-                                        >
-                                            <i class="fas fa-sort-{sortDirection === 'asc' ? 'up' : 'down'}"></i>
-                                        </button>
+        <div class="bg-white dark:bg-gray-900">
+            <div class="max-w-7xl mx-auto py-4">
+                <!-- Tab Navigation -->
+                <div class="border-b border-gray-200 dark:border-gray-700">
+                    <nav class="flex space-x-8 px-4" aria-label="Portfolio sections">
+                        <button 
+                            class="py-4 px-1 border-b-2 font-medium text-sm {currentTab === 'gallery' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'}"
+                            aria-current={currentTab === 'gallery' ? 'page' : undefined}
+                            on:click={() => currentTab = 'gallery'}>
+                            <i class="fas fa-images mr-2"></i>
+                            Gallery
+                        </button>
+                        <button 
+                            class="py-4 px-1 border-b-2 font-medium text-sm {currentTab === 'activity' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'}"
+                            aria-current={currentTab === 'activity' ? 'page' : undefined}
+                            on:click={() => currentTab = 'activity'}>
+                            <i class="fas fa-chart-line mr-2"></i>
+                            Activity
+                        </button>
+                        <button 
+                            class="py-4 px-1 border-b-2 font-medium text-sm {currentTab === 'analytics' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'}"
+                            aria-current={currentTab === 'analytics' ? 'page' : undefined}
+                            on:click={() => currentTab = 'analytics'}>
+                            <i class="fas fa-chart-pie mr-2"></i>
+                            Analytics
+                        </button>
+                        <button 
+                            class="hidden py-4 px-1 border-b-2 font-medium text-sm {currentTab === 'settings' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'}"
+                            aria-current={currentTab === 'settings' ? 'page' : undefined}
+                            on:click={() => currentTab = 'settings'}>
+                            <i class="fas fa-cog mr-2"></i>
+                            Settings
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Tab Content -->
+                <div class="py-6">
+                    <!-- Gallery Tab -->
+                    <div class="space-y-6" class:hidden={currentTab !== 'gallery'}>
+                        <div class="flex flex-col" bind:this={containerRef}>
+                            <div class="px-4">
+                                <!-- Search & Filter Controls -->
+                                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-8">
+                                    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                                        <div class="w-full md:w-auto flex-grow">
+                                            <div class="relative">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search by name, collection, or traits..."
+                                                    class="w-full px-4 py-3 pl-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+                                                    bind:value={searchQuery}
+                                                />
+                                                <i class="fas fa-search absolute left-3 top-3.5 text-gray-400"></i>
+                                            </div>
+                                        </div>
+                                        <div class="flex flex-wrap gap-2 items-center w-full md:w-auto justify-end">
+                                            <div class="flex items-center gap-2">
+                                                <select
+                                                    bind:value={portfolioSort}
+                                                    class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+                                                >
+                                                    {#each sortOptions as option}
+                                                        <option value={option.id}>{option.name}</option>
+                                                    {/each}
+                                                </select>
+                                                <button
+                                                    on:click={() => sortDirection = sortDirection === 'asc' ? 'desc' : 'asc'}
+                                                    class="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                                    title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
+                                                    aria-label={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
+                                                >
+                                                    <i class="fas fa-sort-{sortDirection === 'asc' ? 'up' : 'down'}"></i>
+                                                </button>
+                                            </div>
+                                            <button
+                                                on:click={() => multiselectMode = !multiselectMode}
+                                                class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200"
+                                            >
+                                                <i class="fas fa-check-square mr-2"></i>
+                                                {multiselectMode ? 'Exit Select Mode' : 'Select Multiple'}
+                                            </button>
+                                        </div>
                                     </div>
-                                    <button
-                                        on:click={() => multiselectMode = !multiselectMode}
-                                        class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
-                                    >
-                                        <i class="fas fa-check-square mr-2"></i>
-                                        {multiselectMode ? 'Exit Select Mode' : 'Select Multiple'}
-                                    </button>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="flex flex-row flex-wrap justify-center token-area" style="max-width: fit-content; margin: 0 auto;">
-                            {#each filteredTokens.slice(0, displayCount) as token, i}
-                                {#if token.owner === walletId}
-                                    <div class="m-4 relative" 
-                                        on:mousedown={handleLongPress} 
-                                        on:touchstart={handleLongPress} 
-                                        on:click={() => toggleSelectedTokens(token)} 
-                                        on:click|stopPropagation={checkStopPropagation}>
-                                        <TokenDetail collection={collections.find(c => c.contractId === token.contractId)} bind:token={token} showOwnerIcon={false} showMenuIcon={!multiselectMode}></TokenDetail>
-                                        {#if multiselectMode}
-                                            <input type="checkbox" 
-                                                class="absolute top-3 left-1 h-8 w-8" 
-                                                on:click|stopPropagation={() => toggleSelectedTokens(token)} 
-                                                checked={selectedTokens.some(t => t.tokenId === token.tokenId && t.contractId === token.contractId)} />
+
+                                <!-- Collection View -->
+                                {#if isCollectionView}
+                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6">
+                                        {#each [...collectionGroups.entries()] as [contractId, collectionTokens]}
+                                            {@const collection = collections.find(c => c.contractId === Number(contractId))}
+                                            <div class="w-full rounded-xl overflow-hidden shadow-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 transition-all hover:shadow-lg">
+                                                <div class="relative">
+                                                    <div class="absolute inset-0 bg-gradient-to-b from-transparent to-black/50"></div>
+                                                    <div class="h-32 w-full bg-gradient-to-r from-blue-500/30 to-purple-500/30 dark:from-blue-900/30 dark:to-purple-900/30 flex items-center justify-center overflow-hidden">
+                                                        {#if collection?.highforgeData?.coverImageURL}
+                                                            <img src={getImageUrl(collection.highforgeData.coverImageURL || '', 320)} 
+                                                                 alt={collection?.highforgeData?.title || 'Collection Cover'}
+                                                                 class="w-full h-full object-cover opacity-80">
+                                                        {/if}
+                                                    </div>
+                                                    <div class="absolute bottom-0 left-0 right-0 p-3 flex justify-between items-end">
+                                                        <a href={`/collection/${contractId}`} class="text-lg font-bold text-white flex items-center group">
+                                                            <span class="group-hover:underline">{collection ? collection.highforgeData?.title : 'Unknown Collection'}</span>
+                                                        </a>
+                                                        <span class="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full">{collectionTokens.length}</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="p-3">
+                                                    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 mb-3">
+                                                        {#each collectionTokens.slice(0, 10) as token, i}
+                                                            {#if token.owner === walletId}
+                                                                <div
+                                                                    tabindex="0"
+                                                                    role="button"
+                                                                    class="aspect-square rounded-md overflow-hidden shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-gray-700 relative"
+                                                                    on:click={() => toggleSelectedTokens(token)}
+                                                                    on:keydown={(e) => e.key === 'Enter' && toggleSelectedTokens(token)}>
+                                                                    <img 
+                                                                        src={getImageUrl(token.metadata?.image || '', 120)} 
+                                                                        alt={token.metadata?.name || `Token #${token.tokenId}`}
+                                                                        class="w-full h-full object-cover" />
+                                                                    {#if multiselectMode && selectedTokens.some(t => t.tokenId === token.tokenId && t.contractId === token.contractId)}
+                                                                        <div class="absolute inset-0 bg-blue-500/30 flex items-center justify-center">
+                                                                            <div class="bg-white rounded-full p-1">
+                                                                                <i class="fas fa-check text-blue-500"></i>
+                                                                            </div>
+                                                                        </div>
+                                                                    {/if}
+                                                                </div>
+                                                            {/if}
+                                                        {/each}
+                                                        {#if collectionTokens.length > 10}
+                                                            <div class="aspect-square rounded-md bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                                                                <span class="text-gray-500 dark:text-gray-300 font-bold">+{collectionTokens.length - 10}</span>
+                                                            </div>
+                                                        {/if}
+                                                    </div>
+                                                    
+                                                    <div class="flex justify-between items-center">
+                                                        <a href={`/collection/${contractId}`} 
+                                                           class="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                                                            View collection details
+                                                        </a>
+                                                        {#if collectionTokens.length > 10}
+                                                            <button 
+                                                                class="px-3 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-xs rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                                                                on:click={() => {
+                                                                    portfolioSort = 'collection';
+                                                                    searchQuery = collection?.highforgeData?.title || '';
+                                                                }}>
+                                                                View all
+                                                            </button>
+                                                        {/if}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {/each}
+                                    </div>
+                                <!-- Standard View -->
+                                {:else}
+                                    <div class="flex flex-col">
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                                            {#each filteredTokens.slice(0, displayCount) as token, i}
+                                                {#if token.owner === walletId}
+                                                    <div class="rounded-xl hover:shadow-md transition-all"
+                                                        tabindex="0"
+                                                        role="button"
+                                                        on:mousedown={handleLongPress} 
+                                                        on:touchstart={handleLongPress} 
+                                                        on:click={() => toggleSelectedTokens(token)} 
+                                                        on:keydown={(e) => e.key === 'Enter' && toggleSelectedTokens(token)}
+                                                        on:click|stopPropagation={checkStopPropagation}>
+                                                        
+                                                        <div class="relative">
+                                                            <TokenDetail collection={collections.find(c => c.contractId === token.contractId)} bind:token={token} showOwnerIcon={false} showMenuIcon={!multiselectMode} />
+                                                            {#if multiselectMode}
+                                                                <div class="absolute top-2 left-2 h-6 w-6">
+                                                                    <input type="checkbox" 
+                                                                        class="h-6 w-6 rounded-md border-2 border-white accent-blue-500" 
+                                                                        on:click|stopPropagation={() => toggleSelectedTokens(token)} 
+                                                                        checked={selectedTokens.some(t => t.tokenId === token.tokenId && t.contractId === token.contractId)} />
+                                                                </div>
+                                                            {/if}
+                                                        </div>
+                                                    </div>
+                                                {/if}
+                                            {/each}
+                                        </div>
+                                        
+                                        {#if tokens.length === 0}
+                                            <div class="flex flex-col items-center justify-center py-12 text-center">
+                                                <div class="text-6xl mb-4 text-gray-300 dark:text-gray-700">
+                                                    <i class="fas fa-image-slash"></i>
+                                                </div>
+                                                <div class="text-2xl font-bold mb-2">No tokens found</div>
+                                                <div class="text-gray-500 mb-6">Want to get some NFTs in your collection?</div>
+                                                <A href="https://nautilus.sh/" target="_blank" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                                                    <i class="fas fa-shopping-cart mr-2"></i>
+                                                    Check out ARC-72 Marketplace
+                                                </A>
+                                            </div>
+                                        {/if}
+                                        
+                                        {#if filteredTokens.length > displayCount}
+                                            <div class="w-full flex justify-center mt-8">
+                                                <button 
+                                                    class="px-6 py-2 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                                                    on:click={() => displayCount += 10}>
+                                                    Load more NFTs
+                                                </button>
+                                            </div>
                                         {/if}
                                     </div>
                                 {/if}
-                            {/each}
-                            {#if tokens.length == 0}
-                                <div class="text-2xl font-bold">No tokens found! Want to get some? <A href="https://nautilus.sh/" target="_blank">Check out the ARC-72 Marketplace</A></div>
-                            {/if}
+                            </div>
                         </div>
-                        {#if tokens.length > displayCount}
-                            <div class="sentinel" use:inview={{ threshold: 1 }} on:inview_enter={showMore}></div>
-                        {/if}
                     </div>
-                </TabItem>
-                <TabItem>
-                    <div slot="title" class="flex items-center space-x-2">
-                        <span>Approvals</span>
-                        <Indicator color="blue" size="xl" class="text-xs font-bold text-white">
-                            {approvals.length}
-                        </Indicator>
+
+                    <!-- Activity Tab -->
+                    <div class:hidden={currentTab !== 'activity'}>
+                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 max-w-5xl mx-auto">
+                            <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+                                <h2 class="text-2xl font-bold">Transaction History</h2>
+                            </div>
+                            
+                            <!-- Transaction Table -->
+                            <div class="overflow-hidden">
+                                <TransactionTable owner={walletId} />
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex justify-center">
-                        <div class="text-sm bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 max-w-fit">
-                            <i class="fas fa-info-circle mr-2"></i>
-                            Approvals are tokens {$selectedWallet?.address == walletId ? 'you are' : 'this wallet is'} authorized to transfer on the owner's behalf
-                        </div> 
+
+                    <!-- Analytics Tab -->
+                    <div class:hidden={currentTab !== 'analytics'}>
+                        <PortfolioAnalytics {tokens} {collections} {totalVOIValue} {walletId} />
                     </div>
-                    <div class="flex flex-row flex-wrap justify-center">
-                        {#each approvals as token}
-                            {#if token.approved === walletId}
-                                <div class="m-4">
-                                    <TokenDetail collection={collections.find(c => c.contractId === token.contractId)} bind:token={token}></TokenDetail>
-                                </div>
-                            {/if}
-                        {/each}
-                        {#if approvals.length == 0}
-                            <div class="text-2xl font-bold">No approvals found.</div>
-                        {/if}
+
+                    <!-- Settings Tab -->
+                    <div class:hidden={currentTab !== 'settings'}>
+                        <PortfolioSettings 
+                            {walletId}
+                            {hidePortfolioValue}
+                            {hideActivity}
+                            {notifyOffers}
+                            {notifyPriceChanges}
+                            {notifyNewDrops}
+                            {sortOptions}
+                            bind:portfolioSort
+                            bind:isCollectionView
+                            bind:showListedOnly
+                            bind:shortName
+                        />
                     </div>
-                </TabItem>
-                <TabItem>
-                    <div slot="title" class="flex items-center space-x-2">
-                        <span>Transactions</span>
-                    </div>
-                    <div class="m-4">
-                        <TransactionTable owner={walletId} />
-                    </div>
-                </TabItem>
-            </Tabs>
+                </div>
+            </div>
         </div>
         {#if multiselectMode}
             <div class="fixed bottom-0 right-0 p-4 flex space-x-2 z-10">

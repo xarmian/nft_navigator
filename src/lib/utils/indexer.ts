@@ -51,6 +51,7 @@ export interface getTokensParams {
     limit?: number | undefined;
     owner?: string | undefined;
     tokenId?: string | undefined;
+    tokenIds?: string | undefined;  // comma-separated list of contractId_tokenId
     invalidate?: boolean | undefined;
 }
 
@@ -78,7 +79,13 @@ export function reformatTokenName(name: string, num?: string | number) {
 }
 
 export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
-    if (params.contractId && !params.invalidate) {
+    // Validate that at least one required parameter is provided
+    if (!params.tokenIds && !params.contractId && !params.owner && !params.tokenId) {
+        throw new Error('At least one of tokenIds, contractId, owner, or tokenId must be provided');
+    }
+
+    // Check cache for single contractId request
+    if (params.contractId && !params.invalidate && !params.tokenIds) {
         const tokens: Token[] | undefined = get(tokenStore).get(Number(params.contractId));
         if (tokens && tokens.length > 0) {
             if (params.tokenId) {
@@ -88,22 +95,51 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
         }
     }
 
+    // Check cache for tokenIds request
+    if (!params.invalidate && params.tokenIds) {
+        const tokenIds = params.tokenIds.split(',');
+        const cachedTokens: Token[] = [];
+        const uncachedIds: string[] = [];
+        
+        tokenIds.forEach(id => {
+            const [contractId, tokenId] = id.split('_');
+            const tokens = get(tokenStore).get(Number(contractId));
+            if (tokens) {
+                const token = tokens.find(t => t.tokenId === tokenId);
+                if (token) {
+                    cachedTokens.push(token);
+                    return;
+                }
+            }
+            uncachedIds.push(id);
+        });
+
+        if (uncachedIds.length === 0) {
+            return cachedTokens;
+        }
+        params.tokenIds = uncachedIds.join(',');
+    }
+
     if (!params.fetch) params.fetch = fetch;
 
     let url = `${indexerBaseURL}/tokens`;
 
     const paramsArray = [];
-    if (params.contractId) {
-        paramsArray.push(['contractId', params.contractId.toString()]);
-    }
-    if (params.tokenId) {
-        paramsArray.push(['tokenId', params.tokenId.toString()]);
-    }
-    if (params.limit) {
-        paramsArray.push(['limit', params.limit.toString()]);
-    }
-    if (params.owner) {
-        paramsArray.push(['owner', params.owner]);
+    if (params.tokenIds) {
+        paramsArray.push(['tokenIds', params.tokenIds]);
+    } else {
+        if (params.contractId) {
+            paramsArray.push(['contractId', params.contractId.toString()]);
+        }
+        if (params.tokenId) {
+            paramsArray.push(['tokenId', params.tokenId.toString()]);
+        }
+        if (params.limit) {
+            paramsArray.push(['limit', params.limit.toString()]);
+        }
+        if (params.owner) {
+            paramsArray.push(['owner', params.owner]);
+        }
     }
 
     const urlParams = new URLSearchParams(paramsArray);

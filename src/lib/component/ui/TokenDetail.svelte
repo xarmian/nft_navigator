@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { Token, Collection, Listing, Currency, Auction, Sale } from '$lib/data/types';
+    import type { Token, Collection, Listing, Currency } from '$lib/data/types';
     import TokenName from '$lib/component/ui/TokenName.svelte';
     import { zeroAddress } from '$lib/data/constants';
     import { selectedWallet } from 'avm-wallet-svelte';
@@ -16,6 +16,7 @@
     import { listToken as listTokenArcpay, getTokenListing, cancelListing as cancelListingArcpay } from '$lib/arcpay';
     import type { Listing as AListing } from '$lib/arcpay';
     import { browser } from '$app/environment';
+    import TokenDetailModal from './TokenDetailModal.svelte';
 
     export let token: Token;
     export let collection: Collection | undefined;
@@ -24,6 +25,7 @@
     export let listing: Listing | null = null;
     export let showMenuIcon = true;
     export let disableHover = false;
+    export let shape: 'rectangle' | 'square' = 'rectangle';
     //export let quality = 'normal';
 
     let formattedOwner = '';
@@ -32,6 +34,7 @@
     let showSendTokenModal = false;
     let showBuyTokenModal = false;
     let showListTokenModal = false;
+    let showDetailModal = false;
     let sendTokenModalType = 'send';
     let tokenProps: any[] = [];
     let hidden = false;
@@ -130,6 +133,18 @@
             if ($selectedWallet?.address) {
                 isTokenOwner = token.owner === $selectedWallet.address ? true : false;
                 isTokenApproved = token.approved === $selectedWallet.address ? true : false;
+                
+                // Debug log to verify approval status
+                if (isTokenOwner && token.approved !== zeroAddress && token.approved !== token.owner) {
+                    console.log('Token has third-party approval:', {
+                        tokenId: token.tokenId,
+                        contractId: token.contractId,
+                        owner: token.owner,
+                        approved: token.approved,
+                        isTokenOwner,
+                        isZeroAddress: token.approved === zeroAddress
+                    });
+                }
             }
 
             if (token.metadata?.royalties) {
@@ -360,8 +375,12 @@
 
 </script>
     <div class="shadow-md rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative overflow-hidden {hidden ? 'hidden' : ''}" style="display: {hidden ? 'none' : 'block'}">
-        <a href="/collection/{token.contractId}/token/{token.tokenId}" 
-           class="relative overflow-hidden place-self-center rounded-xl {disableHover ? '' : 'group'} block w-72 h-72">
+        <div 
+           class="relative overflow-hidden place-self-center rounded-xl {disableHover ? '' : 'group'} block w-full {shape === 'square' ? 'sm:w-72 sm:h-72' : 'sm:w-60 sm:h-72'}"
+           on:click|preventDefault={() => showDetailModal = true}
+           on:keydown|preventDefault={(e) => e.key === 'Enter' && (showDetailModal = true)}
+           role="button"
+           tabindex="0">
             {#if token.metadata?.envoiName}
                 <div class="absolute inset-0 bg-gradient-to-br from-purple-900/20 to-purple-600/20">
                     <div class="w-full h-full p-6">
@@ -380,7 +399,7 @@
                 </div>
             {:else}
                 <img src={imageUrl} 
-                     class="w-72 h-72 object-cover transition-transform duration-300 {!isExpanded && 'group-hover:scale-105'}" 
+                     class="w-full {shape === 'square' ? 'sm:w-72 sm:h-72' : 'sm:w-60 sm:h-72'} object-cover transition-transform duration-300 {!isExpanded && 'group-hover:scale-105'}" 
                      alt={token.metadata?.name ?? `Token ${token.tokenId}`} 
                      loading="lazy" />
                 <!-- Owner Badge -->
@@ -438,6 +457,26 @@
                                     {(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}
                                 </span>
                             {/if}
+                        </div>
+                    </div>
+                </div>
+            {:else if isTokenOwner && token.approved !== zeroAddress && token.approved !== token.owner}
+                <!-- Approval Badge -->
+                <div class="absolute top-2 left-2 transition-opacity duration-300 {isExpanded ? 'opacity-0' : 'opacity-90'} approval-badge">
+                    <div class="flex items-center gap-2 bg-gradient-to-r from-amber-500/90 to-amber-700/90 rounded-lg px-3 py-1.5 shadow-lg backdrop-blur-sm">
+                        <i class="fas fa-key text-white/90"></i>
+                        <div class="flex flex-col">
+                            <span class="text-white/90 text-xs font-medium">
+                                Approved
+                            </span>
+                            <span class="text-white font-bold text-sm">
+                                {token.approved ? token.approved.slice(0, 4) + '...' + token.approved.slice(-4) : ''}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="approval-tooltip">
+                        <div class="tooltip-content">
+                            This token is approved for spending by {token.approved}
                         </div>
                     </div>
                 </div>
@@ -740,7 +779,7 @@
                     {/if}
                 </div>
             {/if}
-        </a>
+        </div>
     </div>
 
 {#if showSendTokenModal}
@@ -761,6 +800,16 @@
             </div>
         </div>
     </div>
+{/if}
+
+{#if showDetailModal}
+    <TokenDetailModal
+        bind:showModal={showDetailModal}
+        {token}
+        {collection}
+        {listing}
+        {showMenuIcon}
+    />
 {/if}
 
 <style lang="postcss">
@@ -810,5 +859,40 @@
     .backdrop-blur-sm {
         backdrop-filter: blur(4px);
         -webkit-backdrop-filter: blur(4px);
+    }
+    
+    /* Approval badge tooltip styles */
+    .approval-badge {
+        display: inline-block;
+    }
+    
+    .approval-tooltip {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        margin-top: 5px;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s, visibility 0.2s;
+    }
+    
+    .approval-tooltip .tooltip-content {
+        background-color: rgba(0, 0, 0, 0.9);
+        color: white;
+        text-align: center;
+        border-radius: 6px;
+        padding: 6px 10px;
+        width: max-content;
+        max-width: 230px;
+        font-size: 12px;
+        line-height: 1.4;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        white-space: normal;
+        word-break: break-word;
+    }
+    
+    .approval-badge:hover .approval-tooltip {
+        opacity: 1;
+        visibility: visible;
     }
 </style>

@@ -127,28 +127,28 @@
 </script>
 <div class="container mx-auto px-4 py-8">
         <!-- Main Controls -->
-        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <div class="flex flex-col md:flex-row justify-between items-center md:mb-8 gap-2 md:gap-4">
             <div class="flex space-x-4 w-full md:w-auto justify-center md:justify-start">
                 <button
-                    class="{activeTab === 'all' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'} px-6 py-2.5 rounded-xl shadow-sm transition duration-300 font-medium flex items-center gap-2"
+                    class="{activeTab === 'all' ? 'text-nowrap bg-gradient-to-r from-blue-500 to-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'} px-6 py-2.5 rounded-xl shadow-sm transition duration-300 font-medium flex flex-col md:flex-row items-center gap-1 md:gap-2"
                     on:click={() => { activeTab = 'all'; $filters.mintable = false; }}
                 >
                     <i class="fas fa-th"></i>
-                    All Collections
+                    <span>All Collections</span>
                 </button>
                 <button
-                    class="{activeTab === 'mintable' ? 'bg-gradient-to-r from-green-500 to-green-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'} px-6 py-2.5 rounded-xl shadow-sm transition duration-300 font-medium flex items-center gap-2"
+                    class="{activeTab === 'mintable' ? 'bg-gradient-to-r from-green-500 to-green-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'} px-6 py-2.5 rounded-xl shadow-sm transition duration-300 font-medium flex flex-col md:flex-row items-center gap-1 md:gap-2"
                     on:click={() => { activeTab = 'mintable'; $filters.mintable = true; }}
                 >
                     <i class="fas fa-fire"></i>
-                    Mintable
+                    <span>Mintable</span>
                 </button>
                 <button
-                    class="{activeTab === 'mine' ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'} px-6 py-2.5 rounded-xl shadow-sm transition duration-300 font-medium flex items-center gap-2"
+                    class="{activeTab === 'mine' ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'} px-6 py-2.5 rounded-xl shadow-sm transition duration-300 font-medium flex flex-col md:flex-row items-center gap-1 md:gap-2"
                     on:click={() => { activeTab = 'mine'; $filters.mintable = false; }}
                 >
                     <i class="fas fa-user"></i>
-                    Mine
+                    <span>Mine</span>
                 </button>
             </div>
             <div class="flex justify-center md:justify-end w-full md:w-auto space-x-2 px-2 md:px-0">
@@ -162,7 +162,7 @@
         </div>
 
         <!-- Search Bar -->
-        <div class="relative mb-8">
+        <div class="relative mb-8 mt-2 md:mt-0">
             <div class="relative">
                 <input
                     type="text"
@@ -240,7 +240,7 @@
         {/if}
 
         <!-- Collections Grid -->
-        <div class="flex flex-wrap gap-4">
+        <div class="flex flex-wrap gap-4 justify-center">
             {#if isMounted}
                 {#each filterCollections.slice(0, displayCount) as collection (collection.contractId)}
                     <div in:fade={{ duration: 300, delay: 100 }}>

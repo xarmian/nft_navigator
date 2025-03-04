@@ -5,6 +5,6 @@
 
     $: imageURL = (token && token.metadataURI) ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(token.metadataURI)}?w=120` : token?.metadata?.image;
 </script>
-<a href="/collection/{token.contractId}/token/{token.tokenId}">
-    <img src={imageURL} class="w-8 h-8 rounded-full mr-2" />
+<a href="/collection/{token.contractId}/token/{token.tokenId}" aria-label={token.metadata?.name ?? 'View Token'}>
+    <img src={imageURL} alt={token.metadata?.name ?? 'View Token'} />
 </a>

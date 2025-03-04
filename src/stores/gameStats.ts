@@ -101,6 +101,12 @@ const createGameStats = () => {
                     }
                 });
 
+                // hard code contractId 963191 to 96700 VOI due to price change
+                const contractId963191 = stats.collections.get('963191');
+                if (contractId963191) {
+                    contractId963191.gamePeriodMintVolume = 96700;
+                }
+
                 return stats;
             });
         }
