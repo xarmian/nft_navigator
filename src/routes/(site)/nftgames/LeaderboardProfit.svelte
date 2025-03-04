@@ -2,15 +2,15 @@
 	import type { Sale } from '$lib/data/types';
 	import { formatNumber } from '$lib/utils/format';
 	import { getNFD } from '$lib/utils/nfd';
-	import type { AggregatedNFD } from '$lib/utils/nfd';
 	import { onMount } from 'svelte';
 	import SpinWheel from './SpinWheel.svelte';
 	import Raffle from './Raffle.svelte';
 	import type { ProfitEntry, BaseLeaderboardEntry } from './types';
 
 	export let sales: Sale[];
-	export let startDate: Date;
-	export let endDate: Date;
+	export let showDrawing: boolean;
+	//export let startDate: Date;
+	//export let endDate: Date;
 
 	const VOI_DECIMALS = 6;
 	const VOI_FACTOR = Math.pow(10, VOI_DECIMALS);
@@ -21,7 +21,7 @@
 	let showSpinWheel = false;
 	let showRaffle = false;
 	let selectedWinners: ProfitEntry[] = [];
-	let drawingMethod: 'wheel' | 'raffle' = 'wheel';
+	let drawingMethod: 'wheel' | 'raffle' = 'raffle';
 
 	interface TokenBasePrices {
 		[key: string]: number; // contractId_tokenId -> base price
@@ -147,36 +147,38 @@
 	<div class="flex justify-between items-center">
 		<h2 class="text-2xl font-bold">Profit Leaderboard</h2>
 		<div class="flex gap-4 items-center">
-			<button 
-				on:click={downloadCSV}
-				class="px-3 py-1 bg-blue-500 text-white rounded-full text-sm hover:bg-blue-600 transition-colors"
-				disabled={loading}
-			>
-				Download CSV
-			</button>
-			
-			<div class="flex items-center bg-gray-100 dark:bg-gray-700 rounded-full p-1">
+			{#if showDrawing}
 				<button 
-					class="px-3 py-1 rounded-full text-sm {drawingMethod === 'wheel' ? 'bg-green-500 text-white' : 'text-gray-600 dark:text-gray-300'}"
-					on:click={() => drawingMethod = 'wheel'}
+					on:click={downloadCSV}
+					class="px-3 py-1 bg-blue-500 text-white rounded-full text-sm hover:bg-blue-600 transition-colors"
+					disabled={loading}
 				>
-					<i class="fas fa-sync mr-1"></i> Wheel
+					Download CSV
 				</button>
-				<button 
-					class="px-3 py-1 rounded-full text-sm {drawingMethod === 'raffle' ? 'bg-green-500 text-white' : 'text-gray-600 dark:text-gray-300'}"
-					on:click={() => drawingMethod = 'raffle'}
-				>
-					<i class="fas fa-ticket-alt mr-1"></i> Raffle
-				</button>
-			</div>
 			
-			<button 
-				on:click={openDrawing}
-				class="px-3 py-1 bg-green-500 text-white rounded-full text-sm hover:bg-green-600 transition-colors"
-				disabled={loading || selectedWinners.length === 0}
-			>
-				<i class="fas fa-random mr-1"></i> Draw Winner
-			</button>
+				<div class="flex items-center bg-gray-100 dark:bg-gray-700 rounded-full p-1">
+					<button 
+						class="px-3 py-1 rounded-full text-sm {drawingMethod === 'wheel' ? 'bg-green-500 text-white' : 'text-gray-600 dark:text-gray-300'}"
+						on:click={() => drawingMethod = 'wheel'}
+					>
+						<i class="fas fa-sync mr-1"></i> Wheel
+					</button>
+					<button 
+						class="px-3 py-1 rounded-full text-sm {drawingMethod === 'raffle' ? 'bg-green-500 text-white' : 'text-gray-600 dark:text-gray-300'}"
+						on:click={() => drawingMethod = 'raffle'}
+					>
+						<i class="fas fa-ticket-alt mr-1"></i> Raffle
+					</button>
+				</div>
+				
+				<button 
+					on:click={openDrawing}
+					class="px-3 py-1 bg-green-500 text-white rounded-full text-sm hover:bg-green-600 transition-colors"
+					disabled={loading || selectedWinners.length === 0}
+				>
+					<i class="fas fa-random mr-1"></i> Draw Winner
+				</button>
+			{/if}
 			<div class="px-3 py-1 bg-green-500 text-white rounded-full text-sm">
 				42.5% of Prize Pool
 			</div>

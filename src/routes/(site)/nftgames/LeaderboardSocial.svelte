@@ -1,9 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { formatNumber } from '$lib/utils/format';
 	import SpinWheel from './SpinWheel.svelte';
 	import Raffle from './Raffle.svelte';
-	import type { BaseLeaderboardEntry } from './types';
 
 	interface SocialEntry {
 		username: string;
@@ -19,10 +17,11 @@
 	let showRaffle = false;
 	// Using any[] to avoid type issues while maintaining functionality
 	let selectedWinners: any[] = [];
-	let drawingMethod: 'wheel' | 'raffle' = 'wheel';
+	let drawingMethod: 'wheel' | 'raffle' = 'raffle';
 
-	export let startDate: Date;
-	export let endDate: Date;
+	//export let startDate: Date;
+	//export let endDate: Date;
+	export let showDrawing: boolean;
 
 	onMount(async () => {
 		loading = true;
@@ -103,28 +102,30 @@
 	<div class="flex justify-between items-center mb-6">
 		<h2 class="text-2xl font-bold">Social Engagement</h2>
 		<div class="flex gap-4 items-center">
-			<div class="flex items-center bg-gray-100 dark:bg-gray-700 rounded-full p-1">
+			{#if showDrawing}
+				<div class="flex items-center bg-gray-100 dark:bg-gray-700 rounded-full p-1">
+					<button 
+						class="px-3 py-1 rounded-full text-sm {drawingMethod === 'wheel' ? 'bg-pink-500 text-white' : 'text-gray-600 dark:text-gray-300'}"
+						on:click={() => drawingMethod = 'wheel'}
+					>
+						<i class="fas fa-sync mr-1"></i> Wheel
+					</button>
+					<button 
+						class="px-3 py-1 rounded-full text-sm {drawingMethod === 'raffle' ? 'bg-pink-500 text-white' : 'text-gray-600 dark:text-gray-300'}"
+						on:click={() => drawingMethod = 'raffle'}
+					>
+						<i class="fas fa-ticket-alt mr-1"></i> Raffle
+					</button>
+				</div>
+				
 				<button 
-					class="px-3 py-1 rounded-full text-sm {drawingMethod === 'wheel' ? 'bg-pink-500 text-white' : 'text-gray-600 dark:text-gray-300'}"
-					on:click={() => drawingMethod = 'wheel'}
+					on:click={openDrawing}
+					class="px-3 py-1 bg-pink-500 text-white rounded-full text-sm hover:bg-pink-600 transition-colors"
+					disabled={loading || (error !== null) || socialLeaderboard.length === 0}
 				>
-					<i class="fas fa-sync mr-1"></i> Wheel
+					<i class="fas fa-random mr-1"></i> Draw Winner
 				</button>
-				<button 
-					class="px-3 py-1 rounded-full text-sm {drawingMethod === 'raffle' ? 'bg-pink-500 text-white' : 'text-gray-600 dark:text-gray-300'}"
-					on:click={() => drawingMethod = 'raffle'}
-				>
-					<i class="fas fa-ticket-alt mr-1"></i> Raffle
-				</button>
-			</div>
-			
-			<button 
-				on:click={openDrawing}
-				class="px-3 py-1 bg-pink-500 text-white rounded-full text-sm hover:bg-pink-600 transition-colors"
-				disabled={loading || (error !== null) || socialLeaderboard.length === 0}
-			>
-				<i class="fas fa-random mr-1"></i> Draw Winner
-			</button>
+			{/if}
 			<div class="px-3 py-1 bg-pink-500 text-white rounded-full text-sm">
 				5% of Prize Pool
 			</div>

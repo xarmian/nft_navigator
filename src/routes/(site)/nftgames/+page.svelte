@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { getCollections, getSales, getTransfers, getSalesAndTransfers } from '$lib/utils/indexer';
 	import type { Collection, Sale, Transfer } from '$lib/data/types';
@@ -11,6 +11,7 @@
 	import RulesExplainer from './RulesExplainer.svelte';
 	import GameStats from './GameStats.svelte';
 	import DynamicBanner from './DynamicBanner.svelte';
+	import { selectedWallet } from 'avm-wallet-svelte';
 
 	const VOI_DECIMALS = 6;
 	const VOI_FACTOR = Math.pow(10, VOI_DECIMALS);
@@ -31,8 +32,27 @@
 	let totalParticipants = 0;
 	let totalMintVolume = 0;
 	let totalMints = 0;
+	let showDrawing = false;
 
 	const ZERO_ADDRESS = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
+
+	const raffleWallets = [
+		'VOIUK3B5KQXVMVMYMLZOELHNABRKV27BP3CZRIK2ZCF7HEFP4F6APX76NM',
+		'R7TBR3Y5QCM6Y2OPQP3BPNUQG7TLN75IOC2WTNRUKO4VPNSDQF52MZB4ZE',
+	]
+
+	const unsub = selectedWallet.subscribe(wallet => {
+		if (raffleWallets.includes(wallet?.address ?? '')) {
+			showDrawing = true;
+		}
+		else {
+			showDrawing = false;
+		}
+	});
+
+	onDestroy(() => {
+		unsub();
+	});
 
 	onMount(async () => {
 		try {
@@ -330,13 +350,13 @@
 						/>
 					</div>
 				{:else if activeTab === 1}
-					<LeaderboardVolume sales={gameSales} {startDate} {endDate} />
+					<LeaderboardVolume sales={gameSales} {showDrawing} />
 				{:else if activeTab === 2}
-					<LeaderboardProfit sales={gameSales} {startDate} {endDate} />
+					<LeaderboardProfit sales={gameSales} {showDrawing} />
 				{:else if activeTab === 3}
-					<LeaderboardMinting {collections} {startDate} {endDate} />
+					<LeaderboardMinting {collections} {startDate} {endDate} {showDrawing} />
 				{:else if activeTab === 4}
-					<LeaderboardSocial {startDate} {endDate} />
+					<LeaderboardSocial {startDate} {endDate} {showDrawing} />
 				{/if}
 			</div>
 		</div>
