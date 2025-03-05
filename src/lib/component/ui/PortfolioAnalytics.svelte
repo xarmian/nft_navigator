@@ -59,7 +59,6 @@
                     lastActivity = formatDateRelative(lastTx.timestamp);
                 }
                 
-                console.log('Loaded transfers:', transfers);
             } catch (error) {
                 console.error('Error loading transfers:', error);
             }

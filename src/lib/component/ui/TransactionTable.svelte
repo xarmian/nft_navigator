@@ -240,10 +240,16 @@
                                 {/if}
                             </div>
                             <div class="text-sm text-gray-500">
-                                <span class="font-medium text-gray-700 dark:text-gray-300">
+                                <a href={`/collection/${transfer.contractId}`} 
+                                    class="font-medium text-gray-700 dark:text-gray-300">
                                     { transfer.token?.metadata?.name ?? 'Unknown Collection'}
-                                </span> 
-                                #{transfer.tokenId}
+                                </a> 
+                                {#if !transfer.token?.metadata?.name}
+                                    <a href={`/collection/${transfer.contractId}/token/${transfer.tokenId}`} 
+                                        class="text-gray-500 dark:text-gray-400">
+                                        #{transfer.tokenId}
+                                    </a>
+                                {/if}
                             </div>
                         </div>
                         

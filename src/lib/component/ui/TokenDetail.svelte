@@ -133,18 +133,6 @@
             if ($selectedWallet?.address) {
                 isTokenOwner = token.owner === $selectedWallet.address ? true : false;
                 isTokenApproved = token.approved === $selectedWallet.address ? true : false;
-                
-                // Debug log to verify approval status
-                if (isTokenOwner && token.approved !== zeroAddress && token.approved !== token.owner) {
-                    console.log('Token has third-party approval:', {
-                        tokenId: token.tokenId,
-                        contractId: token.contractId,
-                        owner: token.owner,
-                        approved: token.approved,
-                        isTokenOwner,
-                        isZeroAddress: token.approved === zeroAddress
-                    });
-                }
             }
 
             if (token.metadata?.royalties) {

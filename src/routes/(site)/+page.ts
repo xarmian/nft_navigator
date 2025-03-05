@@ -28,40 +28,18 @@ export const load = (async ({ fetch }) => {
     let mintCount = 0;
     const ZERO_ADDRESS = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
 
-    // Get mints from the last 24 hours
-    const now = Math.floor(Date.now() / 1000);
-    const oneDayAgo = now - (24 * 60 * 60);
-
     try {
-        const transfers = await getTransfers({ 
+        const mints = await getTransfers({ 
             fetch,
             from: ZERO_ADDRESS,
-            minTime: oneDayAgo
+            limit: 10,
+            sortBy: 'desc'
         });
 
-        // Filter transfers that occurred in the last 24 hours
-        const mints = transfers.filter(transfer => {
-            const transferTime = transfer.timestamp;
-            return transferTime >= oneDayAgo && transferTime <= now;
-        });
-        mints.sort((a, b) => b.timestamp - a.timestamp);
-
-        // Add mint activity to popularity score
-        mints.forEach(mint => {
-            if (popularity[mint.contractId]) {
-                popularity[mint.contractId] += 1;
-            } else {
-                popularity[mint.contractId] = 1;
-            }
-        });
-
-        recentMintTokens = (await Promise.all(mints.slice(0, 4).map(async (mint) => 
-            await getTokens({
-                fetch,
-                contractId: mint.contractId,
-                tokenId: mint.tokenId
-            })
-        ))).flat();
+        recentMintTokens = await getTokens({
+            fetch,
+            tokenIds: mints.map((mint) => `${mint.contractId}_${mint.tokenId}`).join(',')
+        }).then((tokens) => tokens.sort((a, b) => b.mintRound - a.mintRound)).then((tokens) => tokens.slice(0, 4));
 
         mintCount = mints.length;
 

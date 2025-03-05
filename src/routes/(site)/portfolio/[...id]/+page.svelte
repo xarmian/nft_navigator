@@ -20,11 +20,10 @@
     export let data: PageData;
     $: walletId = data.props.walletId;
     $: walletEnvoi = data.props.walletEnvoi;
-    $: console.log(walletEnvoi);   
-    //$: walletAvatar = data.props.walletAvatar;
+
     $: tokens = data.props.tokens;
     $: approvals = data.props.approvals;
-    let collections = data.props.collections;
+    $: collections = data.props.collections;
     let isMobile: boolean | null = null;
     let headerTokens: Token[] = [];
     let portfolioSort = 'mint';
@@ -51,7 +50,7 @@
     let notifyNewDrops = true;
 
     // New variable to track current tab
-    let currentTab: 'gallery' | 'activity' | 'analytics' | 'settings' = 'gallery';
+    let currentTab: 'gallery' | 'activity' | 'analytics' | 'settings' = 'analytics';
 
     $: {
         if (tokens) {
@@ -84,20 +83,6 @@
             });
         }
     }
-
-    const unsub = selectedWallet.subscribe((value) => {
-        console.log('selectedWallet', value);
-        if (value?.address) {
-        }
-        if (walletId && walletId != value?.address) {
-            //goto('/portfolio/' + value?.address);
-            //invalidateAll();
-        }
-    });
-
-    onDestroy(() => {
-        unsub();
-    });
 
     $: formattedWallet = (walletId) ? (walletId.length > 8
         ? `${walletId.slice(0, (isMobile ? 4 : 6))}...${walletId.slice((isMobile ? -4 : -6))}`
@@ -488,6 +473,13 @@
                 <div class="border-b border-gray-200 dark:border-gray-700">
                     <nav class="flex space-x-8 px-4" aria-label="Portfolio sections">
                         <button 
+                            class="py-4 px-1 border-b-2 font-medium text-sm {currentTab === 'analytics' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'}"
+                            aria-current={currentTab === 'analytics' ? 'page' : undefined}
+                            on:click={() => currentTab = 'analytics'}>
+                            <i class="fas fa-chart-pie mr-2"></i>
+                            Analytics
+                        </button>
+                        <button 
                             class="py-4 px-1 border-b-2 font-medium text-sm {currentTab === 'gallery' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'}"
                             aria-current={currentTab === 'gallery' ? 'page' : undefined}
                             on:click={() => currentTab = 'gallery'}>
@@ -500,13 +492,6 @@
                             on:click={() => currentTab = 'activity'}>
                             <i class="fas fa-chart-line mr-2"></i>
                             Activity
-                        </button>
-                        <button 
-                            class="py-4 px-1 border-b-2 font-medium text-sm {currentTab === 'analytics' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'}"
-                            aria-current={currentTab === 'analytics' ? 'page' : undefined}
-                            on:click={() => currentTab = 'analytics'}>
-                            <i class="fas fa-chart-pie mr-2"></i>
-                            Analytics
                         </button>
                         <button 
                             class="hidden py-4 px-1 border-b-2 font-medium text-sm {currentTab === 'settings' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'}"

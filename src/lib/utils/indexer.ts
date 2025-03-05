@@ -39,6 +39,7 @@ interface ITransfer {
     toAddr: string;
     round: number;
     timestamp: number;
+    token: IToken;
 }
 
 interface FetchFunction {
@@ -85,33 +86,30 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
     }
 
     // Check cache for single contractId request
-    if (params.contractId && !params.invalidate && !params.tokenIds) {
-        const tokens: Token[] | undefined = get(tokenStore).get(Number(params.contractId));
-        if (tokens && tokens.length > 0) {
-            if (params.tokenId) {
-                return tokens.filter((token: Token) => token.tokenId === params.tokenId);
+    const cachedTokens: Token[] = [];
+    if (params.contractId && !params.invalidate && !params.tokenId) {
+        const tokenMap = get(tokenStore);
+        // Collect all tokens for this contract from the map
+        for (const [key, token] of tokenMap.entries()) {
+            if (key.startsWith(`${params.contractId}_`)) {
+                cachedTokens.push(token);
             }
-            return tokens;
         }
     }
 
     // Check cache for tokenIds request
     if (!params.invalidate && params.tokenIds) {
         const tokenIds = params.tokenIds.split(',');
-        const cachedTokens: Token[] = [];
-        const uncachedIds: string[] = [];
+        const tokenMap = get(tokenStore);
         
+        const uncachedIds: string[] = [];
         tokenIds.forEach(id => {
-            const [contractId, tokenId] = id.split('_');
-            const tokens = get(tokenStore).get(Number(contractId));
-            if (tokens) {
-                const token = tokens.find(t => t.tokenId === tokenId);
-                if (token) {
-                    cachedTokens.push(token);
-                    return;
-                }
+            const token = tokenMap.get(id);
+            if (token) {
+                cachedTokens.push(token);
+            } else {
+                uncachedIds.push(id);
             }
-            uncachedIds.push(id);
         });
 
         if (uncachedIds.length === 0) {
@@ -124,22 +122,45 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
 
     let url = `${indexerBaseURL}/tokens`;
 
-    const paramsArray = [];
+    // If we have tokenIds, handle them in chunks of 50
     if (params.tokenIds) {
-        paramsArray.push(['tokenIds', params.tokenIds]);
-    } else {
-        if (params.contractId) {
-            paramsArray.push(['contractId', params.contractId.toString()]);
+        const tokenIdArray = params.tokenIds.split(',');
+        const chunks = [];
+        for (let i = 0; i < tokenIdArray.length; i += 50) {
+            chunks.push(tokenIdArray.slice(i, i + 50));
         }
-        if (params.tokenId) {
-            paramsArray.push(['tokenId', params.tokenId.toString()]);
+
+        let allTokens: Token[] = [];
+        for (const chunk of chunks) {
+            const chunkParams = new URLSearchParams([['tokenIds', chunk.join(',')]]);
+            const chunkUrl = `${url}?${chunkParams.toString()}`;
+            
+            try {
+                const response = await params.fetch(chunkUrl);
+                const data: ITokenResponse = await response.json();
+                const tokens = await processTokenResponse(data, params);
+                allTokens = [...allTokens, ...tokens];
+            } catch (err) {
+                console.error('Error fetching token chunk:', err);
+            }
         }
-        if (params.limit) {
-            paramsArray.push(['limit', params.limit.toString()]);
-        }
-        if (params.owner) {
-            paramsArray.push(['owner', params.owner]);
-        }
+        // Combine cached and newly fetched tokens
+        return [...cachedTokens, ...allTokens];
+    }
+
+    // Handle non-tokenIds requests
+    const paramsArray = [];
+    if (params.contractId) {
+        paramsArray.push(['contractId', params.contractId.toString()]);
+    }
+    if (params.tokenId) {
+        paramsArray.push(['tokenId', params.tokenId.toString()]);
+    }
+    if (params.limit) {
+        paramsArray.push(['limit', params.limit.toString()]);
+    }
+    if (params.owner) {
+        paramsArray.push(['owner', params.owner]);
     }
 
     const urlParams = new URLSearchParams(paramsArray);
@@ -148,82 +169,100 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
     try {
         const response = await params.fetch(url);
         const data: ITokenResponse = await response.json();
-        let tokens: Token[] = data.tokens.map((token: IToken) => {
-            let metadata = null;
-            try {
-                metadata = JSON.parse(token.metadata);
-            } catch {
-                metadata = {};
+        const newTokens = await processTokenResponse(data, params);
+        // Combine cached and newly fetched tokens, removing duplicates
+        const combinedTokens = [...cachedTokens];
+        for (const token of newTokens) {
+            const tokenKey = `${token.contractId}_${token.tokenId}`;
+            if (!combinedTokens.some(t => `${t.contractId}_${t.tokenId}` === tokenKey)) {
+                combinedTokens.push(token);
             }
-            if (metadata == null) {
-                metadata = {};
-            }
-
-            const marketData = null;
-
-            return {
-                contractId: token.contractId,
-                tokenId: token.tokenId,
-                owner: token.owner,
-                ownerNFD: null,
-                ownerAvatar: '/blank_avatar_small.png',
-                metadataURI: token.metadataURI,
-                metadata: metadata,
-                mintRound: token['mint-round'],
-                approved: token.approved,
-                marketData: marketData,
-                salesData: null,
-                rank: null,
-                traits: (metadata && metadata.properties) ? Object.entries(metadata.properties).map(([key, value]) => key + ': ' + value) : [],
-                isBurned: token.isBurned,
-            };
-        });
-        if (params.contractId && !params.tokenId) {
-            // token ranks
-            tokens = await populateTokenRanking(Number(params.contractId), tokens, params.fetch);
-            const tokenMap = get(tokenStore);
-            tokenMap.set(Number(params.contractId), tokens);
-            tokenStore.set(tokenMap);
         }
-
-        // for each token, get NFD data
-        const owners = Array.from(new Set(tokens.map((token: Token) => token.owner)));
-        const nfd = await getNFD(owners);
-        tokens.forEach((token: Token) => {
-            const nfdObj = nfd.find((n: { key: string }) => n.key === token.owner);
-            if (nfdObj) {
-                token.ownerNFD = nfdObj.replacementValue;
-                token.ownerAvatar = nfdObj.avatar;
-            }
-        });
-
-        // Resolve Envoi tokens for any tokens with contractId 797609
-        const envoiTokens = tokens.filter(token => token.contractId === 797609);
-        if (envoiTokens.length > 0) {
-            const tokenIds = envoiTokens.map(token => token.tokenId);
-            const envoiResults = await resolveEnvoiToken(tokenIds);
-
-            // Update tokens with Envoi data
-            envoiTokens.forEach(token => {
-                const envoiData = envoiResults.find(result => result.token_id === token.tokenId);
-                if (envoiData && token.metadata) {
-                    token.metadata = {
-                        ...token.metadata,
-                        envoiName: envoiData.name || token.metadata.name,
-                        avatar: envoiData.metadata.avatar,
-                        envoiMetadata: envoiData.metadata
-                    };
-                }
-            });
-        }
-
-        // filter tokens with contractId 797610 or 846601
-        tokens = tokens.filter(token => token.contractId !== 797610 && token.contractId !== 846601);
-        return tokens;
+        return combinedTokens;
     } catch (err) {
         console.error('Error fetching tokens:', err);
-        return [];
+        return cachedTokens; // Return cached tokens if fetch fails
     }
+}
+
+// Helper function to process token response data
+async function processTokenResponse(data: ITokenResponse, params: getTokensParams): Promise<Token[]> {
+    let tokens: Token[] = data.tokens.map((token: IToken) => {
+        let metadata = null;
+        try {
+            metadata = JSON.parse(token.metadata);
+        } catch {
+            metadata = {};
+        }
+        if (metadata == null) {
+            metadata = {};
+        }
+
+        const marketData = null;
+
+        return {
+            contractId: token.contractId,
+            tokenId: token.tokenId,
+            owner: token.owner,
+            ownerNFD: null,
+            ownerAvatar: '/blank_avatar_small.png',
+            metadataURI: token.metadataURI,
+            metadata: metadata,
+            mintRound: token['mint-round'],
+            approved: token.approved,
+            marketData: marketData,
+            salesData: null,
+            rank: null,
+            traits: (metadata && metadata.properties) ? Object.entries(metadata.properties).map(([key, value]) => key + ': ' + value) : [],
+            isBurned: token.isBurned,
+        };
+    });
+
+    if (params.contractId && !params.tokenId) {
+        // token ranks
+        tokens = await populateTokenRanking(Number(params.contractId), tokens, params.fetch!);
+        const tokenMap = get(tokenStore);
+        // Store each token individually in the map
+        tokens.forEach(token => {
+            tokenMap.set(`${token.contractId}_${token.tokenId}`, token);
+        });
+        tokenStore.set(tokenMap);
+    }
+
+    // for each token, get NFD data
+    const owners = Array.from(new Set(tokens.map((token: Token) => token.owner)));
+    const nfd = await getNFD(owners);
+    tokens.forEach((token: Token) => {
+        const nfdObj = nfd.find((n: { key: string }) => n.key === token.owner);
+        if (nfdObj) {
+            token.ownerNFD = nfdObj.replacementValue;
+            token.ownerAvatar = nfdObj.avatar;
+        }
+    });
+
+    // Resolve Envoi tokens for any tokens with contractId 797609
+    const envoiTokens = tokens.filter(token => token.contractId === 797609);
+    if (envoiTokens.length > 0) {
+        const tokenIds = envoiTokens.map(token => token.tokenId);
+        const envoiResults = await resolveEnvoiToken(tokenIds);
+
+        // Update tokens with Envoi data
+        envoiTokens.forEach(token => {
+            const envoiData = envoiResults.find(result => result.token_id === token.tokenId);
+            if (envoiData && token.metadata) {
+                token.metadata = {
+                    ...token.metadata,
+                    envoiName: envoiData.name || token.metadata.name,
+                    avatar: envoiData.metadata.avatar,
+                    envoiMetadata: envoiData.metadata
+                };
+            }
+        });
+    }
+
+    // filter tokens with contractId 797610 or 846601
+    tokens = tokens.filter(token => token.contractId !== 797610 && token.contractId !== 846601);
+    return tokens;
 }
 
 export const getCollection = async (params: { contractId: number, fetch?: FetchFunction } ): Promise<Collection | null> => {
@@ -320,9 +359,11 @@ export const getTransfers = async (params: {
     minTime?: number | undefined,
     maxTime?: number | undefined,
     from?: string | undefined,
+    limit?: number | undefined,
+    sortBy?: string | undefined,
     fetch: FetchFunction 
 }): Promise<Transfer[]> => {
-    const { contractId, tokenId, user, minRound, maxRound, minTime, maxTime, from } = params;
+    const { contractId, tokenId, user, minRound, maxRound, minTime, maxTime, from, limit, sortBy } = params;
 
     if (!params.fetch) params.fetch = fetch;
 
@@ -357,6 +398,12 @@ export const getTransfers = async (params: {
     if (from) {
         url += `&from=${from}`;
     }
+    if (limit) {
+        url += `&limit=${limit}`;
+    }
+    if (sortBy) {
+        url += `&sort=${sortBy}`;
+    }
 
     try {
         const data = await params.fetch(url).then((response) => response.json());
@@ -370,7 +417,8 @@ export const getTransfers = async (params: {
                 from: transfer.fromAddr,
                 to: transfer.toAddr,
                 round: transfer.round,
-                timestamp: transfer.timestamp
+                timestamp: transfer.timestamp,
+                token: transfer.token
             };
         }).sort((a: Transfer, b: Transfer) => b.timestamp - a.timestamp);
     } catch (err) {
