@@ -32,7 +32,7 @@
                 // Get transfers for this wallet
                 transfers = await getSalesAndTransfers({ 
                     user: walletId, 
-                    limit: 25, 
+                    limit: 1000, 
                     fetch: fetch 
                 });
                 
