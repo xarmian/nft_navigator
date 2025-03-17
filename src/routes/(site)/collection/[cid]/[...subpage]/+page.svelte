@@ -102,7 +102,7 @@
         {id: 'transactions', name: 'Transactions', sortable: true},
         {id: 'collectors', name: 'Collectors', count: uniqueCollectors, sortable: true}, 
         {id: 'burned', name: 'Burned Tokens', count: burnedTokens, sortable: true},
-        {id: 'lounge', name: 'Chat', sortable: true}
+        {id: 'lounge', name: 'Feed', sortable: true}
     ];
 
     // Add scroll handler
