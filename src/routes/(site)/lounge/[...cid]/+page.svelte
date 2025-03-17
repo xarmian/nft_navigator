@@ -325,7 +325,7 @@
                             {/if}
                             <div class="flex-grow h-full m-1 w-full md:w-3/4 place-self-center space-y-2 md:space-y-3">
                                 {#each messages as message, i}
-                                    <Message singleMessageView={data.server_data.messageId} nfds={data.server_data.nfds} {message} canComment={hasValidToken && (canViewPrivate || userCollections.find((c) => String(c.contractId) == message.collectionId) != undefined)} collectionName={allCollections.find(c => c.contractId === Number(message.collectionId))?.highforgeData?.title} showCollectionName={selectedCollection === 'all' || selectedCollection === 'myfeed'}></Message>
+                                    <Message nfds={data.server_data.nfds} {message} canComment={hasValidToken && (canViewPrivate || userCollections.find((c) => String(c.contractId) == message.collectionId) != undefined)} collectionName={allCollections.find(c => c.contractId === Number(message.collectionId))?.highforgeData?.title} showCollectionName={selectedCollection === 'all' || selectedCollection === 'myfeed'}></Message>
                                 {/each}
                                 {#if messages.length == 0 && (selectedView == 'Public' || (selectedView == 'Private' && hasValidToken))}
                                     {#if data.server_data.messageId}
