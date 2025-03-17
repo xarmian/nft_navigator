@@ -22,6 +22,7 @@
     let nfds: any[] = [];
     let ownsToken = false;
     let collectionName = '';
+    let postPrivacyValue: 'Public' | 'Private' = 'Public';
 
     // Subscribe to wallet changes
     selectedWallet.subscribe((value) => {
@@ -56,7 +57,7 @@
             if (!response.ok) throw new Error('Failed to fetch messages');
             
             const data = await response.json();
-            messages = data.messages || [];
+            const fetchedMessages = data.messages || [];
             nfds = data.nfds || [];
 
             // Get collection name
@@ -73,28 +74,39 @@
             }
 
             // Filter messages based on privacy setting
+            let filteredMessages = [...fetchedMessages];
             if (selectedView === 'Public') {
-                messages = messages.filter(m => !m.private);
+                filteredMessages = fetchedMessages.filter((m: NMessage) => !m.private);
             } else if (selectedView === 'Private' && hasValidToken) {
-                messages = messages.filter(m => m.private);
-            }
-            // For 'All' view, show all messages if authenticated, otherwise only public
-            else if (selectedView === 'All') {
+                filteredMessages = fetchedMessages.filter((m: NMessage) => m.private);
+            } else if (selectedView === 'All') {
                 if (!hasValidToken) {
-                    messages = messages.filter(m => !m.private);
+                    filteredMessages = fetchedMessages.filter((m: NMessage) => !m.private);
                 }
-                // If authenticated, show all messages (no filter needed)
             }
 
             // Store the unfiltered messages after privacy filtering
-            unfilteredMessages = [...messages];
+            unfilteredMessages = [...filteredMessages];
+
+            // Apply search filter if needed
+            if (searchText) {
+                const searchLower = searchText.toLowerCase();
+                filteredMessages = filteredMessages.filter(m => 
+                    m.message.toLowerCase().includes(searchLower) ||
+                    m.walletId.toLowerCase().includes(searchLower) ||
+                    (nfds.find(nfd => nfd.key === m.walletId)?.replacementValue?.toLowerCase().includes(searchLower) ?? false)
+                );
+            }
 
             // Sort messages
-            messages.sort((a, b) => {
+            filteredMessages.sort((a, b) => {
                 const dateA = new Date(a.timestamp).getTime();
                 const dateB = new Date(b.timestamp).getTime();
-                return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
+                return sortDirection === 'desc' ? dateA - dateB : dateB - dateA;
             });
+
+            // Update messages to trigger reactivity
+            messages = filteredMessages;
 
         } catch (error) {
             console.error('Error loading messages:', error);
@@ -156,7 +168,7 @@
             messages = messages.sort((a, b) => {
                 const dateA = new Date(a.timestamp).getTime();
                 const dateB = new Date(b.timestamp).getTime();
-                return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
+                return sortDirection === 'desc' ? dateA - dateB : dateB - dateA;
             });
         }
     }
@@ -192,12 +204,17 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg pt-4">
             <CreatePost 
                 postPrivacy={selectedView}
-                onPost={async (content, poll, imageFile) => {
+                bind:postPrivacyValue={postPrivacyValue}
+                onPost={async (content, poll, imageFiles) => {
                     const formData = new FormData();
                     formData.append('message', content);
-                    formData.append('privacy', selectedView === 'All' ? 'Public' : selectedView);
+                    formData.append('privacy', postPrivacyValue);
                     if (poll) formData.append('poll', JSON.stringify(poll));
-                    if (imageFile) formData.append('image', imageFile);
+                    if (imageFiles && imageFiles.length > 0) {
+                        imageFiles.forEach(file => {
+                            formData.append('image', file);
+                        });
+                    }
 
                     const response = await fetch(`/api/lounge/${collectionId}`, {
                         method: 'POST',

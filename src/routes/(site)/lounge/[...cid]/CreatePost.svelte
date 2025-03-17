@@ -5,21 +5,62 @@
     import EmojiPicker from "svelte-emoji-picker";
     import type { IPoll } from "$lib/data/types";
 
-    export let onPost: (content: string, poll: null | IPoll, imageFile: File | null) => Promise<boolean>;
+    export let onPost: (content: string, poll: null | IPoll, imageFiles: File[]) => Promise<boolean>;
     export let postPrivacy: 'Public' | 'Private' | 'All' = 'Public';
-    $: postPrivacyValue = postPrivacy === 'All' ? 'Public' : postPrivacy;
+    export let postPrivacyValue = postPrivacy === 'All' ? 'Public' : postPrivacy;
 
     let showEmojiPicker = false;
     let showAddMenu = false;
     let chatInput = '';
     let textarea: HTMLTextAreaElement;
+    let isDraggingOver = false;
 
     let showAddPoll = false;
     let pollOptions = ['', ''];
 
-    let imageFile: File | null = null;
+    let imageFiles: File[] = [];
     let fileInput: HTMLInputElement;
-    let imageElement: HTMLImageElement;
+    let imageElements: HTMLImageElement[] = [];
+
+    const MAX_IMAGES = 3;
+
+    let isSubmitting = false;
+
+    // Function to generate a unique identifier for a file
+    function getFileIdentifier(file: File): string {
+        return `${file.name}-${file.size}-${file.lastModified}`;
+    }
+
+    // Function to check if a file is already added
+    function isFileAlreadyAdded(file: File): boolean {
+        const newFileId = getFileIdentifier(file);
+        return imageFiles.some(existingFile => getFileIdentifier(existingFile) === newFileId);
+    }
+
+    // Function to add new files, preventing duplicates
+    async function addNewFiles(files: File[]) {
+        const newFiles: File[] = [];
+        const duplicates: string[] = [];
+
+        for (const file of files) {
+            if (imageFiles.length + newFiles.length >= MAX_IMAGES) break;
+            
+            if (!isFileAlreadyAdded(file)) {
+                newFiles.push(file);
+            } else {
+                duplicates.push(file.name);
+            }
+        }
+
+        if (duplicates.length > 0) {
+            alert(`The following images are already added:\n${duplicates.join('\n')}`);
+        }
+
+        if (newFiles.length > 0) {
+            imageFiles = [...imageFiles, ...newFiles];
+            await displayImages();
+        }
+    }
 
     let getPollEndTime = () => {
         let endTime = new Date();
@@ -41,7 +82,7 @@
         event.preventDefault();
         let poll: IPoll | null = null;
 
-        if (chatInput.trim() === '' && !imageFile) {
+        if (chatInput.trim() === '' && imageFiles.length === 0) {
             alert(`${showAddPoll ? 'Question' : 'Message'} cannot be empty`);
             return;
         }
@@ -70,17 +111,24 @@
             };
         }
 
-        const success = await onPost(chatInput, poll, imageFile);
+        try {
+            isSubmitting = true;
+            const success = await onPost(chatInput, poll, imageFiles);
 
-        if (success) {
-            chatInput = '';
-            pollOptions = ['', ''];
-            poll_endTime = getPollEndTime();
-            poll_voteWeight = 'wallet';
-            poll_allowPublicVoting = false;
-            showAddPoll = false;
-            removeImage();
-            invalidateAll();
+            if (success) {
+                chatInput = '';
+                pollOptions = ['', ''];
+                poll_endTime = getPollEndTime();
+                poll_voteWeight = 'wallet';
+                poll_allowPublicVoting = false;
+                showAddPoll = false;
+                imageFiles = [];
+                invalidateAll();
+            }
+        } catch (error) {
+            console.error('Error submitting post:', error);
+        } finally {
+            isSubmitting = false;
         }
     };
 
@@ -115,70 +163,114 @@
 
     function handleDragOver(event: DragEvent) {
         event.preventDefault();
+        // Only show drag feedback if files are being dragged
+        if (event.dataTransfer?.types.includes('Files')) {
+            isDraggingOver = true;
+        }
+    }
+
+    function handleDragLeave(event: DragEvent) {
+        // Only reset drag feedback if we're leaving the form (not entering a child element)
+        const form = event.currentTarget as HTMLFormElement;
+        const relatedTarget = event.relatedTarget as Node | null;
+        if (form && relatedTarget && !form.contains(relatedTarget)) {
+            isDraggingOver = false;
+        }
     }
 
     async function handleDrop(event: DragEvent) {
         event.preventDefault();
+        isDraggingOver = false;
 
         if (event.dataTransfer && event.dataTransfer.items) {
-            for (var i = 0; i < event.dataTransfer.items.length; i++) {
+            const files: File[] = [];
+            for (let i = 0; i < event.dataTransfer.items.length; i++) {
                 if (event.dataTransfer.items[i].kind === 'file') {
-                    imageFile = event.dataTransfer.items[i].getAsFile();
-                    displayImage();
-                    break;
+                    const file = event.dataTransfer.items[i].getAsFile();
+                    if (file) files.push(file);
                 }
             }
+            await addNewFiles(files);
         }
     }
 
     async function handlePaste(event: ClipboardEvent) {
         if (event.clipboardData && event.clipboardData.items) {
-            for (var i = 0; i < event.clipboardData.items.length; i++) {
+            const files: File[] = [];
+            for (let i = 0; i < event.clipboardData.items.length; i++) {
                 if (event.clipboardData.items[i].type.indexOf('image') === 0) {
-                    imageFile = event.clipboardData.items[i].getAsFile();
-                    displayImage();
-                    break;
+                    const file = event.clipboardData.items[i].getAsFile();
+                    if (file) {
+                        files.push(file);
+                        break;
+                    }
                 }
             }
+            await addNewFiles(files);
         }
     }
 
-    function displayImage() {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            imageElement.src = String(event.target?.result);
-        };
-        if (imageFile) {
-            reader.readAsDataURL(imageFile);
+    async function displayImages() {
+        for (let i = 0; i < imageFiles.length; i++) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                if (imageElements[i]) {
+                    imageElements[i].src = String(event.target?.result);
+                }
+            };
+            reader.readAsDataURL(imageFiles[i]);
         }
     }
 
-    function removeImage() {
-        imageFile = null;
-        if (imageElement && imageElement.src) imageElement.src = '';
+    function removeImage(index: number) {
+        imageFiles = imageFiles.filter((_, i) => i !== index);
+        if (imageElements[index]) {
+            imageElements[index].src = '';
+        }
     }
 
     function handleButtonClick() {
         setTimeout(() => {
             showAddMenu = false;
-        },100);
+        }, 100);
         fileInput.click();
     }
 
     function handleFileChange() {
         if (fileInput.files && fileInput.files.length > 0) {
-            imageFile = fileInput.files[0];
-            displayImage();
+            const files = Array.from(fileInput.files);
+            addNewFiles(files);
         }
+        // Reset file input to allow selecting the same file again
+        fileInput.value = '';
     }
 
 </script>
 
 <form 
-    on:submit={handleSubmit} 
+    on:submit={handleSubmit}
+    on:dragover={handleDragOver}
+    on:dragleave={handleDragLeave}
+    on:drop={handleDrop}
     class="relative w-full sm:w-3/4 place-self-center"
 >
-    <div class="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 border dark:border-slate-700">
+    <div class="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 border dark:border-slate-700 relative {isDraggingOver ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' : ''}">
+        {#if isSubmitting}
+            <div class="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-gray-800/80 rounded-2xl backdrop-blur-sm z-50">
+                <div class="flex flex-col items-center gap-3">
+                    <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <p class="text-gray-600 dark:text-gray-300 font-medium">Submitting post...</p>
+                </div>
+            </div>
+        {/if}
+        {#if isDraggingOver}
+            <div class="absolute inset-0 flex items-center justify-center bg-blue-500/10 rounded-2xl backdrop-blur-sm z-10">
+                <div class="text-xl font-medium text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span>Drop images here</span>
+                </div>
+            </div>
+        {/if}
         <!-- Main Input Area -->
         <div class="flex items-start gap-4">
             <!-- Action Buttons -->
@@ -201,7 +293,7 @@
                         <i class="fas fa-plus-circle"></i>
                     </button>
                     {#if showAddMenu}
-                        <div class="absolute top-0 left-7 z-50 min-w-[160px] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2">
+                        <div class="absolute top-0 left-7 z-50 min-w-[160px] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 messages-add-menu">
                             <button 
                                 class="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                 on:click|preventDefault={() => showAddPoll = true}
@@ -230,29 +322,45 @@
                     placeholder="What's on your mind?"
                     bind:value={chatInput}
                     on:input={adjustTextareaHeight}
-                    on:dragover={handleDragOver}
-                    on:drop={handleDrop}
                     on:paste={handlePaste}
                 ></textarea>
 
                 <!-- Image Preview -->
-                {#if imageFile}
-                    <div class="relative mt-4 group">
-                        <div class="relative overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700">
-                            <img 
-                                bind:this={imageElement} 
-                                class="max-h-64 w-full object-contain" 
-                                alt="Preview"
-                            />
+                {#if imageFiles.length > 0}
+                    <div class="relative mt-4">
+                        <div class="overflow-x-auto">
+                            <div class="flex gap-4 min-w-0">
+                                {#each imageFiles as _, i (i)}
+                                    <div class="relative group flex-shrink-0 w-48">
+                                        <div class="relative overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700">
+                                            <img 
+                                                bind:this={imageElements[i]} 
+                                                class="h-48 w-48 object-cover" 
+                                                alt="Preview {i + 1}"
+                                            />
+                                            <button
+                                                type="button"
+                                                class="absolute top-2 right-2 p-2 rounded-full bg-gray-900/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-900/80"
+                                                on:click={() => removeImage(i)}
+                                                aria-label="Remove image"
+                                            >
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                {/each}
+                            </div>
+                        </div>
+                        {#if imageFiles.length < MAX_IMAGES}
                             <button
                                 type="button"
-                                class="absolute top-2 right-2 p-2 rounded-full bg-gray-900/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-900/80"
-                                on:click={removeImage}
-                                aria-label="Remove image"
+                                class="mt-4 w-full p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 hover:text-blue-500 hover:border-blue-500 transition-colors"
+                                on:click={handleButtonClick}
                             >
-                                <i class="fas fa-times"></i>
+                                <i class="fas fa-plus mr-2"></i>
+                                Add Another Image ({MAX_IMAGES - imageFiles.length} remaining)
                             </button>
-                        </div>
+                        {/if}
                     </div>
                 {/if}
             </div>
@@ -376,5 +484,12 @@
             </div>
         {/if}
     </div>
-    <input bind:this={fileInput} type="file" id="fileInput" name="fileInput" accept="image/*" class="hidden" on:change={handleFileChange} />
+    <input bind:this={fileInput} type="file" id="fileInput" name="fileInput" accept="image/*" class="hidden" on:change={handleFileChange} multiple />
 </form>
+
+<style>
+    /* Add a smooth transition for the drag feedback */
+    form > div {
+        transition: all 0.2s ease-in-out;
+    }
+</style>

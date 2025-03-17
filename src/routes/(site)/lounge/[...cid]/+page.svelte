@@ -176,14 +176,16 @@
         if (view != 'All') postPrivacy = view;
     }
 
-    const onPost = async (content: string, poll: IPoll | null, imageFile: File | null): Promise<boolean> => {
+    const onPost = async (content: string, poll: IPoll | null, imageFiles: File[]): Promise<boolean> => {
         const formData = new FormData();
         formData.append('cid', selectedCollection);
         formData.append('message', content);
         formData.append('privacy', postPrivacy);
         formData.append('poll', poll ? JSON.stringify(poll) : '');
-        if (imageFile) {
-            formData.append('image', imageFile);
+        if (imageFiles && imageFiles.length > 0) {
+            imageFiles.forEach(file => {
+                formData.append('image', file);
+            });
         }
 
         const response = await fetch('?/postMessage', {

@@ -14,6 +14,7 @@
     import ExternalLink from '$lib/component/ExternalLink.svelte';
 	import { showConfetti } from '../../../../stores/collection';
 	import { toast } from '@zerodevx/svelte-toast';
+    import ImageModal from '$lib/component/ui/ImageModal.svelte';
 
     export let message: NMessage;
     export let collectionName = '';
@@ -53,6 +54,8 @@
     let messageComment = '';
     let showEmojiPicker = false;
     let commentTextarea: HTMLTextAreaElement;
+    let showImageModal = false;
+    let selectedImage = '';
 
     $: if (showComments && commentTextarea) {
         commentTextarea.focus();
@@ -240,14 +243,32 @@
                 <div class="prose prose-sm dark:prose-invert max-w-none">
                     <Markdown source={message.message} renderers={{ link: ExternalLink }} />
                     {#if message.images}
-                        <div class="grid gap-4 mt-4 {message.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}">
+                        <div class="grid gap-2 mt-4 grid-cols-3">
                             {#each message.images as image}
-                                <img 
-                                    src="{supabaseImageUrl}/{image}" 
-                                    alt="Message content" 
-                                    class="w-full rounded-lg object-cover hover:opacity-95 transition-opacity cursor-zoom-in"
-                                    style="max-height: 400px"
-                                />
+                                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                                <div 
+                                    role="button"
+                                    tabindex="0"
+                                    class="relative aspect-square cursor-zoom-in overflow-hidden rounded-lg"
+                                    on:click={() => {
+                                        selectedImage = `${supabaseImageUrl}/${image}`;
+                                        showImageModal = true;
+                                    }}
+                                >
+                                    <img 
+                                        src="{supabaseImageUrl}/{image}" 
+                                        alt="Message content" 
+                                        class="w-full h-full object-cover transition-all duration-300"
+                                    />
+                                    <div class="absolute inset-0 opacity-0 hover:opacity-100 transition-all duration-300">
+                                        <div class="absolute inset-0 bg-black/10"></div>
+                                        <div class="absolute bottom-3 right-3">
+                                            <div class="p-2 bg-black/60 rounded-full text-white/90 hover:text-white">
+                                                <i class="fas fa-expand-alt"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             {/each}
                         </div>
                     {/if}
@@ -274,8 +295,8 @@
                                         {#if poll.votes}
                                             <div 
                                                 class="absolute inset-0 bg-blue-50 dark:bg-blue-500/10 transition-all duration-500"
-                                                style="width: {percentage}%"
-                                            />
+                                                style="width: {percentage}%">
+                                            </div>
                                         {/if}
                                         <div class="relative flex items-center justify-between gap-4">
                                             <div class="flex-1">
@@ -392,7 +413,8 @@
                                         class="flex-1 min-h-[80px] p-3 bg-gray-50 dark:bg-gray-700 rounded-lg resize-none border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
                                         placeholder="Add a comment..." 
                                         bind:value={messageComment}
-                                    />
+                                    >
+                                    </textarea>
                                 </div>
                                 <div class="flex justify-end gap-2">
                                     <Button on:click={() => showComments = false} color="alternative" size="xs">Cancel</Button>
@@ -411,3 +433,15 @@
         {/if}
     </div>
 {/if}
+{#if showImageModal}
+    <ImageModal 
+        bind:showModal={showImageModal}
+        imageUrl={selectedImage}
+        altText="Message image"
+    />
+{/if}
+<style>
+    .relative:hover > div {
+        --expand-opacity: 1;
+    }
+</style>

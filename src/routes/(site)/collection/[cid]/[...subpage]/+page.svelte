@@ -96,13 +96,13 @@
 
     $: tabs = [ 
         {id: 'tokens', name: 'All Tokens', count: totalTokens, sortable: true}, 
+        {id: 'lounge', name: 'Feed', sortable: true},
         {id: 'forsale', name: 'For Sale', count: forSaleCount, sortable: true},
         {id: 'mine', name: 'Mine', count: userTokenCount, sortable: true},
         {id: 'ranking', name: 'Ranking', sortable: true},
         {id: 'transactions', name: 'Transactions', sortable: true},
         {id: 'collectors', name: 'Collectors', count: uniqueCollectors, sortable: true}, 
         {id: 'burned', name: 'Burned Tokens', count: burnedTokens, sortable: true},
-        {id: 'lounge', name: 'Feed', sortable: true}
     ];
 
     // Add scroll handler
@@ -568,8 +568,10 @@
                 <button
                     class="rounded-lg transition-colors flex flex-col items-center p-1.5 min-w-[80px]
                         {displayTab === tab.id 
-                            ? 'bg-blue-500 text-white' 
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'}"
+                            ? 'bg-blue-400 dark:bg-blue-500 text-white' 
+                            : displayTab !== tab.id && tab.id === 'lounge' ? 'bg-amber-500 dark:bg-amber-600/80 hover:bg-amber-600 dark:hover:bg-amber-700/80' 
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'} 
+                        "
                     on:click={() => handleTabSort(tab.id)}
                 >
                     <div class="flex items-center gap-1.5">
