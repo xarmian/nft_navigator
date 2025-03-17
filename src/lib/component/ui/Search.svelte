@@ -47,7 +47,7 @@
         if (value.url.pathname.includes('/analytics')) {
             viewing = 'analytics';
         }
-        else if (value.url.pathname.includes('/lounge')) {
+        else if (value.url.pathname.includes('/lounge') && !value.url.pathname.includes('/collection')) {
             viewing = 'lounge';
         }
         else {

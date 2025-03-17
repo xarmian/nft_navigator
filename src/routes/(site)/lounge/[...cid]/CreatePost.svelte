@@ -6,7 +6,8 @@
     import type { IPoll } from "$lib/data/types";
 
     export let onPost: (content: string, poll: null | IPoll, imageFile: File | null) => Promise<boolean>;
-    export let postPrivacy = 'Public';
+    export let postPrivacy: 'Public' | 'Private' | 'All' = 'Public';
+    $: postPrivacyValue = postPrivacy === 'All' ? 'Public' : postPrivacy;
 
     let showEmojiPicker = false;
     let showAddMenu = false;
@@ -173,101 +174,207 @@
 
 </script>
 
-<form on:submit={handleSubmit} class="p-2 py-5 mx-1 w-full sm:w-3/4 place-self-center flex flex-col bg-gray-50 dark:bg-gray-800 rounded-xl shadow relative border dark:border-slate-700">
-    <div class="flex items-center">
-        <div class="flex flex-col justify-between">
-            <div class="relative text-xl mr-2 cursor-pointer" on:click|stopPropagation={() => showEmojiPicker = !showEmojiPicker}>
-                <i class="far fa-smile"></i>
-                {#if showEmojiPicker}
-                    <div class="absolute top-0 left-7 w-96 z-20 bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-600 border-2 p-2 rounded-lg">
-                        <EmojiPicker bind:value={chatInput}/>
+<form 
+    on:submit={handleSubmit} 
+    class="relative w-full sm:w-3/4 place-self-center"
+>
+    <div class="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 border dark:border-slate-700">
+        <!-- Main Input Area -->
+        <div class="flex items-start gap-4">
+            <!-- Action Buttons -->
+            <div class="flex flex-col gap-3 pt-2">
+                <button
+                    type="button"
+                    class="text-xl text-gray-400 hover:text-blue-500 transition-colors"
+                    on:click|stopPropagation={() => showEmojiPicker = !showEmojiPicker}
+                    aria-label="Add emoji"
+                >
+                    <i class="far fa-smile"></i>
+                </button>
+                <div class="relative">
+                    <button
+                        type="button"
+                        class="text-xl text-gray-400 hover:text-blue-500 transition-colors"
+                        on:click|stopPropagation={() => showAddMenu = !showAddMenu}
+                        aria-label="Add content"
+                    >
+                        <i class="fas fa-plus-circle"></i>
+                    </button>
+                    {#if showAddMenu}
+                        <div class="absolute top-0 left-7 z-50 min-w-[160px] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2">
+                            <button 
+                                class="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                on:click|preventDefault={() => showAddPoll = true}
+                            >
+                                <i class="fas fa-chart-pie"></i>
+                                Add Poll
+                            </button>
+                            <button 
+                                class="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                on:click|preventDefault={handleButtonClick}
+                            >
+                                <i class="fas fa-image"></i>
+                                Add Image
+                            </button>
+                        </div>
+                    {/if}
+                </div>
+            </div>
+
+            <!-- Text Input Area -->
+            <div class="flex-1">
+                <textarea
+                    bind:this={textarea}
+                    name="message"
+                    class="w-full min-h-[80px] p-3 bg-gray-50 dark:bg-gray-700 rounded-lg resize-none border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder="What's on your mind?"
+                    bind:value={chatInput}
+                    on:input={adjustTextareaHeight}
+                    on:dragover={handleDragOver}
+                    on:drop={handleDrop}
+                    on:paste={handlePaste}
+                ></textarea>
+
+                <!-- Image Preview -->
+                {#if imageFile}
+                    <div class="relative mt-4 group">
+                        <div class="relative overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700">
+                            <img 
+                                bind:this={imageElement} 
+                                class="max-h-64 w-full object-contain" 
+                                alt="Preview"
+                            />
+                            <button
+                                type="button"
+                                class="absolute top-2 right-2 p-2 rounded-full bg-gray-900/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-900/80"
+                                on:click={removeImage}
+                                aria-label="Remove image"
+                            >
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
                     </div>
                 {/if}
             </div>
-            <div class="relative text-xl mr-2 cursor-pointer" on:click|stopPropagation={() => showAddMenu = !showAddMenu}>
-                <i class="fas fa-plus-circle"></i>
-                {#if showAddMenu}
-                    <div class="absolute top-0 left-7 bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-600 border-2 rounded-lg text-sm whitespace-nowrap">
-                        <ul class="space-y-1">
-                            <li>
-                                <button class="w-full text-left hover:bg-gray-200 hover:dark:bg-gray-800 py-1 px-2" on:click|preventDefault={() => showAddPoll = true}>Add Poll</button>
-                            </li>
-                            <li>
-                                <button class="w-full text-left hover:bg-gray-200 hover:dark:bg-gray-800 py-1 px-2" on:click|preventDefault={handleButtonClick}>Add Image</button>
-                            </li>
-                        </ul>
-                    </div>
-                {/if}
+
+            <!-- Post Controls -->
+            <div class="flex flex-col gap-2">
+                <select 
+                    name="privacy" 
+                    class="px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-sm border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    bind:value={postPrivacyValue}
+                >
+                    <option value="Public" disabled={postPrivacy === 'Private'}>Public</option>
+                    <option value="Private" disabled={postPrivacy === 'Public'}>Private</option>
+                </select>
+                <button 
+                    type="submit"
+                    class="flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                >
+                    <i class="fas fa-paper-plane"></i>
+                    <span>Post</span>
+                </button>
             </div>
         </div>
-        <textarea
-            bind:this={textarea}
-            name="message"
-            class="flex-grow bg-gray-100 dark:bg-gray-700 rounded-lg p-2 mr-2"
-            placeholder="Type a {showAddPoll ? 'question' : 'message'}..."
-            bind:value={chatInput}
-            on:input={adjustTextareaHeight}
-            on:dragover={handleDragOver}
-            on:drop={handleDrop}
-            on:paste={handlePaste}
-        ></textarea>
-        <div class="flex flex-col place-items-start space-y-1">
-            <select name="privacy" class="text-xs bg-gray-100 dark:bg-gray-700 rounded-lg" bind:value={postPrivacy}>
-                <option value="Public">Public</option>
-                <option value="Private">Private</option>
-            </select>
-            <button class="flex items-center justify-center bg-blue-500 hover:bg-blue-700 text-white py-1 px-4 rounded-lg w-full">
-                <i class="fas fa-paper-plane mr-2"></i>
-                Post
-            </button>
-        </div>
-        <input bind:this={fileInput} type="file" id="fileInput" name="fileInput" accept="image/*" class="hidden" on:change={handleFileChange} />
-    </div>
-    {#if imageFile}
-        <div class="group relative flex self-center h-64 w-64 bg-black">
-            <img bind:this={imageElement} class="mt-2 h-64 max-w-64 object-contain" />
-            <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <i class="cursor-pointer rounded-full fas fa-times text-xl bg-gray-200 bg-opacity-60 hover:bg-opacity-70 p-2 text-black" on:click={removeImage}></i>
+
+        <!-- Emoji Picker -->
+        {#if showEmojiPicker}
+            <div class="absolute top-20 left-12 z-50 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600">
+                <EmojiPicker bind:value={chatInput}/>
             </div>
-        </div>
-    {/if}
-    {#if showAddPoll}
-        <div class="flex flex-col mt-2 sm:m-4 p-2 border border-gray-500 rounded-lg relative space-y-2">
-            <div class="text-lg">Add Poll</div>
-            <button class="absolute top-2 right-2 p-1 border border-gray-500 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full w-8 h-8" on:click|preventDefault|stopPropagation={() => showAddPoll = false}>
-                <i class="fas fa-times"></i>
-            </button>
-            <div class="flex flex-row space-x-2">
-                <div class="flex flex-col space-y-2 flex-grow">
+        {/if}
+
+        <!-- Poll Interface -->
+        {#if showAddPoll}
+            <div class="mt-6 p-6 border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700/50">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Create Poll</h3>
+                    <button 
+                        type="button"
+                        class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                        on:click|preventDefault|stopPropagation={() => showAddPoll = false}
+                        aria-label="Close poll creator"
+                    >
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <!-- Poll Options -->
+                <div class="space-y-4 mb-6">
                     {#each pollOptions as option, i}
-                        <input type="text" class="w-full p-2 bg-gray-100 dark:bg-gray-700 rounded-lg" placeholder={"Option " + (i + 1)} bind:value={pollOptions[i]}/>
+                        <div class="flex items-center gap-2">
+                            <div class="flex-1">
+                                <input 
+                                    type="text" 
+                                    class="w-full p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+                                    placeholder={"Option " + (i + 1)} 
+                                    bind:value={pollOptions[i]}
+                                />
+                            </div>
+                            {#if i >= 2}
+                                <button
+                                    type="button"
+                                    class="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                                    on:click|preventDefault|stopPropagation={() => pollOptions = pollOptions.filter((_, index) => index !== i)}
+                                    aria-label="Remove option"
+                                >
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            {/if}
+                        </div>
                     {/each}
+                    <button
+                        type="button"
+                        class="w-full p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 hover:text-blue-500 hover:border-blue-500 transition-colors"
+                        on:click|preventDefault|stopPropagation={() => pollOptions = [...pollOptions, '']}
+                    >
+                        <i class="fas fa-plus mr-2"></i>
+                        Add Option
+                    </button>
                 </div>
-                <div class="flex items-end mb-1">
-                    <button class="bg-blue-500 hover:bg-blue-700 text-white py-1 px-4 rounded-lg" on:click|preventDefault|stopPropagation={() => pollOptions = [...pollOptions, '']}>+</button>
-                </div>
-            </div>
-            <hr class="border-gray-300 dark:border-gray-600" />
-            <div class="flex flex-col space-y-2">
-                <div class="flex space-x-2 items-center">
-                    <label for="end-time" class="text-sm w-28 text-end">End Time:</label>
-                    <input type="datetime-local" id="end-time" class="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg" bind:value={poll_endTime} />
-                </div>
-                <div class="flex items-center space-x-2">
-                    <label for="vote-weight" class="text-sm w-28 text-end">Vote Weight:</label>
-                    <select class="bg-gray-100 dark:bg-gray-700 rounded-lg" bind:value={poll_voteWeight}>
-                        <option value="wallet">1 Vote per Wallet</option>
-                        <!--<option value="token">1 Vote per NFT Token</option>-->
-                    </select>
-                </div>
-                {#if postPrivacy == 'Public'}
-                    <div class="flex items-center space-x-2">
-                        <div class="w-32">&nbsp;</div>
-                        <input type="checkbox" id="public-voting" bind:checked={poll_allowPublicVoting} class="rounded-lg" />
-                        <label for="public-voting" class="text-sm">Allow Public Voting</label>
+
+                <!-- Poll Settings -->
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <label for="end-time" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                End Time
+                            </label>
+                            <input 
+                                type="datetime-local" 
+                                id="end-time" 
+                                class="w-full p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+                                bind:value={poll_endTime} 
+                            />
+                        </div>
+                        <div class="space-y-2">
+                            <label for="vote-weight" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Vote Weight
+                            </label>
+                            <select 
+                                id="vote-weight"
+                                class="w-full p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                bind:value={poll_voteWeight}
+                            >
+                                <option value="wallet">1 Vote per Wallet</option>
+                                <!--<option value="token">1 Vote per NFT Token</option>-->
+                            </select>
+                        </div>
                     </div>
-                {/if}
+
+                    {#if postPrivacy === 'Public'}
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                bind:checked={poll_allowPublicVoting} 
+                                class="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+                            />
+                            <span class="text-sm text-gray-700 dark:text-gray-300">Allow Public Voting</span>
+                        </label>
+                    {/if}
+                </div>
             </div>
-        </div>
-    {/if}
+        {/if}
+    </div>
+    <input bind:this={fileInput} type="file" id="fileInput" name="fileInput" accept="image/*" class="hidden" on:change={handleFileChange} />
 </form>

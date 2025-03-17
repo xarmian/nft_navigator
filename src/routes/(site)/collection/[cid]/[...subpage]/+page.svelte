@@ -20,6 +20,7 @@
     import { algodIndexer } from '$lib/utils/algod';
     import { getEnvoiNames } from '$lib/utils/envoi';
     import { selectedWallet } from "avm-wallet-svelte";
+	import LoungeView from '$lib/component/ui/LoungeView.svelte';
 
     //const forsale = $page.url.searchParams.get('forsale');
 
@@ -101,6 +102,7 @@
         {id: 'transactions', name: 'Transactions', sortable: true},
         {id: 'collectors', name: 'Collectors', count: uniqueCollectors, sortable: true}, 
         {id: 'burned', name: 'Burned Tokens', count: burnedTokens, sortable: true},
+        {id: 'lounge', name: 'Chat', sortable: true}
     ];
 
     // Add scroll handler
@@ -601,6 +603,13 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
+                        {:else if tab.id === 'lounge'}
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 18v-3a2 2 0 012-2h12a2 2 0 012 2v3" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 15V8a2 2 0 012-2h12a2 2 0 012 2v7" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 8h12" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 11h12" />
+                            </svg>
                         {/if}
                         {#if tab.sortable && displayTab === tab.id}
                             <span class="text-xs font-bold">
@@ -634,6 +643,10 @@
             {:else if displayTab === 'collectors'}
                 <div class="w-full">
                     <HoldersList tokens={tokens} sortDirection={sortDirection} searchText={searchText} />
+                </div>
+            {:else if displayTab === 'lounge'}
+                <div class="w-full">
+                    <LoungeView collectionId={Number(contractId)} sortDirection={sortDirection} searchText={searchText} />
                 </div>
             {/if}
         </div>
