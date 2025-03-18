@@ -8,6 +8,7 @@
     import { ButtonGroup, Button } from 'flowbite-svelte';
     import { invalidateAll } from '$app/navigation';
     import { getTokens, getCollection } from '$lib/utils/indexer';
+    import Modal from './Modal.svelte';
 
     export let collectionId: number;
     export let sortDirection: 'asc' | 'desc';
@@ -23,6 +24,7 @@
     let ownsToken = false;
     let collectionName = '';
     let postPrivacyValue: 'Public' | 'Private' = 'Public';
+    let showCreatePostModal = false;
 
     // Subscribe to wallet changes
     selectedWallet.subscribe((value) => {
@@ -176,61 +178,71 @@
     $: filteredMessages = messages.slice(0, displayCount);
 </script>
 
-<div class="flex flex-col w-full space-y-4">
+<div class="flex flex-col w-full space-y-2 mt-4">
     <!-- View Toggle -->
-    <div class="{hasValidToken ? 'flex' : 'hidden'} justify-between items-center place-self-end px-4">
-        <ButtonGroup>
-            <Button
-                color={selectedView === 'All' ? 'blue' : 'light'}
-                on:click={() => selectedView = 'All'}>
-                All
+    <div class="flex items-end px-4 w-full justify-between sm:justify-end space-x-2">
+        <div class="{hasValidToken ? 'flex' : 'hidden'}">
+            <ButtonGroup>
+                <Button
+                    color={selectedView === 'All' ? 'blue' : 'light'}
+                    on:click={() => selectedView = 'All'}>
+                    All
+                </Button>
+                <Button
+                    color={selectedView === 'Public' ? 'blue' : 'light'}
+                    on:click={() => selectedView = 'Public'}>
+                    Public
+                </Button>
+                <Button
+                    color={selectedView === 'Private' ? 'blue' : 'light'}
+                    disabled={!hasValidToken}
+                    on:click={() => selectedView = 'Private'}>
+                    Private
+                </Button>
+            </ButtonGroup>
+        </div>
+        {#if hasValidToken}
+            <Button color="blue" on:click={() => showCreatePostModal = true}>
+                <i class="fas fa-plus mr-2"></i>
+                Create Post
             </Button>
-            <Button
-                color={selectedView === 'Public' ? 'blue' : 'light'}
-                on:click={() => selectedView = 'Public'}>
-                Public
-            </Button>
-            <Button
-                color={selectedView === 'Private' ? 'blue' : 'light'}
-                disabled={!hasValidToken}
-                on:click={() => selectedView = 'Private'}>
-                Private
-            </Button>
-        </ButtonGroup>
+        {/if}
     </div>
 
-    <!-- Create Post Section -->
+    <!-- Create Post Modal -->
     {#if hasValidToken}
-        <div class="bg-white dark:bg-gray-800 rounded-lg pt-4">
-            <CreatePost 
-                postPrivacy={selectedView}
-                bind:postPrivacyValue={postPrivacyValue}
-                onPost={async (content, poll, imageFiles) => {
-                    const formData = new FormData();
-                    formData.append('message', content);
-                    formData.append('privacy', postPrivacyValue);
-                    if (poll) formData.append('poll', JSON.stringify(poll));
-                    if (imageFiles && imageFiles.length > 0) {
-                        imageFiles.forEach(file => {
-                            formData.append('image', file);
-                        });
-                    }
-
-                    const response = await fetch(`/api/lounge/${collectionId}`, {
-                        method: 'POST',
-                        body: formData
+        <CreatePost 
+            bind:showModal={showCreatePostModal}
+            postPrivacy={selectedView}
+            bind:postPrivacyValue={postPrivacyValue}
+            on:close={() => showCreatePostModal = false}
+            onPost={async (content, poll, imageFiles) => {
+                const formData = new FormData();
+                formData.append('message', content);
+                formData.append('privacy', postPrivacyValue);
+                if (poll) formData.append('poll', JSON.stringify(poll));
+                if (imageFiles && imageFiles.length > 0) {
+                    imageFiles.forEach(file => {
+                        formData.append('image', file);
                     });
+                }
 
-                    if (!response.ok) {
-                        const data = await response.json();
-                        alert(data.error.message);
-                        return false;
-                    }
+                const response = await fetch(`/api/lounge/${collectionId}`, {
+                    method: 'POST',
+                    body: formData
+                });
 
-                    await loadMessages();
-                    return true;
-                }} />
-        </div>
+                if (!response.ok) {
+                    const data = await response.json();
+                    alert(data.error.message);
+                    return false;
+                }
+
+                await loadMessages();
+                showCreatePostModal = false;
+                return true;
+            }} 
+        />
     {/if}
 
     <!-- Messages List -->

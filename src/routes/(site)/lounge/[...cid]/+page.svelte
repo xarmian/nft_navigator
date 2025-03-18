@@ -29,10 +29,10 @@
     let userCollections: Collection[] = [];
     let allCollections: Collection[] = [];
     let nonUserCollections: Collection[] = [];
-    let selectedView = 'Public';
+    let selectedView = 'All';
     let canViewPrivate = false;
     let messages: { id: number, walletId: string, message: string, timestamp: string, avatar?: string, private: boolean, collectionId: string }[] = [];
-    let postPrivacy = selectedView;
+    let postPrivacy: 'Public' | 'Private' | 'All' = 'Public';
     let privateCount = 0;
     let publicCount = 0;
     //let collectionMembers: { owner: string; tokens: any[]; }[];
@@ -45,6 +45,7 @@
     let displayCountMessages = 5;
     let displayCountCollection = 10;
     let mobilePage = "chat";
+    let showCreatePostModal = false;
     $: hasValidToken = false;
     
     $: selectedCollection = data.server_data.collectionId;
@@ -145,7 +146,7 @@
     $: {
         // if selectedCollection is not in userCollections, set selectedView to 'Public'
         if ((!userCollections.some((collection) => String(collection.contractId) == selectedCollection) || selectedCollection === 'all') && selectedCollection != 'myfeed') {
-            selectedView = 'Public';
+            //selectedView = 'Public';
             canViewPrivate = false;
         }
         else {
@@ -171,9 +172,9 @@
         displayCountMessages += 5;
     }
 
-    function changeView(view: string) {
+    function changeView(view: 'All' | 'Public' | 'Private') {
         selectedView = view;
-        if (view != 'All') postPrivacy = view;
+        if (view !== 'All') postPrivacy = view;
     }
 
     const onPost = async (content: string, poll: IPoll | null, imageFiles: File[]): Promise<boolean> => {
@@ -206,7 +207,7 @@
                     showConfetti.set(false)
                 }, 10000);
             }*/
-
+            showCreatePostModal = false;
             return true;
         }
     };
@@ -268,7 +269,7 @@
         </div>
         <Tabs defaultClass="hidden md:flex flex-wrap space-x-2 rtl:space-x-reverse bg-gray-100 dark:bg-gray-900" contentClass="h-full" divider={false}>
             {#if selectedCollection !== 'all' && selectedCollection !== 'myfeed'}
-                <TabItem title={allCollections.find(c => c.contractId === Number(selectedCollection))?.highforgeData?.title ?? selectedCollection} defaultClass="text-xl" inactiveClasses="p-4 text-gray-700 dark:text-gray-200" disabled>
+                <TabItem title={allCollections.find(c => c.contractId === Number(selectedCollection))?.highforgeData?.title ?? selectedCollection} defaultClass="text-xl" inactiveClasses="p-4 text-gray-700 dark:text-gray-200 hover:underline" on:click={() => goto(`/collection/${selectedCollection}`)}>
                 </TabItem>
             {:else}
                 <TabItem title={selectedCollection === 'all' ? 'All Feeds' : 'My Feed'} defaultClass="text-2xl" inactiveClasses="p-4 text-gray-700 dark:text-gray-200" disabled>
@@ -280,9 +281,9 @@
                         {#if selectedCollection && selectedCollection !== 'all' && !data.server_data.messageId}
                             <div class="flex flex-row">
                                 <ButtonGroup>
+                                    <Button disabled={!canViewPrivate} checked={selectedView == 'All'} on:click={() => changeView('All')}>All</Button>
                                     <Button checked={selectedView == 'Public'} on:click={() => changeView('Public')}>Public ({publicCount})</Button>
                                     <Button disabled={!canViewPrivate} checked={selectedView == 'Private'} on:click={() => changeView('Private')}>Private{canViewPrivate && privateCount > 0 ? ` (${privateCount})` : ''}</Button>
-                                    <Button disabled={!canViewPrivate} checked={selectedView == 'All'} on:click={() => changeView('All')}>All</Button>
                                 </ButtonGroup>
                                 {#if !hasValidToken}
                                     <div class="text-2xl font-bold text-gray-800 dark:text-gray-200 flex flex-col place-items-center m-2">
@@ -316,7 +317,21 @@
                                 </div>
                             {/if}
                             {#if !data.server_data.messageId && canViewPrivate && hasValidToken && selectedCollection !== 'all' && selectedCollection !== 'myfeed'}
-                                <CreatePost onPost={onPost} bind:postPrivacy={postPrivacy}></CreatePost>
+                                <div class="flex justify-end px-4">
+                                    <button 
+                                        class="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                                        on:click={() => showCreatePostModal = true}
+                                    >
+                                        <i class="fas fa-plus"></i>
+                                        Create Post
+                                    </button>
+                                </div>
+
+                                <CreatePost 
+                                    bind:showModal={showCreatePostModal}
+                                    {onPost}
+                                    bind:postPrivacy={postPrivacy}
+                                />
                             {:else if selectedView == 'Private' && canViewPrivate && !hasValidToken}
                                 <div class="text-2xl font-bold text-gray-800 dark:text-gray-200 flex flex-col place-items-center m-2">
                                     <div>Want to Post in or view the Private channel? Authenticate your wallet!</div>
