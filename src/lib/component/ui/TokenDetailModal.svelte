@@ -54,8 +54,12 @@
 
 {#if showModal}
     <div class="fixed inset-0 z-50" 
+         role="button"
+         tabindex="0"
+         aria-label="Close modal"
          transition:fade={{ duration: 200 }}
-         on:click={handleClickOutside}>
+         on:click={handleClickOutside}
+         on:keydown={(e) => e.key === 'Enter' && closeModal()}>
         <!-- Backdrop with blur -->
         <div class="fixed inset-0 bg-black/80 backdrop-blur-sm"
              transition:fade={{ duration: 150 }}>
@@ -81,13 +85,14 @@
                         <!-- Close Button -->
                         <button 
                             class="p-2 text-gray-300 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
-                            on:click={closeModal}>
+                            on:click={closeModal}
+                            aria-label="Close">
                             <i class="fas fa-times text-xl"></i>
                         </button>
                     </div>
 
                     <!-- Scrollable Content Area -->
-                    <div class="max-h-[85vh] overflow-y-auto">
+                    <div class="h-[85vh] overflow-y-auto">
                         <TokenDetailPage 
                             {token}
                             {collection}

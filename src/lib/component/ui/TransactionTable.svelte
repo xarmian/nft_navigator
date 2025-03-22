@@ -161,6 +161,7 @@
                     <button 
                         class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
                         on:click={() => { filterToken = undefined; tokenSearch = ''; }}
+                        aria-label="Clear filter"
                     >
                         <i class="fas fa-times"></i>
                     </button>

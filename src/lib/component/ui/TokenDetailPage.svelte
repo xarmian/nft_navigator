@@ -12,6 +12,7 @@
 	import BuyTokenModal from './BuyTokenModal.svelte';
     import ListTokenModal from './ListTokenModal.svelte';
     import NautilusLogo from '$lib/assets/nautilus.svg';
+    import ArcpayLogo from '$lib/assets/arcpay.png';
     import { buyToken as buyTokenArcpay, getListings as getListingsArcpay, listToken as listTokenArcpay, getTokenListing, cancelListing as cancelListingArcpay } from '$lib/arcpay';
     import type { Listing as AListing } from '$lib/arcpay';
     import { browser } from '$app/environment';
@@ -576,99 +577,105 @@
 
                     <!-- Action Buttons -->
                     {#if showMenuIcon && (isTokenOwner || isTokenApproved || (listing && !listing.sale && !listing.delete && $selectedWallet))}
-                        <div class="flex flex-wrap gap-3">
+                        <div class="space-y-4">
+                            <!-- Primary Actions Group -->
                             {#if isTokenOwner || isTokenApproved}
-                                <button on:click={sendToken} 
-                                        class="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 shadow-lg hover:shadow-xl">
-                                    <i class="fas fa-paper-plane"></i>
-                                    <span>Transfer</span>
-                                </button>
-                                
-                                {#if isTokenOwner}
-                                    <button on:click={approveToken}
-                                            class="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 shadow-lg hover:shadow-xl">
-                                        <i class="fas fa-check-circle"></i>
-                                        <span>{token.approved != zeroAddress ? 'Change' : 'Set'} Approval</span>
-                                    </button>
-                                {/if}
+                                <div class="flex flex-wrap gap-3">
+                                    <!-- Token Management Actions -->
+                                    <div class="flex gap-2">
+                                        <button on:click={sendToken} 
+                                                class="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 shadow hover:shadow-md">
+                                            <i class="fas fa-paper-plane"></i>
+                                            <span>Transfer</span>
+                                        </button>
+                                        
+                                        {#if isTokenOwner}
+                                            <button on:click={approveToken}
+                                                    class="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 shadow hover:shadow-md">
+                                                <i class="fas fa-check-circle"></i>
+                                                <span>{token.approved != zeroAddress ? 'Change' : 'Set'} Approval</span>
+                                            </button>
+                                        {/if}
+                                    </div>
+                                </div>
                             {/if}
 
-                            {#if !isModal}
+                            <!-- Marketplace Actions Group -->
+                            <div class="flex flex-wrap gap-3">
+                                <!-- Seller Actions -->
                                 {#if isTokenOwner || isTokenApproved}
-                                    <button on:click={listArcpay}
-                                            class="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 shadow-lg hover:shadow-xl">
-                                        <i class="fas fa-tag"></i>
-                                        <span>{listing ? 'Update' : 'List'} on NFT Navigator</span>
-                                    </button>
+                                    <div class="flex gap-2">
+                                        {#if (!listing || (listing && listing.source === 'arcpay'))}
+                                            <button on:click={listArcpay}
+                                                class="flex items-center space-x-2 px-6 py-3 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 shadow hover:shadow-md">
+                                                <div class="flex items-center gap-2">
+                                                    <i class="fas fa-tag"></i>
+                                                    {#if listing}
+                                                        Update <img src={ArcpayLogo} alt="Arcpay Logo" class="h-7" />
+                                                    {:else}
+                                                        List with <img src={ArcpayLogo} alt="Arcpay Logo" class="h-7" />
+                                                    {/if}
+                                                </div>
+                                            </button>
+                                        {/if}
+
+                                        {#if !listing || (listing && listing.source !== 'arcpay')}
+                                            <button on:click={listToken}
+                                                class="flex items-center space-x-2 px-6 py-3 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 shadow hover:shadow-md">
+                                                <div class="flex items-center gap-2">
+                                                    <i class="fas fa-tag"></i>
+                                                    <span>{listing ? 'Update on' : 'List on'}</span>
+                                                    <img src={NautilusLogo} alt="Nautilus Logo" class="h-7 bg-white rounded-full bg-opacity-60 p-1" />
+                                                </div>
+                                            </button>
+                                        {/if}
+
+                                        {#if listing}
+                                            <button on:click={cancelListing}
+                                                    class="flex items-center space-x-2 px-6 py-3 bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-all duration-300 shadow hover:shadow-md">
+                                                <i class="fas fa-times"></i>
+                                                <span>Cancel Listing</span>
+                                            </button>
+                                        {/if}
+                                    </div>
                                 {/if}
 
-                                {#if !listing || (listing && listing.source !== 'arcpay')}
-                                    <button on:click={listToken}
-                                            class="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 shadow-lg hover:shadow-xl">
-                                        <i class="fas fa-tag"></i>
-                                        <div class="flex items-center gap-2">
-                                            <span>{listing ? 'Update/Cancel' : 'List'} on</span>
-                                            <img src={NautilusLogo} alt="Nautilus Logo" class="h-7 bg-white rounded-full bg-opacity-60 p-1" />
-                                        </div>
-                                    </button>
+                                <!-- Buyer Actions -->
+                                {#if listing && !listing.sale && !listing.delete && $selectedWallet && !isTokenOwner}
+                                    <div class="flex gap-2">
+                                        <button on:click={listing.source !== 'arcpay' ? buyToken : buyArcpay}
+                                                class="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 shadow-lg hover:shadow-xl">
+                                            <i class="fas fa-shopping-cart"></i>
+                                            <div class="flex items-center gap-2">
+                                                <span>Buy Now</span>
+                                                {#if currency}
+                                                    <span class="font-bold">({(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName})</span>
+                                                {/if}
+                                            </div>
+                                        </button>
+                                    </div>
                                 {/if}
-
-                                {#if listing}
-                                    <button on:click={cancelListing}
-                                            class="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-lg hover:shadow-xl">
-                                        <i class="fas fa-times"></i>
-                                        <span>Cancel Listing</span>
-                                    </button>
-                                {/if}
-                            {/if}
-
-                            {#if !isModal && listing && !listing.sale && !listing.delete && $selectedWallet}
-                                {#if listing.source !== 'arcpay'}
-                                    <button on:click={buyToken}
-                                            class="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 shadow-lg hover:shadow-xl">
-                                        <i class="fas fa-shopping-cart"></i>
-                                        <div class="flex items-center gap-2">
-                                            <span>Buy Now</span>
-                                            {#if currency}
-                                                <span class="font-bold">({(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName})</span>
-                                            {/if}
-                                        </div>
-                                    </button>
-                                {:else}
-                                    <button on:click={buyArcpay}
-                                            class="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 shadow-lg hover:shadow-xl">
-                                        <i class="fas fa-shopping-cart"></i>
-                                        <div class="flex items-center gap-2">
-                                            <span>Buy on NFT Navigator</span>
-                                            {#if currency}
-                                                <span class="font-bold">({(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName})</span>
-                                            {/if}
-                                        </div>
-                                    </button>
-                                {/if}
-                            {/if}
+                            </div>
                         </div>
                     {/if}
                 </div>
             </div>
 
-            {#if !isModal}
-                <!-- Tab Section -->
-                <div class="mt-0 mb-6 border-b border-gray-200 dark:border-gray-700">
-                    <div class="flex gap-8">
-                        <button class="px-4 py-2 font-medium text-sm {activeTab === 'details' ? 'text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
-                                on:click={() => setActiveTab('details')}>
-                            <i class="fas fa-info-circle mr-2"></i>
-                            Details & Properties
-                        </button>
-                        <button class="px-4 py-2 font-medium text-sm {activeTab === 'transactions' ? 'text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
-                                on:click={() => setActiveTab('transactions')}>
-                            <i class="fas fa-exchange-alt mr-2"></i>
-                            Transaction History
-                        </button>
-                    </div>
+            <!-- Tab Section -->
+            <div class="mt-0 mb-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex gap-8">
+                    <button class="px-4 py-2 font-medium text-sm {activeTab === 'details' ? 'text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
+                            on:click={() => setActiveTab('details')}>
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Details & Properties
+                    </button>
+                    <button class="px-4 py-2 font-medium text-sm {activeTab === 'transactions' ? 'text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
+                            on:click={() => setActiveTab('transactions')}>
+                        <i class="fas fa-exchange-alt mr-2"></i>
+                        Transaction History
+                    </button>
                 </div>
-            {/if}
+            </div>
 
             <!-- Tab Content -->
             {#if activeTab === 'details'}
