@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-    import type { Token } from '$lib/data/types';
+    import type { Token, Collection } from '$lib/data/types';
     import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
 	import { A } from 'flowbite-svelte';
     import { onMount, onDestroy, type EventDispatcher } from 'svelte';
@@ -50,7 +50,7 @@
     let notifyNewDrops = true;
 
     // New variable to track current tab
-    let currentTab: 'gallery' | 'activity' | 'analytics' | 'settings' = 'analytics';
+    let currentTab: 'gallery' | 'activity' | 'analytics' | 'settings' | 'collections' = 'analytics';
 
     $: {
         if (tokens) {
@@ -230,6 +230,15 @@
 
     // Fix shortName variable for linter
     let shortName = '';
+
+    // Add this near the other helper functions
+    function collectionMatchesSearch(collection: Collection | undefined): boolean {
+        if (!searchQuery) return true;
+        if (!collection) return false;
+        const searchLower = searchQuery.toLowerCase();
+        return collection.highforgeData?.title?.toLowerCase().includes(searchLower) ||
+               `Collection #${collection.contractId}`.toLowerCase().includes(searchLower);
+    }
 
 </script>
 <div>
@@ -480,6 +489,13 @@
                             Analytics
                         </button>
                         <button 
+                            class="py-4 px-1 border-b-2 font-medium text-sm {currentTab === 'collections' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'}"
+                            aria-current={currentTab === 'collections' ? 'page' : undefined}
+                            on:click={() => currentTab = 'collections'}>
+                            <i class="fas fa-layer-group mr-2"></i>
+                            Collections
+                        </button>
+                        <button 
                             class="py-4 px-1 border-b-2 font-medium text-sm {currentTab === 'gallery' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'}"
                             aria-current={currentTab === 'gallery' ? 'page' : undefined}
                             on:click={() => currentTab = 'gallery'}>
@@ -505,6 +521,148 @@
 
                 <!-- Tab Content -->
                 <div class="py-6">
+                    <!-- Collections Tab -->
+                    <div class="space-y-6" class:hidden={currentTab !== 'collections'}>
+                        <div class="px-4">
+                            <!-- Collection Stats Summary -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                                <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">Total Collections</p>
+                                            <h3 class="text-2xl font-bold mt-1">{new Set(tokens.map(t => t.contractId)).size}</h3>
+                                        </div>
+                                        <div class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                                            <i class="fas fa-layer-group text-blue-600 dark:text-blue-400"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">Total NFTs</p>
+                                            <h3 class="text-2xl font-bold mt-1">{tokens.length}</h3>
+                                        </div>
+                                        <div class="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-full">
+                                            <i class="fas fa-images text-purple-600 dark:text-purple-400"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">Avg. NFTs per Collection</p>
+                                            <h3 class="text-2xl font-bold mt-1">
+                                                {Math.round(tokens.length / new Set(tokens.map(t => t.contractId)).size)}
+                                            </h3>
+                                        </div>
+                                        <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
+                                            <i class="fas fa-calculator text-green-600 dark:text-green-400"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Collection List -->
+                            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                        <h2 class="text-xl font-bold">Your Collections</h2>
+                                        <div class="w-full md:w-64">
+                                            <div class="relative">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search collections..."
+                                                    bind:value={searchQuery}
+                                                    class="w-full px-4 py-2 pl-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+                                                />
+                                                <i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Collection Grid -->
+                                <div class="p-6">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {#each Array.from(new Set(tokens.map((t) => t.contractId)))
+                                            .map((contractId) => {
+                                                const collection = collections.find(c => c.contractId === contractId);
+                                                const collectionTokens = tokens.filter((t) => t.contractId === contractId && t.owner === walletId);
+                                                return { collection, tokens: collectionTokens };
+                                            })
+                                            .sort((a, b) => b.tokens.length - a.tokens.length) as item}
+                                            {@const collection = item.collection}
+                                            {@const tokens = item.tokens}
+                                            {#if collection}
+                                                <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-shadow"
+                                                     class:hidden={!collectionMatchesSearch(collection)}>
+                                                    <!-- Collection Header -->
+                                                    <div class="relative h-32">
+                                                        <div class="absolute inset-0 bg-gradient-to-r from-blue-500/30 to-purple-500/30 dark:from-blue-900/30 dark:to-purple-900/30">
+                                                            {#if collection.highforgeData?.coverImageURL}
+                                                                <img src={getImageUrl(collection.highforgeData.coverImageURL, 320)} 
+                                                                     alt={collection.highforgeData?.title || 'Collection Cover'}
+                                                                     class="w-full h-full object-cover opacity-80">
+                                                            {/if}
+                                                        </div>
+                                                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                                                        <div class="absolute bottom-0 left-0 right-0 p-4">
+                                                            <a href={`/collection/${collection.contractId}`} class="text-white hover:underline">
+                                                                <h3 class="text-lg font-bold truncate">
+                                                                    {collection.highforgeData?.title || `Collection #${collection.contractId}`}
+                                                                </h3>
+                                                            </a>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Collection Stats -->
+                                                    <div class="p-4">
+                                                        <div class="grid grid-cols-3 gap-4 mb-4">
+                                                            <div class="text-center">
+                                                                <p class="text-sm text-gray-500 dark:text-gray-400">Owned</p>
+                                                                <p class="text-lg font-bold">{tokens.length}</p>
+                                                            </div>
+                                                            <div class="text-center">
+                                                                <p class="text-sm text-gray-500 dark:text-gray-400">Total Supply</p>
+                                                                <p class="text-lg font-bold">{collection.totalSupply - collection.burnedSupply}</p>
+                                                            </div>
+                                                            <div class="text-center">
+                                                                <p class="text-sm text-gray-500 dark:text-gray-400">Ownership</p>
+                                                                <p class="text-lg font-bold">
+                                                                    {Math.round((tokens.length / (collection.totalSupply - collection.burnedSupply)) * 100)}%
+                                                                </p>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- NFT Preview Grid -->
+                                                        <div class="grid grid-cols-4 gap-2 mb-4">
+                                                            {#each tokens.slice(0, 4) as token}
+                                                                <div class="aspect-square rounded-md overflow-hidden">
+                                                                    <img src={getImageUrl(token.metadata?.image || '', 100)} 
+                                                                         alt={token.metadata?.name || `Token #${token.tokenId}`}
+                                                                         class="w-full h-full object-cover" />
+                                                                </div>
+                                                            {/each}
+                                                        </div>
+
+                                                        <!-- Action Button -->
+                                                        <a href={`/collection/${collection.contractId}`}
+                                                           class="block w-full text-center py-2 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-800/50 text-blue-700 dark:text-blue-300 rounded-lg transition-colors">
+                                                            View Collection
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            {/if}
+                                        {/each}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Gallery Tab -->
                     <div class="space-y-6" class:hidden={currentTab !== 'gallery'}>
                         <div class="flex flex-col" bind:this={containerRef}>
