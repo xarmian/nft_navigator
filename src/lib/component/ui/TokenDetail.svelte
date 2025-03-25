@@ -362,7 +362,7 @@
     }
 
 </script>
-    <div class="shadow-md rounded-xl bg-opacity-10 bg-slate-400 dark:bg-white dark:bg-opacity-10 my-2 relative overflow-hidden {hidden ? 'hidden' : ''}" style="display: {hidden ? 'none' : 'block'}">
+    <div class="relative overflow-hidden {hidden ? 'hidden' : ''}" style="display: {hidden ? 'none' : 'block'}">
         <div 
            class="relative overflow-hidden place-self-center rounded-xl {disableHover ? '' : 'group'} block w-full {shape === 'square' ? 'sm:w-72 sm:h-72' : 'sm:w-60 sm:h-72'}"
            on:click|preventDefault={() => showDetailModal = true}

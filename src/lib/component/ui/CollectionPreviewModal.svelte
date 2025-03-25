@@ -75,7 +75,7 @@
 <Modal bind:showModal title="{collectionName} - {tokens.length} Items" {onClose} showBottomCloseButton={false}>
     <div class="flex flex-col">
         <div class="modal-content w-full max-w-6xl mx-auto max-h-[calc(90vh-12rem)] overflow-y-auto" bind:this={modalContent}>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
                 {#each tokens.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage) as token (String(token.contractId) + '_' + String(token.tokenId))}
                     <TokenDetail {token} collection={collection} />
                 {/each}
