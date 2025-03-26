@@ -28,6 +28,8 @@
     $: tokens = data.props.tokens;
     $: approvals = data.props.approvals;
     $: collections = data.props.collections;
+    $: createdCollections = data.props.createdCollections || [];
+    $: isCreator = data.props.isCreator || false;
     let isMobile: boolean | null = null;
     let headerTokens: Token[] = [];
     let portfolioSort = 'mint';
@@ -54,7 +56,7 @@
     let notifyNewDrops = true;
 
     // New variable to track current tab
-    let currentTab: 'gallery' | 'activity' | 'analytics' | 'settings' | 'collections' = data.props.tab as 'gallery' | 'activity' | 'analytics' | 'settings' | 'collections';
+    let currentTab: 'gallery' | 'activity' | 'analytics' | 'settings' | 'collections' | 'created' = data.props.tab as 'gallery' | 'activity' | 'analytics' | 'settings' | 'collections' | 'created';
 console.log(currentTab);
     $: {
         if (tokens) {
@@ -372,6 +374,11 @@ console.log(currentTab);
                                     {#if $selectedWallet?.address === walletId}
                                         <span class="text-xs bg-green-500 text-white px-2 py-1 rounded-full">Your Wallet</span>
                                     {/if}
+                                    {#if isCreator}
+                                        <span class="text-xs bg-purple-500 text-white px-2 py-1 rounded-full flex items-center">
+                                            <i class="fas fa-palette mr-1"></i> Creator
+                                        </span>
+                                    {/if}
                                 </h1>
                                 <div class="text-base md:text-lg opacity-90 flex items-center justify-center md:justify-start gap-2 mb-3">
                                     <span class="font-mono">{formattedWallet}</span>
@@ -463,6 +470,19 @@ console.log(currentTab);
                         </div>
                         <span class="text-white/70 text-xs">Analytics</span>
                     </a>
+                    {#if isCreator}
+                    <button 
+                       on:click={() => {
+                           goto(`/creator/${walletId}`);
+                       }}
+                       class="flex flex-col items-center px-3 md:px-4 py-2 md:py-3 bg-white/10 hover:bg-white/15 backdrop-blur-sm rounded-lg transition-colors duration-200">
+                        <div class="text-white flex items-center mb-1 text-sm md:text-base">
+                            <i class="fas fa-palette mr-2"></i>
+                            <span>{createdCollections.length}</span>
+                        </div>
+                        <span class="text-white/70 text-xs">Created</span>
+                    </button>
+                    {/if}
                     <div class="flex flex-col items-center px-3 md:px-4 py-2 md:py-3 bg-white/10 backdrop-blur-sm rounded-lg">
                         <div class="text-white flex items-center mb-1 text-sm md:text-base">
                             <i class="fas fa-layer-group mr-2"></i>
@@ -505,6 +525,17 @@ console.log(currentTab);
                             <i class="fas fa-layer-group mr-2"></i>
                             Collections
                         </button>
+                        {#if isCreator}
+                        <button 
+                            class="py-4 px-1 border-b-2 font-medium text-sm {currentTab === 'created' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'}"
+                            aria-current={currentTab === 'created' ? 'page' : undefined}
+                            on:click={() => {
+                                goto(`/creator/${walletId}`);
+                            }}>
+                            <i class="fas fa-palette mr-2"></i>
+                            Created
+                        </button>
+                        {/if}
                         <button 
                             class="py-4 px-1 border-b-2 font-medium text-sm {currentTab === 'gallery' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'}"
                             aria-current={currentTab === 'gallery' ? 'page' : undefined}
@@ -544,6 +575,7 @@ console.log(currentTab);
                     <div class="space-y-6" class:hidden={currentTab !== 'collections'}>
                         <PortfolioCollections tokens={tokens} collections={collections} walletId={walletId} />
                     </div>
+                    
                     <!-- Gallery Tab -->
                     <div class="space-y-6" class:hidden={currentTab !== 'gallery'}>
                         <div class="flex flex-col" bind:this={containerRef}>

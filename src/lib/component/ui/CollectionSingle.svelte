@@ -165,7 +165,7 @@
                                     {collection.highforgeData?.title ?? metadata?.name?.replace(/[1#]/g, '')}
                                 </h3>
                             </a>
-                            <a href="/portfolio/{collection.creator}" 
+                            <a href="/creator/{collection.creator}" 
                                class="text-purple-400 hover:text-purple-300 text-sm transition-colors">
                                 {collection.creatorName ?? collection.creator.slice(0,6)+'...'+collection.creator.slice(-8)}
                             </a>
@@ -203,7 +203,7 @@
                                     <p class="text-white/80 text-sm flex items-center gap-2">
                                         <i class="fas fa-user"></i>
                                         <span>Creator:</span>
-                                        <a href="/portfolio/{collection.creator}" 
+                                        <a href="/creator/{collection.creator}" 
                                            on:click={handleLinkClick}
                                            class="text-purple-400 hover:text-purple-300 transition-colors">
                                             {collection.creatorName ?? collection.creator.slice(0,6)+'...'+collection.creator.slice(-8)}

@@ -15,7 +15,7 @@ export const load = (async ({ params, fetch }) => {
 	const lastSegment = pathSegments[pathSegments.length - 1];
 	
 	// Determine if the last segment is a valid tab
-	const validTabs = ['analytics', 'collections', 'gallery', 'activity', 'settings'];
+	const validTabs = ['analytics', 'collections', 'gallery', 'activity', 'settings', 'created'];
 	const isLastSegmentTab = validTabs.includes(lastSegment);
 
 	// Extract wallet ID and tab from path segments
@@ -47,6 +47,8 @@ export const load = (async ({ params, fetch }) => {
 				tokens: [],
 				approvals: [],
 				collections: [],
+				createdCollections: [],
+				isCreator: false,
 			}
 		};
 	}
@@ -63,6 +65,10 @@ export const load = (async ({ params, fetch }) => {
 	let tokens: Token[] = [];
 	const approvals: Token[] = [];
 	const collections = await getCollections({ fetch });
+	
+	// Get collections created by the wallet
+	const createdCollections = collections.filter(collection => collection.creator === walletId);
+	const isCreator = createdCollections.length > 0;
 
 	try {
 		const nfd = await getEnvoiNames([walletId]);
@@ -129,6 +135,8 @@ export const load = (async ({ params, fetch }) => {
 			tokens,
 			approvals,
 			collections,
+			createdCollections,
+			isCreator,
 		},
 		pageMetaTags,
 	};

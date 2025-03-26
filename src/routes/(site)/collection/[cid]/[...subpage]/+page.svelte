@@ -478,7 +478,7 @@
                         </div>
                         <div class="w-1/3 md:w-auto text-center md:text-left">
                             <div class="text-sm">Creator</div>
-                            <div class="text-lg text-blue-300 hover:text-blue-200"><a href='/portfolio/{collection?.creator}'>{collection?.creatorName ?? collection?.creator.substring(0,8) + '...'}</a></div>
+                            <div class="text-lg text-blue-300 hover:text-blue-200"><a href='/creator/{collection?.creator}'>{collection?.creatorName ?? collection?.creator.substring(0,8) + '...'}</a></div>
                         </div>
                     </div>
                 </div>
