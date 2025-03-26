@@ -24,6 +24,12 @@
     let mostFrequentCollection = 'None';
     let lastActivity = 'Unknown';
 
+    let dorkVisible = false;
+    let isFlipping = false;
+    let originalPosition = { x: 0, y: 0 };
+    let imageUrl = '';
+    let animationStarted = false;
+
     // Load real transfers data
     async function loadTransferData() {
         isLoading = true;
@@ -266,12 +272,132 @@
         }
     }
 
+    function startFlipAnimation(event: MouseEvent) {
+        if (!isFlipping) {
+            const img = event.target as HTMLImageElement;
+            const rect = img.getBoundingClientRect();
+            originalPosition = {
+                x: rect.left,
+                y: rect.top
+            };
+            imageUrl = img.src;
+            isFlipping = true;
+            // Reset animation state
+            animationStarted = false;
+            setTimeout(() => {
+                animationStarted = true;
+            }, 50);
+            setTimeout(() => {
+                isFlipping = false;
+                animationStarted = false;
+            }, 10000);
+        }
+    }
+
     onMount(() => {
         if (walletId) {
             loadTransferData();
         }
+        setTimeout(() => {
+            dorkVisible = true;
+        }, 500);
     });
 </script>
+
+<style>
+    .dork-card {
+        position: relative;
+        cursor: pointer;
+    }
+
+    .dork-image-container {
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 96px;
+        height: 96px;
+        margin-bottom: -24px;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        overflow: hidden;
+    }
+
+    .dork-image {
+        width: 100%;
+        height: 100%;
+        border-radius: 8px;
+        object-fit: cover;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        transform: translateY(75%);
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .dork-card:hover .dork-image:not(.flipping) {
+        transform: translateY(0);
+    }
+
+    @keyframes peekImage {
+        0% { transform: translate(-50%, 100%); opacity: 0; }
+        100% { transform: translate(-50%, 0); opacity: 1; }
+    }
+
+    .image-peek {
+        animation: peekImage 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    .floating-image {
+        position: fixed;
+        width: 96px;
+        height: 96px;
+        pointer-events: none;
+        z-index: 9999;
+        border-radius: 8px;
+        object-fit: cover;
+        box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.2);
+        transform-origin: center center;
+        will-change: transform;
+    }
+
+    @keyframes crazyFlip {
+        0% {
+            transform: translate(0, 0) rotateY(0deg) scale(1);
+        }
+        10% {
+            transform: translate(calc(50vw - 200px), calc(-50vh + 100px)) rotateY(180deg) scale(1.2);
+        }
+        20% {
+            transform: translate(calc(-50vw + 100px), calc(30vh)) rotateY(360deg) scale(0.8);
+        }
+        30% {
+            transform: translate(calc(40vw), calc(-40vh)) rotateY(540deg) scale(1.1);
+        }
+        40% {
+            transform: translate(calc(-30vw), calc(45vh)) rotateY(720deg) scale(0.9);
+        }
+        50% {
+            transform: translate(calc(45vw), calc(35vh)) rotateY(900deg) scale(1.2);
+        }
+        60% {
+            transform: translate(calc(-45vw), calc(-35vh)) rotateY(1080deg) scale(0.8);
+        }
+        70% {
+            transform: translate(calc(30vw), calc(40vh)) rotateY(1260deg) scale(1.1);
+        }
+        80% {
+            transform: translate(calc(-40vw), calc(-30vh)) rotateY(1440deg) scale(0.9);
+        }
+        90% {
+            transform: translate(calc(20vw), calc(25vh)) rotateY(1620deg) scale(1.05);
+        }
+        100% {
+            transform: translate(0, 0) rotateY(1800deg) scale(1);
+        }
+    }
+
+    .animate-flip {
+        animation: crazyFlip 10s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+</style>
 
 <div class="py-6 px-4">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 max-w-6xl mx-auto">
@@ -397,19 +523,21 @@
                             </div>
 
                             {#if dorkToken}
-                                <div class="bg-gradient-to-r from-purple-100 via-pink-100 to-purple-100 dark:from-purple-900/30 dark:via-pink-900/30 dark:to-purple-900/30 p-4 rounded-lg">
-                                    <div class="text-center font-bold text-lg text-purple-600 dark:text-purple-400 mb-2">
-                                        Holy shit, is that a Dork?! 🐋
-                                    </div>
+                                <div class="dork-card">
                                     {#if dorkToken.metadata?.image}
-                                        <div class="flex justify-center">
+                                        <div class="dork-image-container {dorkVisible ? 'image-peek' : ''}">
                                             <img 
                                                 src={dorkToken.metadata.image} 
                                                 alt="Dork Token" 
-                                                class="w-24 h-24 rounded-lg shadow-lg object-cover"
+                                                class="dork-image"
+                                                style="visibility: {isFlipping ? 'hidden' : 'visible'};"
+                                                on:click={startFlipAnimation}
                                             />
                                         </div>
                                     {/if}
+                                    <div class="text-center font-bold text-lg text-purple-600 dark:text-purple-400 relative">
+                                        Holy shit, is that a Dork?! 🐋
+                                    </div>
                                 </div>
                             {/if}
                         </div>
@@ -429,6 +557,17 @@
                             {/each}
                         </div>
                     </div>
+
+                    {#if isFlipping}
+                        <div class="fixed inset-0 pointer-events-none" style="z-index: 9999; perspective: 1000px;">
+                            <img 
+                                src={imageUrl}
+                                alt="Floating Dork"
+                                class="floating-image {animationStarted ? 'animate-flip' : ''}"
+                                style="left: {originalPosition.x}px; top: {originalPosition.y}px;"
+                            />
+                        </div>
+                    {/if}
                 {/if}
             </div>
         </div>
