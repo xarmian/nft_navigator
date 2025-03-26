@@ -17,6 +17,7 @@
     // Collection analysis
     let realCollectionDistribution: {name: string, color: string, count: number, id: number}[] = [];
     let colors = ['#4F46E5', '#10B981', '#F59E0B', '#EC4899', '#6366F1', '#14B8A6', '#8B5CF6', '#F43F5E', '#6B7280'];
+    let dorkToken: Token | null = null; // Track a Dork token for the easter egg
 
     // Activity indicators
     let newLastMonth = 0;
@@ -73,6 +74,11 @@
     // Analyze the token collection distribution
     function analyzeCollections() {
         if (!tokens.length) return;
+        
+        // Find a Dork token if it exists
+        dorkToken = tokens.find(token => 
+            token.contractId === 313597 || token.contractId === 894888
+        ) || null;
         
         // Group tokens by collection
         const collectionCounts = new Map<number, {count: number, name: string}>();
@@ -377,14 +383,35 @@
                     </div>
                 {:else}
                     <div class="relative pt-6">
-                        <div class="flex justify-center mb-4">
-                            <!-- Dynamic SVG Pie Chart -->
-                            <svg width="180" height="180" viewBox="0 0 180 180">
-                                {#each pieChartPaths as path}
-                                    <path d={path.path} fill={path.color} />
-                                {/each}
-                                <circle cx="90" cy="90" r="40" fill="white" class="dark:fill-gray-800" />
-                            </svg>
+                        <div class="{dorkToken ? 'flex justify-between' : 'flex justify-center'} items-start gap-6">
+                            <div>
+                                <div class="flex justify-center mb-4">
+                                    <!-- Dynamic SVG Pie Chart -->
+                                    <svg width="180" height="180" viewBox="0 0 180 180">
+                                        {#each pieChartPaths as path}
+                                            <path d={path.path} fill={path.color} />
+                                        {/each}
+                                        <circle cx="90" cy="90" r="40" fill="white" class="dark:fill-gray-800" />
+                                    </svg>
+                                </div>
+                            </div>
+
+                            {#if dorkToken}
+                                <div class="bg-gradient-to-r from-purple-100 via-pink-100 to-purple-100 dark:from-purple-900/30 dark:via-pink-900/30 dark:to-purple-900/30 p-4 rounded-lg">
+                                    <div class="text-center font-bold text-lg text-purple-600 dark:text-purple-400 mb-2">
+                                        Holy shit, is that a Dork?! 🐋
+                                    </div>
+                                    {#if dorkToken.metadata?.image}
+                                        <div class="flex justify-center">
+                                            <img 
+                                                src={dorkToken.metadata.image} 
+                                                alt="Dork Token" 
+                                                class="w-24 h-24 rounded-lg shadow-lg object-cover"
+                                            />
+                                        </div>
+                                    {/if}
+                                </div>
+                            {/if}
                         </div>
                         
                         <div class="space-y-2">
