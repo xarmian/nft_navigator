@@ -56,7 +56,7 @@
     let notifyNewDrops = true;
 
     // New variable to track current tab
-    let currentTab: 'gallery' | 'activity' | 'analytics' | 'settings' | 'collections' | 'created' = data.props.tab as 'gallery' | 'activity' | 'analytics' | 'settings' | 'collections' | 'created';
+    let currentTab: 'gallery' | 'activity' | 'analytics' | 'settings' | 'collections' = data.props.tab as 'gallery' | 'activity' | 'analytics' | 'settings' | 'collections';
 console.log(currentTab);
     $: {
         if (tokens) {
@@ -525,17 +525,6 @@ console.log(currentTab);
                             <i class="fas fa-layer-group mr-2"></i>
                             Collections
                         </button>
-                        {#if isCreator}
-                        <button 
-                            class="py-4 px-1 border-b-2 font-medium text-sm {currentTab === 'created' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'}"
-                            aria-current={currentTab === 'created' ? 'page' : undefined}
-                            on:click={() => {
-                                goto(`/creator/${walletId}`);
-                            }}>
-                            <i class="fas fa-palette mr-2"></i>
-                            Created
-                        </button>
-                        {/if}
                         <button 
                             class="py-4 px-1 border-b-2 font-medium text-sm {currentTab === 'gallery' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'}"
                             aria-current={currentTab === 'gallery' ? 'page' : undefined}
