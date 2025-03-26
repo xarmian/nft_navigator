@@ -6,11 +6,12 @@
 	import { goto } from '$app/navigation';
 	import type { Collection, Token } from '$lib/data/types';
 	import { recentSearch } from '../../stores/collection';
-	import { searchEnvoi, type EnvoiSearchResult } from '$lib/utils/envoi';
+	import { searchEnvoi, type EnvoiSearchResult, getEnvoiNames } from '$lib/utils/envoi';
     import NFTGamesAd from '$lib/component/ui/NFTGamesAd.svelte';
     import MultiCollectionView from '$lib/component/ui/MultiCollectionView.svelte';
 	import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
 	import { getImageUrl } from '$lib/utils/functions';
+    import CreatorCard from '$lib/component/ui/CreatorCard.svelte';
 
     export let data: PageData;
 	let searchText = '';
@@ -24,10 +25,72 @@
     let mintCount = data.mintCount;
     let recentMintTokens: Token[] = data.recentMintTokens;
 
+    interface FeaturedCreator {
+        address: string;
+        name: string;
+        metadata: {
+            avatar?: string;
+            description?: string;
+            url?: string;
+            'com.twitter'?: string;
+        };
+        collections: Collection[];
+    }
+
+    let featuredCreators: FeaturedCreator[] = [];
+    let isLoadingCreators = true;
+
+    async function loadFeaturedCreators() {
+        try {
+            // Get unique creators from collections
+            const uniqueCreators = new Map<string, FeaturedCreator>();
+            collections.forEach(collection => {
+                if (!uniqueCreators.has(collection.creator)) {
+                    uniqueCreators.set(collection.creator, {
+                        address: collection.creator,
+                        name: collection.creatorName || collection.creator,
+                        metadata: {},
+                        collections: []
+                    });
+                }
+                uniqueCreators.get(collection.creator)!.collections.push(collection);
+            });
+
+            // Convert to array and sort by number of collections
+            const allCreators = Array.from(uniqueCreators.values())
+                .sort((a, b) => b.collections.length - a.collections.length);
+
+            // Randomly select 4 creators from the top 12 (to ensure we get popular creators but still have variety)
+            const topCreators = allCreators.slice(0, 12);
+            const shuffled = [...topCreators].sort(() => Math.random() - 0.5);
+            const selectedCreators = shuffled.slice(0, 4);
+
+            // Get Envoi metadata for all creators
+            const creatorAddresses = selectedCreators.map(c => c.address);
+            const envoiResults = await getEnvoiNames(creatorAddresses);
+
+            // Merge Envoi metadata with creator objects
+            featuredCreators = selectedCreators.map(creator => {
+                const envoiData = envoiResults.find(n => n.address === creator.address);
+                if (envoiData) {
+                    creator.name = envoiData.name;
+                    creator.metadata = envoiData.metadata || {};
+                }
+                return creator;
+            });
+        } catch (error) {
+            console.error('Error processing featured creators:', error);
+            featuredCreators = [];
+        } finally {
+            isLoadingCreators = false;
+        }
+    }
+
 	onMount(async () => {
         if (typeof window !== 'undefined') {
             window.addEventListener('keydown', handleKeydown);
             window.addEventListener('click', handleClickOutside);
+            await loadFeaturedCreators();
         }
 	});
 
@@ -295,6 +358,33 @@
     <!-- NFTGamesAd -->
     <section class="py-8 container mx-auto px-4">
         <NFTGamesAd />
+    </section>
+
+    <!-- Featured Creators -->
+    <section class="py-16 bg-gradient-to-r from-purple-600/10 to-indigo-600/10 dark:from-purple-900/30 dark:to-indigo-900/30">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold mb-4 text-gray-900 dark:text-white">Featured Creators</h2>
+                <p class="text-gray-600 dark:text-gray-300 text-lg">
+                    Meet the talented artists and developers shaping the Voi Network NFT ecosystem
+                </p>
+            </div>
+            {#if isLoadingCreators}
+                <div class="flex justify-center items-center py-12">
+                    <div class="flex gap-2">
+                        {#each Array(3) as _, i}
+                            <div class="w-3 h-3 rounded-full bg-purple-500 animate-bounce" style="animation-delay: {i * 200}ms"></div>
+                        {/each}
+                    </div>
+                </div>
+            {:else}
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {#each featuredCreators as creator}
+                        <CreatorCard {creator} />
+                    {/each}
+                </div>
+            {/if}
+        </div>
     </section>
 
     <!-- Featured Collections -->
