@@ -26,7 +26,9 @@
 
     let dorkVisible = false;
     let isFlipping = false;
+    let isTextAnimating = false;
     let originalPosition = { x: 0, y: 0 };
+    let textPosition = { x: 0, y: 0 };
     let imageUrl = '';
     let animationStarted = false;
 
@@ -276,19 +278,30 @@
         if (!isFlipping) {
             const img = event.target as HTMLImageElement;
             const rect = img.getBoundingClientRect();
+            const textEl = img.closest('.dork-card')?.querySelector('.dork-text') as HTMLElement;
+            const textRect = textEl?.getBoundingClientRect();
+            
             originalPosition = {
                 x: rect.left,
                 y: rect.top
             };
+            textPosition = {
+                x: textRect?.left || 0,
+                y: textRect?.top || 0
+            };
+            
             imageUrl = img.src;
             isFlipping = true;
-            // Reset animation state
+            isTextAnimating = true;
             animationStarted = false;
+            
             setTimeout(() => {
                 animationStarted = true;
             }, 50);
+            
             setTimeout(() => {
                 isFlipping = false;
+                isTextAnimating = false;
                 animationStarted = false;
             }, 10000);
         }
@@ -306,18 +319,17 @@
 
 <style>
     .dork-card {
-        position: relative;
         cursor: pointer;
+        position: absolute;
+        left: 0;
+        top: 48px; /* Position it below the header */
+        margin-left: 72px;
     }
 
     .dork-image-container {
-        position: absolute;
-        bottom: 100%;
-        left: 50%;
-        transform: translateX(-50%);
+        position: relative;
         width: 96px;
         height: 96px;
-        margin-bottom: -24px;
         transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         overflow: hidden;
     }
@@ -328,12 +340,27 @@
         border-radius: 8px;
         object-fit: cover;
         box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-        transform: translateY(75%);
+        transform: translateY(-90%); /* Show bottom portion instead of top */
         transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .dork-text {
+        position: absolute;
+        text-align: center;
+        transform: translateY(100%);
+        opacity: 0;
+        left: 50%;
+        width: 140px;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     .dork-card:hover .dork-image:not(.flipping) {
         transform: translateY(0);
+    }
+
+    .dork-card:hover .dork-text {
+        transform: translateY(0);
+        opacity: 1;
     }
 
     @keyframes peekImage {
@@ -396,6 +423,44 @@
 
     .animate-flip {
         animation: crazyFlip 10s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    @keyframes crazyText {
+        0% {
+            transform: translate(0, 0) rotate(0deg) scale(1);
+        }
+        15% {
+            transform: translate(calc(-30vw), calc(-20vh)) rotate(-45deg) scale(1.2);
+        }
+        30% {
+            transform: translate(calc(40vw), calc(30vh)) rotate(30deg) scale(0.9);
+        }
+        45% {
+            transform: translate(calc(-20vw), calc(40vh)) rotate(-60deg) scale(1.1);
+        }
+        60% {
+            transform: translate(calc(35vw), calc(-35vh)) rotate(90deg) scale(0.8);
+        }
+        75% {
+            transform: translate(calc(-40vw), calc(-25vh)) rotate(-120deg) scale(1.2);
+        }
+        90% {
+            transform: translate(calc(25vw), calc(20vh)) rotate(45deg) scale(0.9);
+        }
+        100% {
+            transform: translate(0, 0) rotate(0deg) scale(1);
+        }
+    }
+
+    .animate-text {
+        animation: crazyText 10s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    .floating-text {
+        position: fixed;
+        width: 400px;
+        pointer-events: none;
+        z-index: 9999;
     }
 </style>
 
@@ -509,8 +574,28 @@
                     </div>
                 {:else}
                     <div class="relative pt-6">
-                        <div class="{dorkToken ? 'flex justify-between' : 'flex justify-center'} items-start gap-6">
-                            <div>
+                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 max-w-6xl mx-auto">
+                            <div class="p-6 relative"> <!-- Added relative positioning context -->
+                                <h3 class="text-lg font-bold mb-4">Collection Distribution</h3>
+                                
+                                {#if dorkToken}
+                                    <div class="dork-card flex justify-center items-center">
+                                        {#if dorkToken.metadata?.image}
+                                            <div class="dork-image-container {dorkVisible ? 'image-peek' : ''}">
+                                                <img 
+                                                    src={dorkToken.metadata.image} 
+                                                    alt="Dork Token" 
+                                                    class="dork-image"
+                                                    style="visibility: {isFlipping ? 'hidden' : 'visible'};"
+                                                    on:click={startFlipAnimation}
+                                                />
+                                            </div>
+                                        {/if}
+                                        <div class="dork-text font-bold text-lg text-purple-600 dark:text-purple-400 {isFlipping ? 'hidden' : 'visible'}">
+                                            Holy shit, is that a Dork?! 🐋
+                                        </div>
+                                    </div>
+                                {/if}
                                 <div class="flex justify-center mb-4">
                                     <!-- Dynamic SVG Pie Chart -->
                                     <svg width="180" height="180" viewBox="0 0 180 180">
@@ -521,25 +606,6 @@
                                     </svg>
                                 </div>
                             </div>
-
-                            {#if dorkToken}
-                                <div class="dork-card">
-                                    {#if dorkToken.metadata?.image}
-                                        <div class="dork-image-container {dorkVisible ? 'image-peek' : ''}">
-                                            <img 
-                                                src={dorkToken.metadata.image} 
-                                                alt="Dork Token" 
-                                                class="dork-image"
-                                                style="visibility: {isFlipping ? 'hidden' : 'visible'};"
-                                                on:click={startFlipAnimation}
-                                            />
-                                        </div>
-                                    {/if}
-                                    <div class="text-center font-bold text-lg text-purple-600 dark:text-purple-400 relative">
-                                        Holy shit, is that a Dork?! 🐋
-                                    </div>
-                                </div>
-                            {/if}
                         </div>
                         
                         <div class="space-y-2">
@@ -566,6 +632,12 @@
                                 class="floating-image {animationStarted ? 'animate-flip' : ''}"
                                 style="left: {originalPosition.x}px; top: {originalPosition.y}px;"
                             />
+                            <div 
+                                class="floating-text font-bold text-lg text-purple-600 dark:text-purple-400 {animationStarted ? 'animate-text' : ''}"
+                                style="left: {textPosition.x}px; top: {textPosition.y}px;"
+                            >
+                                Holy shit, is that a Dork?! 🐋
+                            </div>
                         </div>
                     {/if}
                 {/if}
