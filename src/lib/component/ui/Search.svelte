@@ -4,7 +4,8 @@
     import { getCollections } from '$lib/utils/indexer';
     import { onDestroy, onMount } from 'svelte';
     //import { recentSearch, userPreferences } from '../../../stores/collection';
-    import { searchEnvoi, type EnvoiSearchResult } from '$lib/utils/envoi';
+    import { getEnvoiAddresses, searchEnvoi, type EnvoiSearchResult } from '$lib/utils/envoi';
+    import { getAddressesForNFD } from '$lib/utils/nfd';
     import { page } from '$app/stores';
     import { writable } from 'svelte/store';
 	import { getImageUrl } from '$lib/utils/functions';
@@ -35,6 +36,9 @@
 
     // Update the store type
     const recentSearch = writable<RecentSearchItem[]>([]);
+
+    // Add this with your other variables
+    let currentController: AbortController | null = null;
 
     onMount(async () => {
         collections = await getCollections({ fetch });
@@ -77,7 +81,6 @@
             window.removeEventListener('click', handleClickOutside);
         }
         unsub();
-        unsubP();
         
         // Clear any pending timeout when component is destroyed
         if (searchTimeout) {
@@ -169,7 +172,7 @@
         showRecent = false;
     }
     
-    // Debounced search function
+    // Modify the debounced search function
     function performSearch(query: string) {
         // Clear any existing timeout
         if (searchTimeout) {
@@ -207,14 +210,27 @@
                 
                 // Handle wallet search
                 if (query.length == 58) {
-                    filteredWallets = [ { address: query, name: query, metadata: {} } ];
+                    filteredWallets = [{ address: query, name: query, metadata: {} }];
                 }
                 else if (query.length >= 2) {
+                    // Cancel any previous request
+                    if (currentController) {
+                        currentController.abort();
+                    }
+                    
+                    // Create a new controller for this request
+                    currentController = new AbortController();
+                    
+                    // Use the imported searchEnvoi directly
                     searchEnvoi(query).then((data) => {
                         // Only update if this is still the latest query
                         if (query === lastSearch) {
                             filteredWallets = data;
                         }
+                    }).catch(error => {
+                        // Handle errors
+                        console.error('Search error:', error);
+                        // Don't update filteredWallets if there was an error
                     });
                 }
                 else {
@@ -223,7 +239,7 @@
             }
         }, 300); // 300ms debounce delay
     }
-
+    
     $: performSearch(search);
 
     function handleInputClick(event: MouseEvent) {

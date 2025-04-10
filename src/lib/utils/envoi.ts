@@ -100,7 +100,18 @@ export async function searchEnvoi(pattern: string): Promise<EnvoiSearchResult[]>
     const url = `https://api.envoi.sh/api/search?pattern=${encodeURIComponent(pattern)}`;
 
     try {
-        const response = await fetch(url);
+        // Create an AbortController to timeout the request
+        const controller = new AbortController();
+        const signal = controller.signal;
+        
+        // Set a timeout of 5 seconds
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        const response = await fetch(url, { signal });
+        
+        // Clear the timeout if the request completes
+        clearTimeout(timeoutId);
+        
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || 'An error occurred while fetching data');
@@ -109,7 +120,12 @@ export async function searchEnvoi(pattern: string): Promise<EnvoiSearchResult[]>
         const data: { results: EnvoiSearchResult[] } = await response.json();
         return data.results;
     } catch (error) {
-        console.error(`Error: ${(error as Error).message}`);
+        // Handle AbortError specifically
+        if (error instanceof DOMException && error.name === 'AbortError') {
+            console.error('Request timed out after 5 seconds');
+        } else {
+            console.error(`Error: ${(error as Error).message}`);
+        }
         return [];
     }
 }
