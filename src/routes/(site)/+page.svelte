@@ -406,9 +406,9 @@
     </section>
 
     <!-- NFTGamesAd -->
-    <section class="py-8 container mx-auto px-4">
+    <!--<section class="py-8 container mx-auto px-4">
         <NFTGamesAd />
-    </section>
+    </section>-->
 
     <!-- Featured Creators -->
     <section class="py-16 bg-gradient-to-r from-purple-600/10 to-indigo-600/10 dark:from-purple-900/30 dark:to-indigo-900/30">
