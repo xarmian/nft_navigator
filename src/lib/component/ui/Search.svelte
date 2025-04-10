@@ -4,8 +4,7 @@
     import { getCollections } from '$lib/utils/indexer';
     import { onDestroy, onMount } from 'svelte';
     //import { recentSearch, userPreferences } from '../../../stores/collection';
-    import { getEnvoiAddresses, searchEnvoi, type EnvoiSearchResult } from '$lib/utils/envoi';
-    import { getAddressesForNFD } from '$lib/utils/nfd';
+    import { searchEnvoi, type EnvoiSearchResult } from '$lib/utils/envoi';
     import { page } from '$app/stores';
     import { writable } from 'svelte/store';
 	import { getImageUrl } from '$lib/utils/functions';
@@ -29,6 +28,10 @@
     export let isExpanded = false;
     let viewing: 'analytics' | 'lounge' | null = null;
     let searchInputRef: HTMLInputElement;
+    
+    // Debounce implementation for search
+    let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+    let lastSearch = '';
 
     // Update the store type
     const recentSearch = writable<RecentSearchItem[]>([]);
@@ -74,6 +77,12 @@
             window.removeEventListener('click', handleClickOutside);
         }
         unsub();
+        unsubP();
+        
+        // Clear any pending timeout when component is destroyed
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
 	});
 
     function handleClickOutside(event: MouseEvent) {
@@ -159,32 +168,63 @@
         recentSearchValue = [];
         showRecent = false;
     }
-
-    $: {
-        if (search === '') {
+    
+    // Debounced search function
+    function performSearch(query: string) {
+        // Clear any existing timeout
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+        
+        // If search is empty, clear results immediately
+        if (query === '') {
             filteredWallets = [];
             filteredCollections = [];
             if (isExpanded) {
                 showRecent = true;
             }
-        } else {
-            showRecent = false;
-            filteredCollections = (search.length >= 2) ? collections.filter(collection => collection.highforgeData?.title.toUpperCase().includes(search.toUpperCase()) || collection.contractId.toString().includes(search)) : [];
-
-            // do an NFD search
-            if (search.length == 58) {
-                filteredWallets = [ { address: search, name: search, metadata: {} } ];
-            }
-            else if (search.length >= 2) {
-                searchEnvoi(search).then((data) => {
-                    filteredWallets = data;
-                });
-            }
-            else {
-                filteredWallets = [];
-            }
+            return;
         }
+        
+        // Store the current search query
+        lastSearch = query;
+        
+        // Set a timeout to perform the actual search
+        searchTimeout = setTimeout(() => {
+            // Only perform search if this is still the latest query
+            if (query === lastSearch) {
+                showRecent = false;
+                
+                // Handle collection filtering 
+                if (query.length >= 2) {
+                    filteredCollections = collections.filter(collection => 
+                        collection.highforgeData?.title.toUpperCase().includes(query.toUpperCase()) || 
+                        collection.contractId.toString().includes(query)
+                    );
+                } else {
+                    filteredCollections = [];
+                }
+                
+                // Handle wallet search
+                if (query.length == 58) {
+                    filteredWallets = [ { address: query, name: query, metadata: {} } ];
+                }
+                else if (query.length >= 2) {
+                    searchEnvoi(query).then((data) => {
+                        // Only update if this is still the latest query
+                        if (query === lastSearch) {
+                            filteredWallets = data;
+                        }
+                    });
+                }
+                else {
+                    filteredWallets = [];
+                }
+            }
+        }, 300); // 300ms debounce delay
     }
+
+    $: performSearch(search);
 
     function handleInputClick(event: MouseEvent) {
         event.stopPropagation();
