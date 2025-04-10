@@ -25,6 +25,11 @@
     let mintCount = data.mintCount;
     let recentMintTokens: Token[] = data.recentMintTokens;
 
+    // Add debounce variables for search
+    let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+    let lastSearch = '';
+    let currentController: AbortController | null = null;
+
     interface FeaturedCreator {
         address: string;
         name: string;
@@ -99,6 +104,16 @@
             window.removeEventListener('keydown', handleKeydown);
             window.removeEventListener('click', handleClickOutside);
         }
+        
+        // Clear any pending timeout when component is destroyed
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+        
+        // Abort any pending request
+        if (currentController) {
+            currentController.abort();
+        }
 	});
 
 	function handleClickOutside(event: MouseEvent) {
@@ -161,29 +176,64 @@
 	}
 
     // Reactive search
-	$: {
-		if (searchText.length >= 2) {
-			// Search collections
-			filteredCollections = collections.filter(collection => 
-				collection.highforgeData?.title.toLowerCase().includes(searchText.toLowerCase()) 
-                || collection.contractId.toString().toLowerCase().includes(searchText.toLowerCase())
-                || collection.highforgeData?.description?.toLowerCase().includes(searchText.toLowerCase())
-                || collection.firstToken?.metadata?.toLowerCase()?.includes(searchText.toLowerCase())
-			);
+	function performSearch(query: string) {
+        // Clear any existing timeout
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+        
+        // If search is empty, clear results immediately
+        if (query.length < 2) {
+            filteredCollections = [];
+            filteredWallets = [];
+            return;
+        }
+        
+        // Store the current search query
+        lastSearch = query;
+        
+        // Set a timeout to perform the actual search
+        searchTimeout = setTimeout(() => {
+            // Only perform search if this is still the latest query
+            if (query === lastSearch) {
+                // Search collections
+                filteredCollections = collections.filter(collection => 
+                    collection.highforgeData?.title.toLowerCase().includes(query.toLowerCase()) 
+                    || collection.contractId.toString().toLowerCase().includes(query.toLowerCase())
+                    || collection.highforgeData?.description?.toLowerCase().includes(query.toLowerCase())
+                    || collection.firstToken?.metadata?.toLowerCase()?.includes(query.toLowerCase())
+                );
 
-			// Search wallets
-			if (searchText.length === 58) {
-				filteredWallets = [{ address: searchText, name: searchText, metadata: {} }];
-			} else {
-				searchEnvoi(searchText).then((data) => {
-					filteredWallets = data;
-				});
-			}
-		} else {
-			filteredCollections = [];
-			filteredWallets = [];
-		}
-	}
+                // Search wallets
+                if (query.length === 58) {
+                    filteredWallets = [{ address: query, name: query, metadata: {} }];
+                } else {
+                    // Cancel any previous request
+                    if (currentController) {
+                        currentController.abort();
+                    }
+                    
+                    // Create a new controller for this request
+                    currentController = new AbortController();
+                    
+                    // Use the imported searchEnvoi
+                    searchEnvoi(query).then((data) => {
+                        // Only update if this is still the latest query
+                        if (query === lastSearch) {
+                            filteredWallets = data;
+                        }
+                    }).catch(error => {
+                        // Handle errors
+                        console.error('Search error:', error);
+                        // Don't update filteredWallets if there was an error
+                    });
+                }
+            }
+        }, 300); // 300ms debounce delay
+    }
+    
+    // Call performSearch whenever searchText changes
+    $: performSearch(searchText);
 </script>
 
 <MetaTags title="NFT Navigator | Explore NFTs on Voi Network" />
