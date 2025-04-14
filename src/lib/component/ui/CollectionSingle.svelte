@@ -22,7 +22,6 @@
     export let collection: Collection;
     export let viewType: string = 'row';
     $: token = collection.firstToken;
-    console.log(collection);
 
     $: metadata = (token && token.metadata) ? JSON.parse(token?.metadata??'{}') as TokenMetadata : {} as TokenMetadata;
     $: metadataName = metadata?.name ?? '';
@@ -67,7 +66,7 @@
         }
     ];
 
-    function toggleExpanded(e: MouseEvent) {
+    function toggleExpanded(e: MouseEvent | KeyboardEvent) {
         e.preventDefault();
         e.stopPropagation();
         isExpanded = !isExpanded;
@@ -186,7 +185,10 @@
 
                 <!-- Info Overlay -->
                 <div class="absolute inset-0 bg-black/70 {isExpanded ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'} transition-opacity duration-300 flex flex-col justify-between p-4 overflow-hidden z-[2]"
-                     on:click|stopPropagation|preventDefault>
+                     on:click|stopPropagation|preventDefault
+                     on:keydown={(e) => e.key === 'Enter' && toggleExpanded(e)}
+                     role="button"
+                     tabindex="0">
                     <div class="flex-1 flex flex-col justify-between">
                         <!-- Top Section with Title -->
                         <div class="space-y-2">
