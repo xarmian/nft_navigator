@@ -19,7 +19,7 @@
         goto(`/creator/${creator.address}`);
     }
 
-    $: totalNFTs = creator.collections.reduce((sum, collection) => sum + collection.totalSupply, 0);
+    $: totalNFTs = creator.collections.reduce((sum, collection) => sum + Number(collection.totalSupply), 0);
     $: totalOwners = creator.collections.reduce((sum, collection) => sum + (collection.uniqueOwners || 0), 0);
 </script>
 

@@ -22,6 +22,7 @@
     export let collection: Collection;
     export let viewType: string = 'row';
     $: token = collection.firstToken;
+    console.log(collection);
 
     $: metadata = (token && token.metadata) ? JSON.parse(token?.metadata??'{}') as TokenMetadata : {} as TokenMetadata;
     $: metadataName = metadata?.name ?? '';

@@ -92,12 +92,12 @@
             filterAndSortTokens();
             
             filterTokens.forEach(token => {
-                const collection = $collectionStore.find(c => c.contractId === token.contractId);
-                const collectionName = (collection?.highforgeData?.title ?? token.metadata?.name?.replace(/[1#]/g, '')) || token.contractId.toString();
-                if (!groups.has(collectionName)) {
-                    groups.set(collectionName, []);
+                //const collectionName = token?.marketData?.collection?.name ?? token.metadata?.name?.replace(/[1#]/g, '') ?? token.contractId.toString();
+                const collectionId = token.contractId.toString();
+                if (!groups.has(collectionId)) {
+                    groups.set(collectionId, []);
                 }
-                groups.get(collectionName)?.push(token);
+                groups.get(collectionId)?.push(token);
             });
 
             collectionGroups = Array.from(groups.entries()).map(([name, tokens]) => {
@@ -199,7 +199,7 @@
         event.preventDefault();
         event.stopPropagation();
         selectedCollectionTokens = group.tokens;
-        selectedCollectionName = group.name;
+        selectedCollectionName = group.tokens[0].marketData?.collection?.name ?? group.tokens[0].metadata?.name?.replace(/[1#]/g, '') ?? group.tokens[0].contractId.toString();
         selectedCollection = $collectionStore.find(c => c.contractId === group.tokens[0].contractId);
         showPreviewModal = true;
     }
@@ -287,7 +287,7 @@
                                     {floorToken.metadata?.name}
                                 </p>
                                 <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                    {$collectionStore.find(c => c.contractId === floorToken.contractId)?.highforgeData?.title ?? 'Unknown Collection'}
+                                    {$collectionStore.find(c => c.contractId === floorToken.contractId)?.name ?? floorToken.marketData?.collection?.name ?? 'Unknown Collection'}
                                 </p>
                             </div>
                         </a>
@@ -327,7 +327,7 @@
                                     {highestToken.metadata?.name}
                                 </p>
                                 <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                    {$collectionStore.find(c => c.contractId === highestToken.contractId)?.highforgeData?.title ?? 'Unknown Collection'}
+                                    {$collectionStore.find(c => c.contractId === highestToken.contractId)?.name ?? highestToken.marketData?.collection?.name ?? 'Unknown Collection'}
                                 </p>
                             </div>
                         </a>
@@ -494,7 +494,7 @@
                                         </div>
                                         <div class="flex-grow min-w-0">
                                             <h2 class="text-lg font-semibold truncate mb-1">
-                                                {group.name ?? group.tokens[0].metadata?.name?.replace(/[1#]/g, '')}
+                                                {group.tokens[0].marketData?.collection?.name ?? group.tokens[0].metadata?.name?.replace(/[1#]/g, '')}
                                             </h2>
                                             <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
                                                 {group.tokens.length} items

@@ -175,7 +175,7 @@
 				<a href="/lounge{extensionRouteLounge}" class="nav-link {currentPath == 'lounge' ? 'text-blue-500' : ''}">Lounge</a>
 				<a href="/analytics{extensionRoute}" class="nav-link {currentPath == 'analytics' ? 'text-blue-500' : ''}">Analytics</a>
 				<a href="/portfolio" class="nav-link {currentPath == 'portfolio' ? 'text-blue-500' : ''}">My Portfolio</a>
-				<a href="/nftgames" class="nav-link relative group inline-block hidden">
+				<a href="/nftgames" class="nav-link relative group hidden">
 					<div class="absolute inset-0 flex items-center justify-center text-yellow-400/50 transform transition-transform group-hover:scale-110">
 						<i class="fas fa-trophy text-3xl"></i>
 					</div>

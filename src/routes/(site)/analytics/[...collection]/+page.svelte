@@ -75,7 +75,7 @@
     $: {
         if (collection?.contractId) {
             isLoadingMarket = true;
-            fetch(`${indexerBaseURL}/mp/listings/?collectionId=${collection.contractId}&active=true`)
+            fetch(`${indexerBaseURL}/mp/listings?collectionId=${collection.contractId}&active=true`)
                 .then(response => response.json())
                 .then(data => {
                     marketData = data;

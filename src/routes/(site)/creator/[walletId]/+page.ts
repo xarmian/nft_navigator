@@ -34,7 +34,7 @@ export const load = async ({ params, fetch }: any) => {
     
     // Get collection analytics and statistics
     const totalNFTs = createdCollections.reduce((sum: number, collection: any) => 
-        sum + collection.totalSupply, 0
+        sum + Number(collection.totalSupply), 0
     );
     
     const totalOwners = createdCollections.reduce((sum: number, collection: any) => 

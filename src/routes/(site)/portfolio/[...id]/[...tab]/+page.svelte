@@ -727,7 +727,7 @@ console.log(currentTab);
                                                 <div class="text-gray-500 mb-6">Want to get some NFTs in your collection?</div>
                                                 <A href="https://nautilus.sh/" target="_blank" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
                                                     <i class="fas fa-shopping-cart mr-2"></i>
-                                                    Check out ARC-72 Marketplace
+                                                    Check out Nautilus Marketplace
                                                 </A>
                                             </div>
                                         {/if}

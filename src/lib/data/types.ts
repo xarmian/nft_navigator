@@ -33,9 +33,10 @@ export interface Transfer {
 }
 
 export interface Collection {
-	gameData: IHighforgeProject | null;
-    highforgeData: IHighforgeProject | null;
-	firstToken: RawToken | null;
+	gameData?: IHighforgeProject | null;
+    highforgeData?: IHighforgeProject | null;
+	firstToken?: RawToken | null;
+    metadata?: string;
     contractId: number;
     totalSupply: number;
     burnedSupply: number;
@@ -44,6 +45,8 @@ export interface Collection {
     uniqueOwners?: number | undefined;
     popularity?: number;
     creator: string;
+    imageUrl: string;
+    name: string;
     creatorName?: string | undefined;
     globalState?: Array<{ key: string; value: string }>;
 }
@@ -121,6 +124,29 @@ export interface Listing {
     source: string | null; // arcpay, nautilus, etc. null will be nautilus for now    
     type: string | null; // sale, auction, dutch_auction
     sale: null | Sale;
+    token?: {
+        owner: string;
+        tokenId: string;
+        approved: string;
+        isBurned: string;
+        metadata: string | Record<string, unknown>;
+        metadataURI?: string;
+        mintRound: string | number;
+    };
+    collection?: {
+        name: string;
+        creator: string;
+        imageUrl: string;
+        verified: number;
+        mintRound: number;
+        contractId: number;
+        blacklisted: boolean;
+        totalSupply: string;
+    };
+    createRound?: number;
+    endTimestamp?: number;
+    royalty?: string;
+    staking?: null | Record<string, unknown>;
 }
 
 export interface Auction {

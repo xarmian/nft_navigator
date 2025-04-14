@@ -108,7 +108,7 @@
                 }
             }
             else {
-                const marketUrl = `${indexerBaseURL}/mp/listings/?collectionId=${token.contractId}&tokenId=${token.tokenId}&active=true`;
+                const marketUrl = `${indexerBaseURL}/mp/listings?collectionId=${token.contractId}&tokenId=${token.tokenId}&active=true`;
                 try {
                     const marketData = await fetch(marketUrl).then((response) => response.json());
                     if (marketData.listings.length > 0) {

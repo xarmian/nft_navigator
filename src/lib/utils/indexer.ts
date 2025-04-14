@@ -8,7 +8,7 @@ import { resolveEnvoiToken } from './envoi';
 
 //export const indexerBaseURL = "https://arc72-idx.nftnavigator.xyz/nft-indexer/v1";
 //export const indexerBaseURL = "http://localhost:3000/nft-indexer/v1";
-export const indexerBaseURL = "https://arc72-voi-mainnet.nftnavigator.xyz/nft-indexer/v1";
+export const indexerBaseURL = "https://voi-mainnet-mimirapi.nftnavigator.xyz/nft-indexer/v1";
 
 interface ITokenResponse {
     tokens: IToken[];
@@ -310,9 +310,30 @@ export const getCollections = async (params: getCollectionsParams): Promise<Coll
             if (creatorNFD) {
                 collection.creatorName = creatorNFD.replacementValue;
             }
+
+            if (collection.name && collection.name !== '') {
+                if (collection.firstToken) {
+                    try {
+                        const metadata = JSON.parse(collection.firstToken.metadata);
+                        collection.firstToken.metadata = JSON.stringify({ ...metadata, image: collection.imageUrl });
+                    } catch {
+                        collection.firstToken.metadata = JSON.stringify({ });
+                    }
+                }
+            }
         });
 
-        const hfurl = 'https://prod-voi.api.highforge.io/projects';
+        c.forEach((collection: Collection) => {
+            if (collection.metadata) {
+                try {
+                    collection.highforgeData = JSON.parse(collection.metadata);
+                } catch {
+                    collection.highforgeData = null;
+                }
+            }
+        });
+
+        /*const hfurl = 'https://prod-voi.api.highforge.io/projects';
         const hfresponse = await params.fetch(hfurl);
         const hfdata = await hfresponse.json();
         const hfprojects = hfdata.results;
@@ -340,7 +361,7 @@ export const getCollections = async (params: getCollectionsParams): Promise<Coll
                     co.gameData = game;
                 }
             });
-        });
+        });*/
  
         if (!params.contractId) collectionStore.set(c);
         return c;
