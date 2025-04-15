@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageData } from '../$types';
-    import type { Token, Collection, Metadata } from '$lib/data/types';
+    import type { Token, Collection, Metadata, Listing } from '$lib/data/types';
 	import Switch from '$lib/component/ui/Switch.svelte';
     import { inview } from 'svelte-inview';
     import Select from '$lib/component/ui/Select.svelte';
@@ -30,6 +30,7 @@
     $: tokens = data.tokens as Token[];
     let collectionName = data.collectionName.trim();
     $: collection = data.collection as Collection;
+    $: listings = data.listings as Listing[];
     let filteredTokens = [] as Token[];
     let displayCount = 10;
     $: filters = data.filters;
@@ -88,7 +89,7 @@
     });
 
     // Calculate counts for tabs
-    $: forSaleCount = tokens?.filter(t => t.marketData && !t.marketData.sale && !t.marketData.delete)?.length ?? 0;
+    $: forSaleCount = listings?.filter(l => !l.sale && !l.delete)?.length ?? 0;
     $: totalTokens = tokens?.length ?? 0;
     $: burnedTokens = tokens?.filter(t => t.isBurned)?.length ?? 0;
     $: uniqueCollectors = new Set(tokens?.map(t => t.owner)).size;
@@ -145,7 +146,11 @@
             
             // Then apply tab-specific filters
             if (displayTab === 'forsale') {
-                visibleTokens = visibleTokens.filter(t => t.marketData && !t.marketData.sale && !t.marketData.delete);
+                // visibleTokens = visibleTokens.filter(t => t.marketData && !t.marketData.sale && !t.marketData.delete);
+                visibleTokens = listings.map(l => ({
+                    ...l.token,
+                    marketData: l
+                }));
             } else if (displayTab === 'mine' && wallet) {
                 visibleTokens = visibleTokens.filter(t => t.owner === wallet.address);
             } else if (displayTab === 'burned') {

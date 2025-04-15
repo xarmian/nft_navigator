@@ -148,6 +148,10 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
         return [...cachedTokens, ...allTokens];
     }
 
+    if (!params.limit) {
+        params.limit = 1000;
+    }
+
     // Handle non-tokenIds requests
     const paramsArray = [];
     if (params.contractId) {
@@ -183,6 +187,21 @@ export const getTokens = async (params: getTokensParams): Promise<Token[]> => {
         console.error('Error fetching tokens:', err);
         return cachedTokens; // Return cached tokens if fetch fails
     }
+}
+
+// create an array to pass to processTokenResponse for an arbitrary array of tokens passed in as IToken[]
+// do not call getTokens, just process the tokens passed in
+export async function processTokens(tokens: IToken[]): Promise<Token[]> {
+    const data: ITokenResponse = {
+        tokens: tokens,
+        currentRound: 0
+    };
+
+    const params: getTokensParams = {
+        tokenIds: '',
+        fetch: fetch
+    };
+    return processTokenResponse(data, params);
 }
 
 // Helper function to process token response data
@@ -291,6 +310,8 @@ export const getCollections = async (params: getCollectionsParams): Promise<Coll
     if (params.contractId) {
         paramsArray.push(['contractId', params.contractId.toString()]);
     }
+
+    paramsArray.push(['limit', '1000']);
 
     const urlParams = new URLSearchParams(paramsArray);
     url += '?' + urlParams.toString();

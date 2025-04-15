@@ -4,7 +4,7 @@ import { getCurrency } from '$lib/utils/currency';
 import { userPreferences, recentSearch } from '../../../../../stores/collection';
 import { get } from 'svelte/store';
 import algosdk from 'algosdk';
-import { indexerBaseURL } from '$lib/utils/indexer';
+import { indexerBaseURL, processTokens } from '$lib/utils/indexer';
 
 export const load = (async ({ params, fetch }) => {
 	const contractId = params.cid;
@@ -22,6 +22,7 @@ export const load = (async ({ params, fetch }) => {
 
 	let floor = '';
 	let ceiling = '';
+	let listings: Listing[] = [];
 
 	if (contractId) {
 		if (get(userPreferences).analyticsCollectionId !== Number(contractId)) {
@@ -30,7 +31,7 @@ export const load = (async ({ params, fetch }) => {
 			});
 		}
 
-		tokens = (await getTokens({ contractId, fetch })).sort((a: Token, b: Token) => a.tokenId - b.tokenId);
+		tokens = (await getTokens({ contractId, fetch })).sort((a: Token, b: Token) => a.tokenId.toString().localeCompare(b.tokenId.toString()));
 		collectionName = tokens[0]?.metadata?.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
 
 		collection = (await getCollection({ contractId: Number(contractId), fetch }));
@@ -46,9 +47,10 @@ export const load = (async ({ params, fetch }) => {
 		try {
 			const marketData = await fetch(marketUrl).then((response) => response.json());
 			if (marketData.listings.length > 0) {
+				listings = marketData.listings;
 
 				for (const token of tokens) {
-					const marketToken = marketData.listings.find((listing: Listing) => listing.tokenId === token.tokenId);
+					const marketToken = marketData.listings.find((listing: Listing) => listing.tokenId.toString() === token.tokenId.toString());
 					if (marketToken && !marketToken.sale) {
 						// check if token owner == marketToken.seller and mpContract id still approved to sell token
 						if (token.owner === marketToken.seller && token.approved === algosdk.getApplicationAddress(Number(marketToken.mpContractId))) {
@@ -71,6 +73,18 @@ export const load = (async ({ params, fetch }) => {
 						return { price: listing.price, currency: listing.currency };
 					}
 					return acc;
+				});
+
+				// get a list of tokens from listings.token and then process them
+				const tokensx = listings.map((listing: Listing) => listing.token);
+				const processedTokens = await processTokens(tokensx as IToken[]);
+				processedTokens.forEach((token: Token) => {
+					const marketListing = listings.find((listing: Listing) => listing.tokenId.toString() === token.tokenId.toString());
+					if (marketListing) {
+						token.contractId = marketListing.collectionId;
+						token.isBurned = (token.isBurned === 'true' || token.isBurned === true) ? true : false;
+						marketListing.token = token;
+					}
 				});
 
 				const cf = await getCurrency(f.currency);
@@ -153,6 +167,7 @@ export const load = (async ({ params, fetch }) => {
 		categories,
 		filters,
 		subpage,
+		listings,
 		//isVoiGames: isVoiGames ? true : false,
 	};
 });
