@@ -33,6 +33,7 @@
     let totalResults = 0;
     let resultsContainer: HTMLElement; // Reference to the results container for scrolling
     let previousSearch = ''; // Track the previous search query
+    let showNoResults = false; // Track when we should show a "no results" message
     
     // Debounce implementation for search
     let searchTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -301,12 +302,14 @@
         // Reset selected index when search changes
         if (searchChanged) {
             selected = 0;
+            showNoResults = false;
         }
         
         // If search is empty, clear results immediately
         if (query === '') {
             filteredWallets = [];
             filteredCollections = [];
+            showNoResults = false;
             if (isExpanded) {
                 showRecent = true;
             }
@@ -322,6 +325,7 @@
             if (query === lastSearch) {
                 showRecent = false;
                 isSearching = true;
+                showNoResults = false;
                 
                 try {
                     // Handle collection searching using Mimir API
@@ -359,22 +363,30 @@
                             // Only update if this is still the latest query
                             if (query === lastSearch) {
                                 filteredWallets = data;
+                                // Show no results message if no collections and no wallets found
+                                showNoResults = filteredCollections.length === 0 && data.length === 0 && query.length >= 2;
                             }
                         }).catch(error => {
                             if (error.name !== 'AbortError') {
                                 console.error('Search error:', error);
                             }
-                            // Don't update filteredWallets if there was an error
+                            // Check for no results even if wallet search fails
+                            showNoResults = filteredCollections.length === 0 && filteredWallets.length === 0 && query.length >= 2;
                         });
                     }
                     else {
                         filteredWallets = [];
                     }
+                    
+                    // After all searches are done, check if we have any results
+                    showNoResults = filteredCollections.length === 0 && filteredWallets.length === 0 && query.length >= 2;
+                    
                 } catch (error) {
                     console.error('Error searching collections:', error);
                     filteredCollections = [];
                     hasMoreResults = false;
                     totalResults = 0;
+                    showNoResults = query.length >= 2;
                 } finally {
                     isSearching = false;
                 }
@@ -498,7 +510,7 @@
             </div>
 
             <!-- Dropdown Results -->
-            {#if isOpen && (filteredCollections.length > 0 || (showRecent && recentSearchValue.length > 0) || filteredWallets.length > 0)}
+            {#if isOpen && ((filteredCollections.length > 0 || (showRecent && recentSearchValue.length > 0) || filteredWallets.length > 0) || isSearching || showNoResults)}
                 <ul 
                     bind:this={resultsContainer}
                     use:scrollHandler
@@ -582,8 +594,24 @@
                         </li>
                     {/if}
 
+                    <!-- Loading Indicator -->
+                    {#if isSearching && search.length >= 2}
+                        <div class="px-4 py-6 text-center">
+                            <div class="inline-flex items-center justify-center">
+                                <div class="w-5 h-5 border-2 border-t-blue-500 border-r-transparent border-b-blue-500 border-l-transparent rounded-full animate-spin mr-2"></div>
+                                <span class="text-gray-600 dark:text-gray-300">Searching...</span>
+                            </div>
+                        </div>
+                    <!-- No Results Message -->
+                    {:else if showNoResults && !isSearching && search.length >= 2}
+                        <div class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto mb-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p>No results found for "{search}"</p>
+                        </div>
                     <!-- Search Results Section -->
-                    {#if filteredCollections.length > 0 || filteredWallets.length > 0}
+                    {:else if filteredCollections.length > 0 || filteredWallets.length > 0}
                         <div class="px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400">
                             Search Results {#if totalResults > 0}({filteredCollections.length} of {totalResults}){/if}
                         </div>
@@ -661,7 +689,7 @@
                             <div class="px-4 py-3 text-center text-gray-500 dark:text-gray-400">
                                 <span class="inline-block animate-pulse">Loading...</span>
                             </div>
-                        {:else if hasMoreResults}
+                        {:else if hasMoreResults && filteredCollections.length > 0}
                             <button 
                                 onclick={(e) => { e.stopPropagation(); loadMoreResults(); }}
                                 class="w-full px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-150 text-center"
