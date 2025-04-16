@@ -17,6 +17,7 @@
     import type { Listing as AListing } from '$lib/arcpay';
     import { browser } from '$app/environment';
     import TokenDetailModal from './TokenDetailModal.svelte';
+    import { resolveEnvoiToken } from '$lib/utils/envoi';
 
     export let token: Token;
     export let collection: Collection | undefined;
@@ -74,8 +75,28 @@
         isExpanded = !isExpanded;
     }
 
-    onMount(() => {
+    onMount(async () => {
         windowDefined = typeof window !== 'undefined';
+        
+        // Resolve ENVOi tokens if needed
+        if (token && token.contractId === 797609 && token.metadata && !token.metadata.envoiName) {
+            try {
+                const envoiResults = await resolveEnvoiToken([token.tokenId]);
+                if (envoiResults.length > 0) {
+                    const envoiData = envoiResults[0];
+                    token = {
+                        ...token,
+                        metadata: {
+                            ...(token.metadata as any),
+                            envoiName: envoiData.name || token.metadata.name,
+                            envoiMetadata: envoiData.metadata
+                        } as any
+                    };
+                }
+            } catch (error) {
+                console.error("Error resolving Envoi token name:", error);
+            }
+        }
     });
 
     onDestroy(() => {
@@ -171,8 +192,12 @@
 
     let collectionName = '';
     $: {
-        collectionName = collection?.highforgeData?.title ?? (token?.metadata?.name??'').replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
-        collectionName = collectionName.substring(0, 28) + (collectionName.length > 28 ? '...' : '');
+        if (token.contractId === 797609) {
+            collectionName = 'ENVOi Names';
+        } else {
+            collectionName = collection?.highforgeData?.title ?? (token?.metadata?.name??'').replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
+            collectionName = collectionName.substring(0, 28) + (collectionName.length > 28 ? '...' : '');
+        }
     }
 
     // return a tuple of the bg color from bgcolor if value is in the bgcolor array, and its corresponding fg color
@@ -369,10 +394,10 @@
            on:keydown|preventDefault={(e) => e.key === 'Enter' && (showDetailModal = true)}
            role="button"
            tabindex="0">
-            {#if token.metadata?.envoiName}
+            {#if token.contractId === 797609 && token.metadata?.envoiName}
                 <div class="absolute inset-0 bg-gradient-to-br from-purple-900/20 to-purple-600/20">
                     <div class="w-full h-full p-6">
-                        <img src={token.metadata?.envoiMetadata?.avatar ?? '/blank_avatar.png'} 
+                        <img src={(token.metadata as any)?.envoiMetadata?.avatar || '/blank_avatar.png'} 
                              class="w-full h-full object-cover rounded-[40%] border-4 border-purple-500/50 shadow-2xl" 
                              alt={token.metadata?.envoiName} />
                     </div>
@@ -386,7 +411,7 @@
                     </div>
                 </div>
             {:else}
-                <img src={imageUrl} 
+                <img src={getTokenImageUrl(token, 480)} 
                      class="w-full {shape === 'square' ? 'sm:w-72 sm:h-72' : 'sm:w-60 sm:h-72'} object-cover transition-transform duration-300 {!isExpanded && 'group-hover:scale-105'}" 
                      alt={token.metadata?.name ?? `Token ${token.tokenId}`} 
                      loading="lazy" />
@@ -532,7 +557,7 @@
                     <div class="transform {isExpanded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'} transition-all duration-300 delay-350">
                         <p class="text-white/80 text-sm line-clamp-2">
                             <span class="font-bold">Owner:</span>
-                            {#if token.isBurned}
+                            {#if token.isBurned === 'true'}
                                 <span class="text-red-500 font-medium"><i class="fas fa-fire"></i> Burned</span>
                             {:else}
                                 <span 
@@ -801,9 +826,6 @@
 {/if}
 
 <style lang="postcss">
-    a {
-        text-decoration: none;
-    }
     .hidden {
         display: none !important;
     }

@@ -432,17 +432,17 @@ console.log(currentTab);
                                     </div>
                                 {/if}
                                 {#if walletEnvoi.metadata['com.twitter']}
-                                    <a href="https://x.com/{walletEnvoi.metadata['com.twitter']}" target="_blank" 
+                                    <a href="https://x.com/{walletEnvoi.metadata['com.twitter'].replace('https://x.com/', '')}" target="_blank" 
                                         class="flex items-center space-x-2 px-3 py-2 bg-white/10 hover:bg-white/15 rounded-lg transition truncate">
                                         <i class="fab fa-x-twitter"></i>
-                                        <span class="truncate text-sm">@{walletEnvoi.metadata['com.twitter']}</span>
+                                        <span class="truncate text-sm">@{walletEnvoi.metadata['com.twitter'].replace('https://x.com/', '')}</span>
                                     </a>
                                 {/if}
                                 {#if walletEnvoi.metadata['com.github']}
-                                    <a href="https://github.com/{walletEnvoi.metadata['com.github']}" target="_blank" 
+                                    <a href="https://github.com/{walletEnvoi.metadata['com.github'].replace('https://github.com/', '')}" target="_blank" 
                                         class="flex items-center space-x-2 px-3 py-2 bg-white/10 hover:bg-white/15 rounded-lg transition truncate">
                                         <i class="fab fa-github"></i>
-                                        <span class="truncate text-sm">{walletEnvoi.metadata['com.github']}</span>
+                                        <span class="truncate text-sm">{walletEnvoi.metadata['com.github'].replace('https://github.com/', '')}</span>
                                     </a>
                                 {/if}
                             </div>

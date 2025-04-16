@@ -244,7 +244,7 @@
 		<slot />
 	</main>
 
-	<div class="w-full overflow-hidden mb-8 pt-4 border-t border-gray-200 dark:border-gray-700">
+	<div class="w-full overflow-hidden mb-8 pt-4 border-t border-gray-200 dark:border-gray-700" style="position: relative; z-index: 0;">
 		<p class="text-sm text-gray-500 dark:text-gray-400 font-semibold px-4">Voi Ecosystem Projects</p>
 		<div class="relative">
 			<div class="flex overflow-x-auto space-x-2 py-4 px-2 scrollbar-hide">

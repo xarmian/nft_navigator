@@ -562,7 +562,7 @@
                                 <div class="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
                                     <i class="fas fa-user text-purple-500"></i>
                                 </div>
-                                {#if token.isBurned}
+                                {#if token.isBurned === 'true'}
                                     <span class="text-red-500 font-medium"><i class="fas fa-fire"></i> Burned</span>
                                 {:else}
                                     <a href="/portfolio/{token.owner}" class="text-purple-600 dark:text-purple-400 hover:text-purple-700 font-medium">{formattedOwner}</a>

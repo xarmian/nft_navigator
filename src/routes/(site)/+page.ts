@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Collection, Token } from '$lib/data/types';
-import { getCollections, getSales, getTokens, getTransfers } from '$lib/utils/indexer';
+import { getCollections, getSales, getTokens, getTransfers } from '$lib/utils/mimir';
 import type { LayoutServerLoad } from '../$types';
 
 export const load = (async ({ fetch }) => {
@@ -11,8 +11,8 @@ export const load = (async ({ fetch }) => {
         }
     };
 
-    let collections: Collection[] = await getCollections({ fetch, includes: 'unique-owners', contractId: undefined });
-    const sales = await getSales({ contractId: undefined, sortBy: '-round', limit: 200, fetch });
+    let collections: Collection[] = await getCollections({ fetch, includes: 'unique-owners' });
+    const sales = await getSales({ limit: 200, fetch, includes: 'listing' });
 
     // Initialize popularity with sales data
     const popularity = sales ? sales.reduce((acc: any, sale: any) => {
@@ -33,18 +33,30 @@ export const load = (async ({ fetch }) => {
             fetch,
             from: ZERO_ADDRESS,
             limit: 10,
-            sortBy: 'desc'
+            includes: 'token'
         });
 
-        recentMintTokens = await getTokens({
-            fetch,
-            tokenIds: mints.map((mint) => `${mint.contractId}_${mint.tokenId}`).join(',')
-        }).then((tokens) => tokens.sort((a, b) => b.mintRound - a.mintRound)).then((tokens) => tokens.slice(0, 4));
+        // Extract tokenIds from mints
+        const tokenIds = mints.map(mint => mint.tokenId).join(',');
+        
+        // Fetch token details
+        if (tokenIds.length > 0) {
+            recentMintTokens = await getTokens({
+                fetch,
+                tokenIds,
+                includes: 'metadata'
+            });
+            
+            // Sort by mintRound and take the first 4
+            recentMintTokens = recentMintTokens
+                .sort((a, b) => b.mintRound - a.mintRound)
+                .slice(0, 4);
+        }
 
         mintCount = mints.length;
 
         collections = collections.map((c: Collection) => {
-            c.popularity = popularity[Number(c.contractId)]??0;
+            c.popularity = popularity[c.contractId] ?? 0;
             return c;
         });
     } catch (error) {

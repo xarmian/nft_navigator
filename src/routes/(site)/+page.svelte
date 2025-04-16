@@ -12,6 +12,8 @@
 	import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
 	import { getImageUrl } from '$lib/utils/functions';
     import CreatorCard from '$lib/component/ui/CreatorCard.svelte';
+    // Add import for mimir utilities if needed
+    import { getCollections } from '$lib/utils/mimir';
 
     export let data: PageData;
 	let searchText = '';
@@ -132,9 +134,11 @@
 		if (event.key === 'ArrowDown') {
 			selected = (selected + 1) % totalItems;
 			event.preventDefault();
+			scrollToSelected();
 		} else if (event.key === 'ArrowUp') {
 			selected = (selected - 1 + totalItems) % totalItems;
 			event.preventDefault();
+			scrollToSelected();
 		} else if (event.key === 'Enter') {
 			if (selected < filteredCollections.length) {
 				gotoCollection(filteredCollections[selected].contractId);
@@ -145,6 +149,34 @@
 		} else if (event.key === 'Escape') {
 			isSearchOpen = false;
 		}
+	}
+
+	// Add function to scroll the selected item into view
+	function scrollToSelected() {
+		// Use setTimeout to ensure the DOM has updated with the new selected item
+		setTimeout(() => {
+			const resultsContainer = document.querySelector('.search-results-container');
+			if (!resultsContainer) return;
+			
+			let selectedElement: Element | null = null;
+			
+			if (selected < filteredCollections.length) {
+				// It's a collection
+				selectedElement = resultsContainer.querySelector(`.collections-list button:nth-of-type(${selected + 1})`);
+			} else {
+				// It's a wallet
+				const walletIndex = selected - filteredCollections.length;
+				selectedElement = resultsContainer.querySelector(`.wallets-list button:nth-of-type(${walletIndex + 1})`);
+			}
+			
+			if (selectedElement) {
+				// Scroll the element into view
+				selectedElement.scrollIntoView({
+					behavior: 'smooth',
+					block: 'nearest'
+				});
+			}
+		}, 0);
 	}
 
 	function handleSearchClick() {
@@ -198,10 +230,10 @@
             if (query === lastSearch) {
                 // Search collections
                 filteredCollections = collections.filter(collection => 
-                    collection.highforgeData?.title.toLowerCase().includes(query.toLowerCase()) 
+                    collection.name?.toLowerCase().includes(query.toLowerCase()) 
                     || collection.contractId.toString().toLowerCase().includes(query.toLowerCase())
                     || collection.highforgeData?.description?.toLowerCase().includes(query.toLowerCase())
-                    || collection.firstToken?.metadata?.toLowerCase()?.includes(query.toLowerCase())
+                    || collection.metadata?.toLowerCase()?.includes(query.toLowerCase())
                 );
 
                 // Search wallets
@@ -287,69 +319,62 @@
                         {/if}
                     </div>
                     {#if isSearchOpen && (filteredCollections.length > 0 || filteredWallets.length > 0)}
-                        <div class="absolute left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto z-50">
+                        <div class="absolute left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto z-50 search-results-container">
                             {#if filteredCollections.length > 0}
                                 <div class="p-2">
                                     <div class="text-sm font-medium text-gray-500 dark:text-gray-400 px-3 py-2">Collections</div>
-                                    {#each filteredCollections as collection, index (collection.contractId)}
-                                        {@const metadata = collection.firstToken?.metadata ? JSON.parse(collection.firstToken.metadata) : {}}
-                                        <button
-                                            class="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex items-center space-x-3 {selected === index ? 'bg-blue-50 dark:bg-blue-900/50' : ''}"
-                                            on:click={() => gotoCollection(collection.contractId)}
-                                        >
-                                            {#if collection.highforgeData?.coverImageURL}
-                                                <img src={getImageUrl(collection.highforgeData?.coverImageURL ?? '',32)} class="w-10 h-10 rounded-lg" alt={collection.highforgeData?.title} />
-                                            {:else}
-                                                <img src={getImageUrl(metadata.image ?? '',32)} class="w-10 h-10 rounded-lg" alt='Collection #{collection.contractId}' />
-                                            {/if}
-                                            <div class="flex-grow w-3/4">
-                                                <div class="flex justify-between">
-                                                    {#if collection.highforgeData?.title}
-                                                        <div class="font-medium text-gray-900 dark:text-white">{collection.highforgeData?.title}</div>
-                                                    {:else}
-                                                        <div class="font-medium text-gray-900 dark:text-white">
-                                                            {metadata.name ?? 'Collection #{collection.contractId}'}
+                                    <div class="collections-list">
+                                        {#each filteredCollections as collection, index (collection.contractId)}
+                                            <button
+                                                class="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex items-center space-x-3 {selected === index ? 'bg-blue-50 dark:bg-blue-900/50' : ''}"
+                                                on:click={() => gotoCollection(collection.contractId)}
+                                            >
+                                                <img src={getImageUrl(collection.imageUrl ?? '',32)} class="w-10 h-10 rounded-lg" alt={collection.name} />
+                                                <div class="flex-grow w-3/4">
+                                                    <div class="flex justify-between">
+                                                        <div class="font-medium text-gray-900 dark:text-white">{collection.name}</div>
+                                                        <div class="text-sm text-gray-500 dark:text-gray-400">Collection #{collection.contractId}</div>
+                                                    </div>
+                                                    {#if collection.highforgeData?.description || collection.metadata}
+                                                        <div class="hidden md:block text-sm text-gray-500 dark:text-gray-400 truncate">
+                                                            {#if collection.highforgeData?.description}
+                                                                {collection.highforgeData.description}
+                                                            {:else if collection.metadata}
+                                                                {collection.metadata}
+                                                            {/if}
                                                         </div>
                                                     {/if}
-                                                    <div class="text-sm text-gray-500 dark:text-gray-400">Collection #{collection.contractId}</div>
                                                 </div>
-                                                {#if collection.highforgeData?.description || collection.firstToken?.metadata}
-                                                    <div class="hidden md:block text-sm text-gray-500 dark:text-gray-400 truncate">
-                                                        {#if collection.highforgeData?.description}
-                                                            {collection.highforgeData.description}
-                                                        {:else if collection.firstToken?.metadata}
-                                                            {metadata.description || ''}
-                                                        {/if}
-                                                    </div>
-                                                {/if}
-                                            </div>
-                                        </button>
-                                    {/each}
+                                            </button>
+                                        {/each}
+                                    </div>
                                 </div>
                             {/if}
                             {#if filteredWallets.length > 0}
                                 <div class="p-2 {filteredCollections.length > 0 ? 'border-t border-gray-200 dark:border-gray-700' : ''}">
                                     <div class="text-sm font-medium text-gray-500 dark:text-gray-400 px-3 py-2">Wallets</div>
-                                    {#each filteredWallets as wallet, index (wallet.address)}
-                                        <button
-                                            class="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex items-center space-x-3 {selected === (filteredCollections.length + index) ? 'bg-blue-50 dark:bg-blue-900/50' : ''}"
-                                            on:click={() => gotoPortfolio(wallet.address)}
-                                        >
-                                            <div class="w-10 h-10 rounded-lg overflow-hidden">
-                                                {#if wallet.metadata?.avatar}
-                                                    <img src={wallet.metadata.avatar} alt={wallet.name} class="w-full h-full object-cover" />
-                                                {:else}
-                                                    <div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-medium">
-                                                        {wallet.name.slice(0, 2).toUpperCase()}
-                                                    </div>
-                                                {/if}
-                                            </div>
-                                            <div class="flex-grow">
-                                                <div class="font-medium text-gray-900 dark:text-white">{wallet.name}</div>
-                                                <div class="text-sm text-gray-500 dark:text-gray-400">{wallet.address.slice(0, 8)}...{wallet.address.slice(-8)}</div>
-                                            </div>
-                                        </button>
-                                    {/each}
+                                    <div class="wallets-list">
+                                        {#each filteredWallets as wallet, index (wallet.address)}
+                                            <button
+                                                class="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex items-center space-x-3 {selected === (filteredCollections.length + index) ? 'bg-blue-50 dark:bg-blue-900/50' : ''}"
+                                                on:click={() => gotoPortfolio(wallet.address)}
+                                            >
+                                                <div class="w-10 h-10 rounded-lg overflow-hidden">
+                                                    {#if wallet.metadata?.avatar}
+                                                        <img src={wallet.metadata.avatar} alt={wallet.name} class="w-full h-full object-cover" />
+                                                    {:else}
+                                                        <div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-medium">
+                                                            {wallet.name.slice(0, 2).toUpperCase()}
+                                                        </div>
+                                                    {/if}
+                                                </div>
+                                                <div class="flex-grow">
+                                                    <div class="font-medium text-gray-900 dark:text-white">{wallet.name}</div>
+                                                    <div class="text-sm text-gray-500 dark:text-gray-400">{wallet.address.slice(0, 8)}...{wallet.address.slice(-8)}</div>
+                                                </div>
+                                            </button>
+                                        {/each}
+                                    </div>
                                 </div>
                             {/if}
                         </div>

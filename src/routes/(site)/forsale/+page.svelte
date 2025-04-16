@@ -2,10 +2,12 @@
 	import type { PageData } from './$types';
     import type { Collection, Token } from '$lib/data/types';
     import { filters, saleSort as sort, viewMode, collectionStore, currencies } from '../../../stores/collection';
+    import { mimirListingsStore } from '../../../stores/mimirListings';
     import Select from '$lib/component/ui/Select.svelte';
     import CollectionPreview from '$lib/component/ui/CollectionPreview.svelte';
     import CollectionPreviewModal from '$lib/component/ui/CollectionPreviewModal.svelte';
 	import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
+    import { onMount } from 'svelte';
     
     export let data: PageData;
     let tokens: Token[] = data.tokens;
@@ -13,6 +15,9 @@
     let textFilter = '';
     let lastSort = { by: '', direction: '' };
     let lastFilter = { text: '', currency: ''};
+    let isLoadingMore = false;
+    let hasMoreListings = data.hasMore;
+    let totalTokenCount = data.totalCount || tokens.length;
 
     let collectionGroups: {
         name: string;
@@ -21,6 +26,100 @@
         ceiling: number;
         currency: number;
     }[] = [];
+
+    // Add reactive statement to update token display names for ENVOi tokens
+    $: {
+        if (tokens) {
+            // Iterate through each token and ensure ENVOi names are displayed if available
+            tokens.forEach(token => {
+                if (token.contractId === 797609 && token.metadata && token.metadata.envoiName) {
+                    // Use type assertion to avoid TypeScript errors
+                    (token.metadata as any).displayName = token.metadata.envoiName;
+                }
+            });
+        }
+    }
+
+    // Load all remaining listings in the background if we don't have them all
+    onMount(async () => {
+        // Check if we need to load more tokens
+        if (hasMoreListings && tokens.length < totalTokenCount) {
+            try {
+                isLoadingMore = true;
+                
+                // Keep loading pages until we have all listings
+                while (hasMoreListings) {
+                    const result = await mimirListingsStore.loadMore(fetch);
+                    hasMoreListings = result.hasMore;
+                    
+                    if (result.tokens.length > tokens.length) {
+                        tokens = result.tokens;
+                        // Re-filter and sort with new tokens
+                        filterAndSortTokens();
+                    } else {
+                        // No new tokens, break the loop
+                        break;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading all listings:', error);
+            } finally {
+                isLoadingMore = false;
+            }
+        }
+    });
+
+    // Function to load more listings when needed
+    async function loadMoreListings() {
+        if (isLoadingMore || !hasMoreListings) return;
+        
+        isLoadingMore = true;
+        
+        try {
+            // If in collection view, try to load all remaining tokens
+            if ($viewMode === 'Collection') {
+                while (hasMoreListings) {
+                    const result = await mimirListingsStore.loadMore(fetch);
+                    hasMoreListings = result.hasMore;
+                    
+                    if (result.tokens.length > tokens.length) {
+                        tokens = result.tokens;
+                        filterAndSortTokens();
+                    } else {
+                        break;
+                    }
+                }
+            } else {
+                // Just load next page for token view
+                const result = await mimirListingsStore.loadMore(fetch);
+                hasMoreListings = result.hasMore;
+                
+                if (result.tokens.length > tokens.length) {
+                    tokens = result.tokens;
+                    filterAndSortTokens();
+                }
+            }
+        } catch (error) {
+            console.error('Error loading more listings:', error);
+        } finally {
+            isLoadingMore = false;
+        }
+    }
+
+    // Load more items when user reaches end of pagination
+    function checkLoadMore() {
+        // If we're on the last page or close to it, load more
+        if (currentPage >= totalPages - 1 && hasMoreListings && !isLoadingMore) {
+            loadMoreListings();
+        }
+    }
+
+    // Track page changes and check if more listings need to be loaded
+    $: {
+        if (currentPage) {
+            checkLoadMore();
+        }
+    }
 
     // Memoized filtering function
     function filterAndSortTokens() {
@@ -91,8 +190,16 @@
             
             filterAndSortTokens();
             
+            // Add a loading indicator while we're still fetching tokens
+            if (tokens.length < totalTokenCount && $viewMode === 'Collection') {
+                // If we're switching to collection view and don't have all tokens,
+                // trigger a load of all remaining tokens
+                if (!isLoadingMore && hasMoreListings) {
+                    loadMoreListings();
+                }
+            }
+            
             filterTokens.forEach(token => {
-                //const collectionName = token?.marketData?.collection?.name ?? token.metadata?.name?.replace(/[1#]/g, '') ?? token.contractId.toString();
                 const collectionId = token.contractId.toString();
                 if (!groups.has(collectionId)) {
                     groups.set(collectionId, []);
@@ -108,8 +215,8 @@
                 return {
                     name,
                     tokens,
-                    floor: Math.min(...prices),
-                    ceiling: Math.max(...prices),
+                    floor: prices.length > 0 ? Math.min(...prices) : Infinity,
+                    ceiling: prices.length > 0 ? Math.max(...prices) : 0,
                     currency: tokens[0]?.marketData?.currency || 0
                 };
             });
@@ -117,7 +224,12 @@
             if ($sort.by === 'Name') {
                 collectionGroups.sort((a, b) => a.name.localeCompare(b.name));
             } else if ($sort.by === 'Price') {
-                collectionGroups.sort((a, b) => a.floor - b.floor);
+                collectionGroups.sort((a, b) => {
+                    if (a.floor === Infinity && b.floor === Infinity) return 0;
+                    if (a.floor === Infinity) return 1;
+                    if (b.floor === Infinity) return -1;
+                    return a.floor - b.floor;
+                });
             }
 
             if ($sort.direction === 'Descending') {
@@ -137,6 +249,9 @@
             if (newPage >= 1 && newPage <= totalPages) {
                 currentPage = newPage;
                 window.scrollTo({ top: 0, behavior: 'smooth' });
+                
+                // Check if we need to load more items
+                checkLoadMore();
             }
         } else {
             if (newPage >= 1 && newPage <= collectionTotalPages) {
@@ -212,6 +327,14 @@
     collection={selectedCollection}
 />
 
+<!-- Add loading indicator for when more items are being loaded -->
+{#if isLoadingMore}
+<div class="fixed bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 z-20">
+    <div class="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
+    <span>Loading more...</span>
+</div>
+{/if}
+
 <!-- New layout structure -->
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header section -->
@@ -229,7 +352,10 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm text-gray-500 dark:text-gray-400">Total Tokens</p>
-                            <p class="text-2xl font-semibold">{tokens.length}</p>
+                            <p class="text-2xl font-semibold">{totalTokenCount}</p>
+                            {#if tokens.length < totalTokenCount}
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Loaded: {tokens.length}</p>
+                            {/if}
                         </div>
                         <div class="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
                             <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -472,7 +598,13 @@
     <!-- Content section -->
     <div class="min-h-[300px]">
         {#if $viewMode === 'Collection'}
-            {#if collectionGroups.length === 0}
+            {#if isLoadingMore && tokens.length < totalTokenCount}
+                <div class="flex flex-col items-center justify-center py-12">
+                    <div class="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
+                    <p class="text-lg text-gray-700 dark:text-gray-300">Loading all listings for collection view...</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Loaded {tokens.length} of {totalTokenCount} tokens</p>
+                </div>
+            {:else if collectionGroups.length === 0}
                 <div class="flex flex-col items-center justify-center py-12 text-gray-500">
                     <svg class="w-16 h-16 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -494,7 +626,11 @@
                                         </div>
                                         <div class="flex-grow min-w-0">
                                             <h2 class="text-lg font-semibold truncate mb-1">
-                                                {group.tokens[0].marketData?.collection?.name ?? group.tokens[0].metadata?.name?.replace(/[1#]/g, '')}
+                                                {#if group.tokens[0].contractId === 797609}
+                                                    enVoi Names
+                                                {:else}
+                                                    {group.tokens[0].marketData?.collection?.name ?? group.tokens[0].metadata?.name?.replace(/[1#]/g, '')}
+                                                {/if}
                                             </h2>
                                             <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
                                                 {group.tokens.length} items
@@ -610,4 +746,12 @@
             {/if}
         {/if}
     </div>
+
+    <!-- Loading indicator for pagination -->
+    {#if isLoadingMore}
+    <div class="fixed bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 z-20">
+        <div class="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
+        <span>Loading more...</span>
+    </div>
+    {/if}
 </div>

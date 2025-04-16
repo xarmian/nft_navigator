@@ -15,7 +15,7 @@ export interface Token {
     salesData?: Sale | null | undefined;
     rank: number | null;
 	traits?: string[] | undefined;
-    isBurned: boolean;
+    isBurned: string;
     isListed?: boolean;
 }
 

@@ -42,6 +42,45 @@ function createTokenCache() {
                 };
             });
         },
+        addTokens: (collectionId: string, newTokens: Token[]) => {
+            update(cache => {
+                const existingCache = cache[collectionId];
+                if (!existingCache) {
+                    // If no existing cache, just set these tokens
+                    return {
+                        ...cache,
+                        [collectionId]: {
+                            tokens: newTokens.map(token => ({
+                                ...token,
+                                visible: true
+                            } as TokenWithVisibility)),
+                            lastUpdated: Date.now(),
+                            searchText: '',
+                            lastTab: '',
+                            lastFilters: {}
+                        }
+                    };
+                }
+
+                // Add only new tokens that don't already exist
+                const existingTokenIds = new Set(existingCache.tokens.map(t => t.tokenId));
+                const additionalTokens = newTokens
+                    .filter(t => !existingTokenIds.has(t.tokenId))
+                    .map(token => ({
+                        ...token,
+                        visible: true // Set initially visible, will be updated by updateVisibility
+                    } as TokenWithVisibility));
+
+                return {
+                    ...cache,
+                    [collectionId]: {
+                        ...existingCache,
+                        tokens: [...existingCache.tokens, ...additionalTokens],
+                        lastUpdated: Date.now()
+                    }
+                };
+            });
+        },
         updateVisibility: (collectionId: string, searchText: string, displayTab: string, filters: Record<string, string>) => {
             update(cache => {
                 const collection = cache[collectionId];

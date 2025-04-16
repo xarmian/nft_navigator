@@ -2,6 +2,7 @@ import { writable, get } from 'svelte/store';
 import type { Token, Listing } from '$lib/data/types';
 import { indexerBaseURL } from '$lib/utils/indexer';
 import algosdk from 'algosdk';
+import { getEnvoiNames, resolveEnvoiToken } from '$lib/utils/envoi';
 
 type ListingsCache = {
     tokens: Token[];
@@ -90,7 +91,7 @@ function createListingsStore() {
                             salesData: null,
                             rank: null,
                             traits: traits,
-                            isBurned: token.isBurned === 'true',
+                            isBurned: String(token.isBurned === 'true'),
                             isListed: true
                         };
                     });
@@ -108,9 +109,77 @@ function createListingsStore() {
                         totalCount: data['total-count'] || 0
                     };
                 });
-
-                const updatedStore = get({ subscribe });
-                return updatedStore.tokens;
+                
+                // Process ENVOi names for owners
+                const uniqueOwners = [...new Set(tokens.map(t => t.owner))];
+                if (uniqueOwners.length > 0) {
+                    try {
+                        const envoiResults = await getEnvoiNames(uniqueOwners);
+                        if (envoiResults.length > 0) {
+                            // Update tokens with owner info
+                            const tokensWithOwnerInfo = tokens.map(token => {
+                                const ownerEnvoi = envoiResults.find(r => r.address === token.owner);
+                                if (ownerEnvoi) {
+                                    return {
+                                        ...token,
+                                        ownerNFD: ownerEnvoi.name,
+                                        ownerAvatar: ownerEnvoi.metadata?.avatar || '/blank_avatar_small.png'
+                                    };
+                                }
+                                return token;
+                            });
+                            
+                            // Update store with owner info
+                            update(state => ({
+                                ...state,
+                                tokens: loadMore ? [...state.tokens.filter(t => !tokensWithOwnerInfo.find(nt => nt.contractId === t.contractId && nt.tokenId === t.tokenId)), ...tokensWithOwnerInfo] : tokensWithOwnerInfo
+                            }));
+                        }
+                    } catch (error) {
+                        console.error("Error resolving Envoi names for owners:", error);
+                    }
+                }
+                
+                // Process ENVOi tokens (contract ID 797609)
+                const envoiTokens = tokens.filter(t => t.contractId === 797609);
+                if (envoiTokens.length > 0) {
+                    try {
+                        const tokenIds = envoiTokens.map(token => token.tokenId);
+                        const envoiResults = await resolveEnvoiToken(tokenIds);
+                        
+                        if (envoiResults.length > 0) {
+                            // Update tokens with ENVOi data
+                            const tokensWithEnvoiInfo = tokens.map(token => {
+                                if (token.contractId === 797609) {
+                                    const envoiData = envoiResults.find(result => result.token_id === token.tokenId);
+                                    if (envoiData && token.metadata) {
+                                        return {
+                                            ...token,
+                                            metadata: {
+                                                ...token.metadata,
+                                                envoiName: envoiData.name || token.metadata.name,
+                                                avatar: envoiData.metadata.avatar,
+                                                envoiMetadata: envoiData.metadata
+                                            }
+                                        };
+                                    }
+                                }
+                                return token;
+                            });
+                            
+                            // Update store with resolved ENVOi token info
+                            update(state => ({
+                                ...state,
+                                tokens: loadMore ? [...state.tokens.filter(t => !tokensWithEnvoiInfo.find(nt => nt.contractId === t.contractId && nt.tokenId === t.tokenId)), ...tokensWithEnvoiInfo] : tokensWithEnvoiInfo
+                            }));
+                        }
+                    } catch (error) {
+                        console.error("Error resolving Envoi token names:", error);
+                    }
+                }
+                
+                // Return the updated tokens
+                return get({ subscribe }).tokens;
             } catch (error) {
                 console.error('Error fetching listings:', error);
                 // Reset loading state but keep old data

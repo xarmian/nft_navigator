@@ -16,7 +16,7 @@
             style="transform: rotate({(i - 1) * 15}deg) translateX({i * 8}px);"
         >
             <img 
-                src={getTokenImageUrl(token, 176)} 
+                src={getTokenImageUrl(token, 240)} 
                 alt={token.metadata?.name ?? String(token.tokenId)}
                 class="h-44 w-44 object-contain rounded-lg shadow-lg"
             />

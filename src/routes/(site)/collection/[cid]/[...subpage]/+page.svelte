@@ -1,26 +1,24 @@
 <script lang="ts">
 	import type { PageData } from '../$types';
     import type { Token, Collection, Metadata, Listing } from '$lib/data/types';
-	import Switch from '$lib/component/ui/Switch.svelte';
     import { inview } from 'svelte-inview';
-    import Select from '$lib/component/ui/Select.svelte';
     import SalesTable from '$lib/component/ui/SalesTable.svelte';
     import HoldersList from '$lib/component/ui/HoldersList.svelte';
 	import NautilusButton from '$lib/component/ui/NautilusButton.svelte';
     import HighforgeButton from '$lib/component/ui/HighforgeButton.svelte';
-	import NftGamesButton from '$lib/component/ui/NFTGamesButton.svelte';
     import { getImageUrl, handleScroll } from '$lib/utils/functions';
 	import { goto } from '$app/navigation';
 	import PixelPursuitButton from '$lib/component/ui/PixelPursuitButton.svelte';
 	import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
 	import LoungeButton from '$lib/component/ui/LoungeButton.svelte';
-	import Share from '$lib/component/ui/Share.svelte';
     import { onMount, onDestroy } from 'svelte';
     import { tokenCache } from '$lib/stores/tokenCache';
     import { algodIndexer } from '$lib/utils/algod';
-    import { getEnvoiNames } from '$lib/utils/envoi';
+    import { getEnvoiNames, resolveEnvoiToken } from '$lib/utils/envoi';
     import { selectedWallet } from "avm-wallet-svelte";
 	import LoungeView from '$lib/component/ui/LoungeView.svelte';
+    import { getTokensWithPagination } from '$lib/utils/mimir';
+    import { getListingsWithPagination } from '$lib/utils/mimir';
 
     //const forsale = $page.url.searchParams.get('forsale');
 
@@ -89,11 +87,11 @@
     });
 
     // Calculate counts for tabs
-    $: forSaleCount = listings?.filter(l => !l.sale && !l.delete)?.length ?? 0;
-    $: totalTokens = tokens?.length ?? 0;
-    $: burnedTokens = tokens?.filter(t => t.isBurned)?.length ?? 0;
+    $: forSaleCount = data.forSaleCount ?? 0;
+    $: totalTokens = data.totalTokenCount ?? 0;
+    $: burnedTokens = data.burnedTokenCount ?? 0;
     $: uniqueCollectors = new Set(tokens?.map(t => t.owner)).size;
-    $: userTokenCount = (wallet && tokens) ? tokens?.filter(t => t.owner === wallet.address)?.length ?? 0 : 0;
+    $: userTokenCount = data.userTokenCount ?? 0;
 
     $: tabs = [ 
         {id: 'tokens', name: 'All Tokens', count: totalTokens, sortable: true}, 
@@ -106,8 +104,15 @@
         {id: 'feed', name: 'Feed', sortable: true},
     ];
 
+    // Variables for pagination
+    let loading = false;
+    let tokensNextToken: string | null = data.initialNextToken;
+    let listingsNextToken: string | null = data.listingsNextToken;
+    $: nextToken = displayTab === 'forsale' ? listingsNextToken : tokensNextToken;
+
     // Add scroll handler
     onMount(() => {
+        // Add scroll handler
         const handleScroll = () => {
             const scrollY = window.scrollY;
             const fadeStartPoint = 0;
@@ -131,6 +136,10 @@
     // Update visibility when search text, tab, or filters change
     $: {
         if (tokens && tokens.length > 0 && $tokenCache[contractId.toString()]) {
+            // Reset display count when search text changes
+            if (searchText !== $tokenCache[contractId.toString()].searchText) {
+                displayCount = 10;
+            }
             tokenCache.updateVisibility(contractId.toString(), searchText, displayTab, filters);
         }
     }
@@ -146,14 +155,96 @@
             
             // Then apply tab-specific filters
             if (displayTab === 'forsale') {
-                // visibleTokens = visibleTokens.filter(t => t.marketData && !t.marketData.sale && !t.marketData.delete);
-                visibleTokens = listings.map(l => ({
-                    ...l.token,
-                    marketData: l
-                }));
+                // Create tokens with market data for listings that match our filter criteria
+                const filteredListings = listings.filter(l => !l.sale && !l.delete);
+                console.log(`Processing ${filteredListings.length} filtered listings for "For Sale" tab`);
+                
+                visibleTokens = filteredListings.map(l => {
+                    // Only proceed if we have a token
+                    if (!l.token) return null;
+                    
+                    // Create a proper Token object that includes the required properties
+                    const listingToken: any = {
+                        ...l.token,
+                        marketData: l,
+                        contractId: l.collectionId,
+                        visible: true,
+                        rank: null
+                    };
+                    
+                    return listingToken;
+                }).filter(t => t !== null) as any[];
+                
+                // Fetch owner Envoi names for tokens on the For Sale page
+                const uniqueOwners = Array.from(new Set(visibleTokens.map(t => t.owner)));
+                if (uniqueOwners.length > 0) {
+                    // Only resolve Envoi names for token owners
+                    getEnvoiNames(uniqueOwners).then((envoiResults) => {
+                        if (envoiResults.length > 0) {
+                            console.log(`Found ${envoiResults.length} Envoi names for owners`);
+                            // Update visibleTokens with owner info
+                            const updatedTokens = visibleTokens.map(token => {
+                                const ownerEnvoi = envoiResults.find(r => r.address === token.owner);
+                                if (ownerEnvoi) {
+                                    return {
+                                        ...token,
+                                        ownerNFD: ownerEnvoi.name,
+                                        ownerAvatar: ownerEnvoi.metadata?.avatar || '/blank_avatar_small.png'
+                                    };
+                                }
+                                return token;
+                            });
+                            
+                            // Update both visibleTokens and filteredTokens
+                            visibleTokens = updatedTokens;
+                            filteredTokens = updatedTokens;
+                        }
+                    }).catch(error => {
+                        console.error("Error resolving Envoi names for owners:", error);
+                    });
+                }
+                
+                // Separately handle Envoi tokens for the "For Sale" tab
+                const envoiTokens = visibleTokens.filter(t => 
+                    t.contractId === 797609 && 
+                    t.metadata && 
+                    !t.metadata.envoiName && 
+                    !t.metadata.envoiMetadata
+                );
+                
+                console.log(`Found ${envoiTokens.length} Envoi tokens needing resolution in "For Sale" tab`);
+                if (envoiTokens.length > 0) {
+                    console.log(`Envoi tokens to resolve: ${envoiTokens.map(t => t.tokenId).join(', ')}`);
+                    // Store token IDs for later reference
+                    const pendingEnvoiTokenIds = envoiTokens.map(t => t.tokenId);
+                    resolveEnvoiTokens(envoiTokens, pendingEnvoiTokenIds);
+                }
             } else if (displayTab === 'mine' && wallet) {
+                // If we don't have any tokens that match the current wallet, trigger a fetch
+                const hasWalletTokens = visibleTokens.some(t => t.owner === wallet.address);
+                if (!hasWalletTokens && !loading && tokensNextToken !== null) {
+                    // Load wallet tokens
+                    onSubpageChange('mine').catch(err => console.error('Error loading mine tab:', err));
+                }
+                
                 visibleTokens = visibleTokens.filter(t => t.owner === wallet.address);
+                
+                // Update the Mine tab count when we're on this tab
+                // This shows the actual count of current tokens owned by the wallet
+                const userOwnedCount = visibleTokens.length;
+                tabs = tabs.map(tab => 
+                    tab.id === 'mine' 
+                    ? {...tab, count: userOwnedCount} 
+                    : tab
+                );
             } else if (displayTab === 'burned') {
+                // If we don't have any burned tokens yet, trigger a fetch
+                const hasBurnedTokens = visibleTokens.some(t => t.isBurned);
+                if (!hasBurnedTokens && !loading && tokensNextToken !== null) {
+                    // Load burned tokens
+                    onSubpageChange('burned').catch(err => console.error('Error loading burned tab:', err));
+                }
+                
                 visibleTokens = visibleTokens.filter(t => t.isBurned);
             }
             
@@ -204,6 +295,81 @@
         // Reset display count
         displayCount = 10;
 
+        // For 'mine' and 'burned' tabs, we need to fetch specific data when they're selected
+        if (newPage === 'mine' && wallet?.address) {
+            loading = true;
+            try {
+                // Fetch tokens owned by this wallet for this collection
+                const response = await getTokensWithPagination({
+                    contractId: contractId.toString(),
+                    owner: wallet.address,
+                    fetch,
+                    limit: 50,
+                    includes: 'metadata'
+                });
+                
+                if (response.tokens.length > 0) {
+                    // Add to token cache without clearing existing tokens
+                    tokenCache.addTokens(contractId.toString(), response.tokens);
+                    
+                    // Update the userTokenCount
+                    userTokenCount = response.tokens.length;
+                    
+                    // Update tabs with the accurate count
+                    tabs = tabs.map(tab => 
+                        tab.id === 'mine' 
+                        ? {...tab, count: userTokenCount} 
+                        : tab
+                    );
+                    
+                    console.log(`Loaded ${response.tokens.length} tokens for wallet ${wallet.address}`);
+                }
+            } catch (error) {
+                console.error('Error fetching wallet tokens:', error);
+            } finally {
+                loading = false;
+            }
+        } else if (newPage === 'burned') {
+            loading = true;
+            try {
+                // We need to get all burned tokens for this collection
+                // Check if we already have them in our token cache
+                const cached = $tokenCache[contractId.toString()];
+                const hasBurnedTokens = cached && cached.tokens.some(t => t.isBurned);
+                
+                if (!hasBurnedTokens) {
+                    // Fetch burned tokens
+                    const response = await getTokensWithPagination({
+                        contractId: contractId.toString(),
+                        fetch,
+                        limit: 50,
+                        includes: 'metadata'
+                    });
+                    
+                    if (response.tokens.length > 0) {
+                        // Add to token cache
+                        tokenCache.addTokens(contractId.toString(), response.tokens);
+                        
+                        // Update burnedTokens count
+                        burnedTokens = response.tokens.filter(t => t.isBurned).length;
+                        
+                        // Update tabs with the accurate count
+                        tabs = tabs.map(tab => 
+                            tab.id === 'burned' 
+                            ? {...tab, count: burnedTokens} 
+                            : tab
+                        );
+                        
+                        console.log(`Loaded ${response.tokens.length} tokens, ${burnedTokens} are burned`);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching burned tokens:', error);
+            } finally {
+                loading = false;
+            }
+        }
+
         // Navigate to new URL
         if (newPage === 'tokens') {
             await goto(`/collection/${contractId}`);
@@ -213,7 +379,21 @@
     }
     
     function showMore() {
+        // Increase the display count first
         displayCount += 10;
+        
+        // If we're close to the end of our filtered tokens and there are more to fetch, load more
+        if ((displayTab === 'tokens' || displayTab === 'mine' || displayTab === 'burned') && 
+            filteredTokens.length - displayCount < 15 && 
+            nextToken && 
+            !loading) {
+            loadMoreTokens();
+        } else if (displayTab === 'forsale' && 
+                   filteredTokens.length - displayCount < 15 && 
+                   listingsNextToken && 
+                   !loading) {
+            loadMoreTokens();
+        }
     }
 
     let inputElement: HTMLInputElement;
@@ -295,6 +475,228 @@
             timeZoneName: 'short'
         });
     }
+
+    async function loadMoreTokens() {
+        if (loading || !contractId || nextToken === null) return;
+        
+        loading = true;
+        try {
+            // Load more tokens based on the current tab
+            if (displayTab === 'tokens') {
+                // Use the getTokensWithPagination function from mimir
+                const response = await getTokensWithPagination({
+                    contractId: contractId.toString(),
+                    fetch,
+                    limit: 50,
+                    nextToken: tokensNextToken || undefined,
+                    includes: 'metadata'
+                });
+                
+                if (response.tokens.length > 0) {
+                    // Add tokens to the cache
+                    tokenCache.addTokens(contractId.toString(), response.tokens);
+                    
+                    // Update nextToken for future pagination from the API response
+                    tokensNextToken = response.nextToken;
+                    
+                    // Update the tokens array with new ones
+                    tokens = [...tokens, ...response.tokens];
+                    
+                    console.log(`Loaded ${response.tokens.length} more tokens. Next token: ${tokensNextToken}`);
+                } else {
+                    tokensNextToken = null;
+                    console.log('No more tokens to load');
+                }
+            } else if (displayTab === 'forsale') {
+                // For the forsale tab, we need to get more listings
+                const response = await getListingsWithPagination({
+                    collectionId: contractId.toString(),
+                    active: true,
+                    includes: 'token,collection',
+                    fetch,
+                    limit: 50,
+                    nextToken: listingsNextToken || undefined
+                });
+                
+                if (response.listings.length > 0) {
+                    // Add the new listings to our local listings array
+                    const newListings = response.listings.filter(l => 
+                        !listings.some(existing => existing.transactionId === l.transactionId)
+                    );
+                    
+                    listings = [...listings, ...newListings];
+                    
+                    // Update nextToken for future pagination
+                    listingsNextToken = response.nextToken;
+                    
+                    console.log(`Loaded ${newListings.length} more listings. Next token: ${listingsNextToken}`);
+                } else {
+                    listingsNextToken = null;
+                    console.log('No more listings to load');
+                }
+            } else if (displayTab === 'mine' && wallet?.address) {
+                // For the mine tab, we need to get more tokens owned by the current wallet
+                const response = await getTokensWithPagination({
+                    contractId: contractId.toString(),
+                    owner: wallet.address,
+                    fetch,
+                    limit: 50,
+                    nextToken: tokensNextToken || undefined,
+                    includes: 'metadata'
+                });
+                
+                if (response.tokens.length > 0) {
+                    // Add tokens to the cache
+                    tokenCache.addTokens(contractId.toString(), response.tokens);
+                    
+                    // Update nextToken for future pagination
+                    tokensNextToken = response.nextToken;
+                    
+                    // Update the tokens array with new ones
+                    tokens = [...tokens, ...response.tokens];
+                    
+                    // Update tabs with the accurate count
+                    tabs = tabs.map(tab => 
+                        tab.id === 'mine' 
+                        ? {...tab, count: userTokenCount} 
+                        : tab
+                    );
+                    
+                    console.log(`Loaded ${response.tokens.length} more tokens for wallet. Next token: ${tokensNextToken}`);
+                } else {
+                    tokensNextToken = null;
+                    console.log('No more tokens to load for wallet');
+                }
+            } else if (displayTab === 'burned') {
+                // For the burned tab, we need to get more burned tokens
+                const response = await getTokensWithPagination({
+                    contractId: contractId.toString(),
+                    fetch,
+                    limit: 50,
+                    nextToken: tokensNextToken || undefined,
+                    includes: 'metadata'
+                });
+                
+                if (response.tokens.length > 0) {
+                    // Add tokens to the cache
+                    tokenCache.addTokens(contractId.toString(), response.tokens);
+                    
+                    // Update nextToken for future pagination
+                    tokensNextToken = response.nextToken;
+                    
+                    // Update the tokens array with new ones
+                    tokens = [...tokens, ...response.tokens];
+                    
+                    // Update burnedTokens count
+                    burnedTokens = tokens.filter(t => t.isBurned).length;
+                    
+                    // Update tabs with the accurate count
+                    tabs = tabs.map(tab => 
+                        tab.id === 'burned' 
+                        ? {...tab, count: burnedTokens} 
+                        : tab
+                    );
+                    
+                    console.log(`Loaded ${response.tokens.length} more tokens, filtered for burned. Next token: ${tokensNextToken}`);
+                } else {
+                    tokensNextToken = null;
+                    console.log('No more tokens to load for burned');
+                }
+            }
+        } catch (error) {
+            console.error('Error loading more tokens:', error);
+            if (displayTab === 'forsale') {
+                listingsNextToken = null;
+            } else {
+                tokensNextToken = null;
+            }
+        } finally {
+            loading = false;
+        }
+    }
+
+    // Function to resolve Envoi names for tokens
+    async function resolveEnvoiTokens(tokens: any[], pendingTokenIds: string[]) {
+        if (!tokens || tokens.length === 0) return;
+        
+        const tokenIds = tokens.map(token => token.tokenId);
+        try {
+            console.log(`Resolving ${tokenIds.length} Envoi names...`);
+            const envoiResults = await resolveEnvoiToken(tokenIds);
+            
+            if (envoiResults.length === 0) {
+                console.log("No Envoi results returned");
+                return;
+            }
+            
+            console.log(`Received ${envoiResults.length} Envoi results`);
+            
+            // First update the filtered tokens that are displayed
+            filteredTokens = filteredTokens.map(token => {
+                if (token.contractId === 797609 && pendingTokenIds.includes(token.tokenId)) {
+                    const envoiData = envoiResults.find(result => result.token_id === token.tokenId);
+                    if (envoiData && token.metadata) {
+                        console.log(`Found Envoi data for token ${token.tokenId}: ${envoiData.name}`);
+                        // Create a new token object with updated metadata
+                        return {
+                            ...token,
+                            metadata: {
+                                ...token.metadata,
+                                name: token.metadata.name || '',
+                                envoiName: envoiData.name,
+                                envoiMetadata: envoiData.metadata
+                            }
+                        };
+                    }
+                }
+                return token;
+            });
+            
+            // Then update the listings array
+            listings = listings.map(listing => {
+                // Skip if no token or not an Envoi token in our pending list
+                if (!listing.token || 
+                    listing.collectionId !== 797609 || 
+                    !pendingTokenIds.includes(listing.token.tokenId)) {
+                    return listing;
+                }
+                
+                const envoiData = envoiResults.find(result => result.token_id === listing.token!.tokenId);
+                if (!envoiData) return listing;
+                
+                // Create a new listing with updated token metadata
+                let tokenMetadata: Record<string, unknown>;
+                
+                if (typeof listing.token.metadata === 'string') {
+                    try {
+                        tokenMetadata = JSON.parse(listing.token.metadata);
+                    } catch (e) {
+                        console.error("Error parsing token metadata", e);
+                        tokenMetadata = {};
+                    }
+                } else {
+                    tokenMetadata = listing.token.metadata as Record<string, unknown>;
+                }
+                
+                return {
+                    ...listing,
+                    token: {
+                        ...listing.token,
+                        metadata: {
+                            ...tokenMetadata,
+                            name: tokenMetadata.name || '',
+                            envoiName: envoiData.name,
+                            envoiMetadata: envoiData.metadata
+                        }
+                    }
+                };
+            });
+            
+            console.log('Envoi names resolved and UI updated');
+        } catch (error) {
+            console.error("Error resolving Envoi names:", error);
+        }
+    }
 </script>
 
 {#if collection}
@@ -373,47 +775,47 @@
                         {/if}
                         <div class="w-1/3 md:w-auto text-center md:text-left">
                             <div class="text-sm">Floor</div>
-                            <div class="text-lg text-blue-300 cursor-pointer hover:text-blue-200 transition-colors" 
+                            <button class="text-lg text-blue-300 cursor-pointer hover:text-blue-200 transition-colors" 
                                 on:click={() => {
                                     tabSortDirections.forsale = 'asc';
                                     onSubpageChange('forsale');
                                 }}>
                                 {data.floor}
-                            </div>
+                            </button>
                         </div>
                         <div class="w-1/3 md:w-auto text-center md:text-left">
                             <div class="text-sm">Ceiling</div>
-                            <div class="text-lg text-blue-300 cursor-pointer hover:text-blue-200 transition-colors" 
+                            <button class="text-lg text-blue-300 cursor-pointer hover:text-blue-200 transition-colors" 
                                 on:click={() => {
                                     tabSortDirections.forsale = 'desc';
                                     onSubpageChange('forsale');
                                 }}>
                                 {data.ceiling}
-                            </div>
+                            </button>
                         </div>
                         <div class="tooltip w-1/3 md:w-auto text-center md:text-left">
                             <div class="text-sm">Tokens</div>
-                            <div class="text-lg text-blue-300 cursor-pointer hover:text-blue-200 transition-colors" 
+                            <button class="text-lg text-blue-300 cursor-pointer hover:text-blue-200 transition-colors" 
                                 on:click={() => onSubpageChange('tokens')}>
-                                {collection?.totalSupply ? (collection.totalSupply - (collection.burnedSupply || 0)) : '-'}
-                            </div>
+                                {data.totalTokenCount ? (data.totalTokenCount - data.burnedTokenCount) : '-'}
+                            </button>
                             <div class="tooltiptext flex flex-col space-y-1 w-auto whitespace-nowrap p-2 bg-slate-700">
-                                <div>Original Supply: {collection?.totalSupply ?? '-'}</div>
-                                <div>Tokens Burned: {collection?.burnedSupply ?? '0'}</div>
-                                <div>Tokens Remaining: {collection?.totalSupply ? (collection.totalSupply - (collection.burnedSupply || 0)) : '-'}</div>
+                                <div>Original Supply: {data.totalTokenCount ?? '-'}</div>
+                                <div>Tokens Burned: {data.burnedTokenCount ?? '0'}</div>
+                                <div>Tokens Remaining: {data.totalTokenCount ? (data.totalTokenCount - data.burnedTokenCount) : '-'}</div>
                             </div>
                         </div>
                         <div class="w-1/3 md:w-auto text-center md:text-left">
                             <div class="text-sm">Collectors</div>
-                            <div class="text-lg text-blue-300 cursor-pointer hover:text-blue-200 transition-colors" 
+                            <button class="text-lg text-blue-300 cursor-pointer hover:text-blue-200 transition-colors" 
                                 on:click={() => onSubpageChange('collectors')}>
                                 {collection?.uniqueOwners}
-                            </div>
+                            </button>
                         </div>
                         <div class="w-1/3 md:w-auto text-center md:text-left">
                             <div class="text-sm">Minted</div>
                             <div class="text-lg text-blue-300">
-                                <div class="tooltip cursor-pointer" on:click={() => collection?.mintRound && openExplorer(collection.mintRound)}>
+                                <button class="tooltip cursor-pointer" on:click={() => collection?.mintRound && openExplorer(collection.mintRound)}>
                                     {mintDate ?? '-'}
                                     {#if mintDateTime}
                                         <div class="tooltiptext w-[400px] p-4 bg-gray-800 border border-gray-700 rounded-lg shadow-xl">
@@ -478,7 +880,7 @@
                                             <div class="text-[10px] text-blue-400 mt-3 text-center">Click to view creation block in explorer</div>
                                         </div>
                                     {/if}
-                                </div>
+                                </button>
                             </div>
                         </div>
                         <div class="w-1/3 md:w-auto text-center md:text-left">
@@ -546,11 +948,10 @@
         <div class="hidden md:block">
             {#each Object.entries(categories) as [category, traits]}
                 <div class="mt-2 mb-2">
-                    <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2 cursor-pointer flex items-center gap-2" 
-                        for={category} 
+                    <button class="text-gray-700 dark:text-gray-300 text-sm font-bold mb-2 cursor-pointer flex items-center gap-2" 
                         on:click={() => handleTabSort(category)}>
                         {category}
-                    </label>
+                    </button>
                     <div class="relative">
                         <select bind:value={filters[category]} class="block appearance-none w-48 bg-white border border-gray-300 dark:border-gray-500 text-gray-700 dark:bg-gray-600 dark:text-gray-200 py-3 px-4 pr-8 rounded leading-tight focus:outline-none focus:bg-white focus:border-gray-500" id={category}>
                             <option value="">All</option>
@@ -635,7 +1036,7 @@
                 </button>
             {/each}
         </div>
-        <div class="flex flex-wrap flex-grow justify-center md:justify-start mt-3 md:mt-0">
+        <div class="flex flex-wrap flex-grow justify-center md:justify-start mt-3 md:mt-2">
             {#if displayTab === 'tokens' || displayTab === 'forsale' || displayTab === 'burned' || displayTab === 'ranking' || displayTab === 'mine'}
                 {#each filteredTokens.slice(0, displayCount) as token (token.tokenId)}
                     <div class="p-1 relative">
@@ -644,6 +1045,27 @@
                 {/each}
                 {#if filteredTokens.length > displayCount}
                     <div class="sentinel" use:inview={{ threshold: 1 }} on:inview_enter={showMore}></div>
+                {/if}
+                {#if loading}
+                    <div class="w-full flex justify-center items-center py-8">
+                        <div class="animate-pulse flex space-x-4">
+                            <div class="rounded-full bg-slate-700 h-10 w-10"></div>
+                            <div class="flex-1 space-y-6 py-1 max-w-md">
+                                <div class="h-2 bg-slate-700 rounded"></div>
+                                <div class="space-y-3">
+                                    <div class="grid grid-cols-3 gap-4">
+                                        <div class="h-2 bg-slate-700 rounded col-span-2"></div>
+                                        <div class="h-2 bg-slate-700 rounded col-span-1"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {/if}
+                {#if filteredTokens.length === 0 && !loading}
+                    <div class="w-full text-center py-10">
+                        <p class="text-gray-500 dark:text-gray-400">No tokens found matching your criteria.</p>
+                    </div>
                 {/if}
             {:else if displayTab === 'transactions'}
                 <div class="w-full">

@@ -129,7 +129,7 @@
                                 <i class="fas fa-medal"></i> {token.rank}
                             </div>
                         {/if}
-                        {#if token.isBurned}
+                        {#if token.isBurned === 'true'}
                             <div class="absolute top-0 right-0 p-1 text-red-500 text-3xl" title='Token Burned'>
                                 <i class="fas fa-fire"></i>
                             </div>
