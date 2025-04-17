@@ -22,7 +22,7 @@ export const load = (async ({ data, params, fetch }) => {
 	const pageMetaTags = {
 		title: title,
 		description: desc,
-        imageUrl: collection?.highforgeData?.coverImageURL
+        imageUrl: collection?.imageUrl ?? collection?.highforgeData?.coverImageURL
 	};
 
     // get a list of unique wallets from data.messages.walletId and data.messages.comments.walletId and then get their NFD data

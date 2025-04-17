@@ -193,7 +193,7 @@
     let collectionName = '';
     $: {
         if (token.contractId === 797609) {
-            collectionName = 'ENVOi Names';
+            collectionName = 'enVoi Names';
         } else {
             collectionName = collection?.highforgeData?.title ?? (token?.metadata?.name??'').replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
             collectionName = collectionName.substring(0, 28) + (collectionName.length > 28 ? '...' : '');

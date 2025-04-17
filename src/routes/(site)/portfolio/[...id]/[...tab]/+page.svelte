@@ -468,7 +468,7 @@ console.log(currentTab);
                             <i class="fas fa-chart-line mr-2"></i>
                             <span>Voirewards</span>
                         </div>
-                        <span class="text-white/70 text-xs">Analytics</span>
+                        <span class="text-white/70 text-xs">Portfolio</span>
                     </a>
                     {#if isCreator}
                     <button 

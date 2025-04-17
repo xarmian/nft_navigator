@@ -241,7 +241,7 @@ export const load = (async ({ params, fetch }) => {
 	const pageMetaTags = {
         title: title,
         description: tokens[0]?.metadata?.description ?? collection?.highforgeData?.description ?? undefined,
-        imageUrl: collection?.highforgeData?.coverImageURL ?? tokens[0]?.metadata?.image ?? undefined,
+        imageUrl: collection?.imageUrl ?? collection?.highforgeData?.coverImageURL ?? tokens[0]?.metadata?.image ?? undefined,
       };
 
 	return {
