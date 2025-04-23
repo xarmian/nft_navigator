@@ -158,7 +158,7 @@
 				You are connected to Voi MainNet. Please use caution.
 			</div>
 		{/if}
-		<header class="bg-white dark:bg-gray-900 py-4 px-6 flex items-center justify-between w-full z-50 shadow-md">
+		<header class="bg-white dark:bg-gray-800 py-4 px-6 flex items-center justify-between w-full z-50 shadow-md">
 			<div class="flex items-center space-x-3">
 				<a href="/">
 					<img src="{Icon}" class="h-10 rounded-lg" alt="Logo" />

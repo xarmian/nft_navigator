@@ -93,29 +93,59 @@ function createTokenCache() {
                     return cache;
                 }
 
-                const updatedTokens = collection.tokens.map(token => ({
-                    ...token,
-                    visible: (
-                        // Tab-specific visibility
-                        (displayTab === 'forsale' ? (token.marketData && !token.marketData.sale && !token.marketData.delete) : true) &&
-                        (displayTab === 'burned' ? token.isBurned : displayTab !== 'burned' ? !token.isBurned : true) &&
-                        // Search text visibility
-                        (!searchText || 
-                            token.metadata?.name?.toLowerCase().includes(searchText.toLowerCase()) ||
-                            token.traits?.some(trait => trait.toLowerCase().includes(searchText.toLowerCase())) ||
-                            token.tokenId.toString().includes(searchText.toLowerCase()) ||
-                            token.owner.toLowerCase().includes(searchText.toLowerCase()) ||
-                            token.ownerNFD?.toLowerCase().includes(searchText.toLowerCase()) ||
-                            (token.contractId === 797609 && token.metadata?.envoiName?.toLowerCase().includes(searchText.toLowerCase()))
-                        ) &&
-                        // Filter visibility
-                        Object.entries(filters).every(([key, value]) => {
+                console.log(`Updating visibility for ${collectionId}, tab: ${displayTab}, search: ${searchText}, filters: ${JSON.stringify(filters)}`);
+                
+                const updatedTokens = collection.tokens.map(token => {
+                    // For tokens tab with no search text or filters, all tokens are visible
+                    const noFiltersOrSearch = searchText === '' && Object.values(filters).every(v => v === '');
+                    if (displayTab === 'tokens' && noFiltersOrSearch) {
+                        return {
+                            ...token,
+                            visible: true
+                        };
+                    }
+                    
+                    // For tokens tab with filters/search, we already have filtered tokens from API
+                    // So we just need to make sure they're all visible
+                    if (displayTab === 'tokens' && (searchText !== '' || Object.values(filters).some(v => v !== ''))) {
+                        return {
+                            ...token,
+                            visible: true
+                        };
+                    }
+                    
+                    // For other tabs, apply appropriate visibility filters
+                    const tabCondition = (displayTab === 'forsale' ? 
+                        (token.marketData && !token.marketData.sale && !token.marketData.delete) : true) &&
+                        (displayTab === 'burned' ? token.isBurned : displayTab !== 'burned' ? !token.isBurned : true);
+                    
+                    const searchCondition = !searchText || 
+                        token.metadata?.name?.toLowerCase().includes(searchText.toLowerCase()) ||
+                        token.traits?.some(trait => trait.toLowerCase().includes(searchText.toLowerCase())) ||
+                        token.tokenId.toString().includes(searchText.toLowerCase()) ||
+                        token.owner?.toLowerCase().includes(searchText.toLowerCase()) ||
+                        token.ownerNFD?.toLowerCase().includes(searchText.toLowerCase()) ||
+                        (token.contractId === 797609 && token.metadata?.envoiName?.toLowerCase().includes(searchText.toLowerCase()));
+                    
+                    // Filter condition
+                    const noFilters = Object.entries(filters).every(([, value]) => value === '');
+                    
+                    let filterCondition;
+                    if (noFilters) {
+                        filterCondition = true;
+                    } else {
+                        filterCondition = Object.entries(filters).every(([key, value]) => {
                             if (value === '') return true;
                             return token.metadata?.properties?.[key] === value;
-                        })
-                    )
-                })) as TokenWithVisibility[];
-
+                        });
+                    }
+                    
+                    return {
+                        ...token,
+                        visible: tabCondition && searchCondition && filterCondition
+                    };
+                }) as TokenWithVisibility[];
+                
                 return {
                     ...cache,
                     [collectionId]: {
@@ -139,4 +169,4 @@ function createTokenCache() {
     };
 }
 
-export const tokenCache = createTokenCache(); 
+export const tokenCache = createTokenCache();

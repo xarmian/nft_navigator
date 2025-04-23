@@ -138,6 +138,8 @@ export interface GetTokensParams {
     nextToken?: string;
     includes?: string;
     fetch?: (input: RequestInfo) => Promise<Response>;
+    metadataSearch?: string;
+    metadataProperties?: Record<string, string>;
 }
 
 export interface GetCollectionsParams {
@@ -329,9 +331,48 @@ async function processTokenResponse(data: ITokenResponse): Promise<Token[]> {
             salesData: null,
             rank: null,
             traits: traits,
-            isBurned: token.isBurned,
+            isBurned: String(token.isBurned),
         };
     });
+
+    // Group tokens by collection
+    /*const tokensByCollection: Record<number, Token[]> = {};
+    tokens.forEach(token => {
+        if (!tokensByCollection[token.contractId]) {
+            tokensByCollection[token.contractId] = [];
+        }
+        tokensByCollection[token.contractId].push(token);
+    });
+
+    // Process token rankings by collection
+    for (const contractId in tokensByCollection) {
+        const collectionTokens = tokensByCollection[contractId];
+        
+        try {
+            // Get collection to check for metadata with trait counts
+            const collection = await getCollection({ contractId: parseInt(contractId) });
+            
+            if (collection && collection.metadata) {
+                // Try to parse the traitCount from the collection metadata
+                let collectionData;
+                try {
+                    collectionData = typeof collection.metadata === 'string'
+                        ? JSON.parse(collection.metadata)
+                        : collection.metadata;
+                } catch (e) {
+                    console.error('Error parsing collection metadata:', e);
+                    collectionData = null;
+                }
+
+                if (collectionData?.traitCount) {
+                    // Calculate rarity scores from the traitCount data
+                    calculateTokenRanks(collectionTokens, collectionData.traitCount);
+                }
+            }
+        } catch (err) {
+            console.error('Error processing token ranks for collection:', contractId, err);
+        }
+    }*/
 
     const owners = Array.from(new Set(tokens.map(token => token.owner)));
     const nfdResults = await getNFD(owners);
@@ -362,6 +403,98 @@ async function processTokenResponse(data: ITokenResponse): Promise<Token[]> {
     }
 
     return tokens.filter(token => token.contractId !== 797610 && token.contractId !== 846601);
+}
+
+/**
+ * Calculate rarity scores and ranks for tokens based on trait count data
+ */
+export function calculateTokenRanks(tokens: Token[], traitCount: Record<string, Record<string, number>>) {
+    // Calculate total NFTs in collection based on trait count data
+    let totalNFTsInCollection = 0;
+    
+    // Get the first trait category and sum all trait occurrences
+    const firstCategory = Object.keys(traitCount)[0];
+    if (firstCategory) {
+        totalNFTsInCollection = Object.values(traitCount[firstCategory]).reduce((sum, count) => sum + count, 0);
+    }
+    
+    if (totalNFTsInCollection === 0) {
+        console.error('Unable to determine collection size from traitCount data');
+        return;
+    }
+
+    // Calculate rarity score for each token
+    const rarityArray: { tokenId: string; rarity: number }[] = [];
+    
+    tokens.forEach(token => {
+        if (token.metadata?.properties) {
+            try {
+                const rarity = calculateRarityScore(traitCount, token.metadata.properties, totalNFTsInCollection);
+                rarityArray.push({ tokenId: token.tokenId, rarity });
+            } catch (e) {
+                console.error('Error calculating rarity for token:', token.tokenId, e);
+                rarityArray.push({ tokenId: token.tokenId, rarity: 0 });
+            }
+        } else if (token.metadata?.attributes) {
+            try {
+                // Convert attributes array to properties format
+                const properties: Record<string, string> = {};
+                token.metadata.attributes.forEach((attr: { trait_type: string, value: string | number }) => {
+                    properties[attr.trait_type] = attr.value.toString();
+                });
+                
+                const rarity = calculateRarityScore(traitCount, properties, totalNFTsInCollection);
+                rarityArray.push({ tokenId: token.tokenId, rarity });
+            } catch (e) {
+                console.error('Error calculating rarity for token with attributes:', token.tokenId, e);
+                rarityArray.push({ tokenId: token.tokenId, rarity: 0 });
+            }
+        } else {
+            rarityArray.push({ tokenId: token.tokenId, rarity: 0 });
+        }
+    });
+    
+    // Sort by rarity score (higher is better)
+    rarityArray.sort((a, b) => b.rarity - a.rarity);
+    
+    // Assign ranks to tokens
+    let currentRank = 1;
+    let previousRarity = rarityArray[0]?.rarity ?? 0;
+    
+    tokens.forEach(token => {
+        const rarityEntry = rarityArray.find(r => r.tokenId === token.tokenId);
+        if (!rarityEntry) return;
+        
+        const rarity = rarityEntry.rarity;
+        if (rarity === previousRarity) {
+            token.rank = currentRank;
+        } else {
+            token.rank = rarityArray.findIndex(r => r.tokenId === token.tokenId) + 1;
+            currentRank = token.rank;
+            previousRarity = rarity;
+        }
+    });
+}
+
+/**
+ * Calculate rarity score for a token based on its traits
+ */
+function calculateRarityScore(
+    traitCount: Record<string, Record<string, number>>,
+    tokenProperties: Record<string, string>,
+    totalNFTsInCollection: number
+): number {
+    let rarityScore = 0;
+    
+    for (const category in tokenProperties) {
+        if (traitCount[category]) {
+            const traitValue = tokenProperties[category];
+            const occurrences = traitCount[category][traitValue] || 1;
+            rarityScore += totalNFTsInCollection / occurrences;
+        }
+    }
+    
+    return rarityScore;
 }
 
 export async function getCollections(params: GetCollectionsParams): Promise<Collection[]> {
@@ -618,7 +751,7 @@ function processTransferResponse(data: ITransferResponse): Transfer[] {
                 mintRound: transfer.token["mint-round"],
                 approved: transfer.token.approved,
                 traits: traits,
-                isBurned: transfer.token.isBurned,
+                isBurned: String(transfer.token.isBurned),
                 rank: null,
                 marketData: null,
                 salesData: null
@@ -803,7 +936,7 @@ export function createListingsStore() {
                             salesData: null,
                             rank: null,
                             traits: traits,
-                            isBurned: token.isBurned === 'true',
+                            isBurned: String(token.isBurned),
                             isListed: true
                         };
                     });
@@ -860,14 +993,30 @@ export async function getTokensWithPagination(params: GetTokensParams): Promise<
     if (!params.fetch) params.fetch = fetch;
     if (!params.limit) params.limit = 50; // Default to a reasonable limit for pagination
 
-    const urlParams = buildURLParams({
-        contractId: params.contractId,
-        tokenId: params.tokenId,
-        owner: params.owner,
-        limit: params.limit,
-        'next-token': params.nextToken,
-        includes: params.includes || 'metadata'
-    });
+    // Create URL parameters, including any metadata property filters
+    const urlParams = new URLSearchParams();
+    
+    // Add standard parameters
+    if (params.contractId) urlParams.append('contractId', params.contractId.toString());
+    if (params.tokenId) urlParams.append('tokenId', params.tokenId);
+    if (params.owner) urlParams.append('owner', params.owner);
+    if (params.limit) urlParams.append('limit', params.limit.toString());
+    if (params.nextToken) urlParams.append('next-token', params.nextToken);
+    // Only add includes if it's specified and not the default 'metadata' value
+    if (params.includes && params.includes !== 'metadata') urlParams.append('includes', params.includes);
+    
+    // Handle metadata search
+    if (params.metadataSearch) urlParams.append('metadataText', params.metadataSearch);
+    
+    // Handle metadata property filters
+    if (params.metadataProperties) {
+        // metadataProperties is an object like { BACKGROUND: 'Blue', FACE: 'Happy' }
+        Object.entries(params.metadataProperties).forEach(([trait, value]) => {
+            if (value) {
+                urlParams.append(`metadata.properties.${trait}`, value);
+            }
+        });
+    }
 
     const url = `${mimirBaseURL}/tokens?${urlParams.toString()}`;
     
@@ -937,5 +1086,16 @@ export async function getListingsWithPagination(params: GetListingsParams): Prom
             totalCount: 0
         };
     }
+}
+
+export async function getCollectors(params: { contractId?: number, limit?: number, fetch?: (input: RequestInfo) => Promise<Response> }) {
+    const fetchFn = params.fetch || fetch;
+    const body: Record<string, string> = {};
+    if (params.contractId !== undefined) body.contractId = params.contractId.toString();
+    if (params.limit !== undefined) body.limit = params.limit.toString();
+    const urlParams = buildURLParams(body);
+    const res = await fetchFn(`${mimirBaseURL}/analytics/collectors?${urlParams.toString()}`);
+    const data = await res.json();
+    return data.collectors as { owner: string, tokenCount: number }[];
 }
 

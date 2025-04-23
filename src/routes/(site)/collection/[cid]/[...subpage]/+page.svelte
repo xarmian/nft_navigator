@@ -1,32 +1,34 @@
 <script lang="ts">
 	import type { PageData } from '../$types';
     import type { Token, Collection, Metadata, Listing } from '$lib/data/types';
-    import { inview } from 'svelte-inview';
-    import SalesTable from '$lib/component/ui/SalesTable.svelte';
-    import HoldersList from '$lib/component/ui/HoldersList.svelte';
 	import NautilusButton from '$lib/component/ui/NautilusButton.svelte';
     import HighforgeButton from '$lib/component/ui/HighforgeButton.svelte';
-    import { getImageUrl, handleScroll } from '$lib/utils/functions';
 	import { goto } from '$app/navigation';
+	import { browser } from '$app/environment';
 	import PixelPursuitButton from '$lib/component/ui/PixelPursuitButton.svelte';
-	import TokenDetail from '$lib/component/ui/TokenDetail.svelte';
 	import LoungeButton from '$lib/component/ui/LoungeButton.svelte';
     import { onMount, onDestroy } from 'svelte';
     import { tokenCache } from '$lib/stores/tokenCache';
     import { algodIndexer } from '$lib/utils/algod';
     import { getEnvoiNames, resolveEnvoiToken } from '$lib/utils/envoi';
     import { selectedWallet } from "avm-wallet-svelte";
-	import LoungeView from '$lib/component/ui/LoungeView.svelte';
     import { getTokensWithPagination } from '$lib/utils/mimir';
     import { getListingsWithPagination } from '$lib/utils/mimir';
-
-    //const forsale = $page.url.searchParams.get('forsale');
+    import CollectionHeader from './components/CollectionHeader.svelte';
+    import CollectionStats from './components/CollectionStats.svelte';
+    import CollectionTabs from './components/CollectionTabs.svelte';
+    import { onNavigate } from '$app/navigation';
+    import { invalidateAll } from '$app/navigation';
 
     export let data: PageData;
     $: contractId = data.contractId;
     let subpage = data.subpage;
+    // Initialize currentView early to avoid reference errors
+    let currentView = subpage === 'forsale' ? 'forsale' : subpage === '' ? 'tokens' : subpage;
+    let previousView = currentView;
+    $: rawCollectors = data.rawCollectors;
+    
     $: tokens = data.tokens as Token[];
-    let collectionName = data.collectionName.trim();
     $: collection = data.collection as Collection;
     $: listings = data.listings as Listing[];
     let filteredTokens = [] as Token[];
@@ -35,10 +37,7 @@
     let searchText = '';
     $: displayTab = subpage === 'forsale' ? 'forsale' : subpage === '' ? 'tokens' : subpage;
     $: categories = data.categories;
-    $: forSaleCollection = displayTab === 'forsale';
-    let bannerOpacity = 1;
     let wallet: any = null;
-    let userTokens: Token[] = [];
     let tabSortDirections = {
         tokens: 'asc',
         forsale: 'asc',
@@ -55,6 +54,19 @@
     // Creator Envoi metadata
     let creatorEnvoiMetadata: { url?: string; avatar?: string; location?: string; 'com.twitter'?: string; 'com.github'?: string; } | null = null;
 
+    // Tab data loading management
+    const tabDataLoaded = {
+        tokens: true, // Loaded on initial page load
+        forsale: false,
+        mine: false,
+        burned: false,
+        ranking: true, // Uses the same data as tokens
+        transactions: true, // Component handles its own data
+        collectors: true, // Component handles its own data
+        feed: true, // Component handles its own data
+        analytics: true // Component handles its own data
+    };
+
     // Function to safely parse metadata string
     function parseMetadata(metadataStr: string | undefined): Metadata | null {
         if (!metadataStr) return null;
@@ -70,9 +82,9 @@
     $: firstTokenMetadata = collection?.firstToken?.metadata ? parseMetadata(collection.firstToken.metadata) : null;
     $: collectionDescription = data.collection?.highforgeData?.description || firstTokenMetadata?.description || '';
 
-    // Fetch creator's Envoi metadata when collection changes
+    // Fetch creator's Envoi metadata when collection changes (once)
     $: {
-        if (collection?.creator && collection.creatorName?.endsWith('.voi')) {
+        if (collection?.creator && collection.creatorName?.endsWith('.voi') && !creatorEnvoiMetadata) {
             getEnvoiNames([collection.creator]).then(results => {
                 if (results.length > 0) {
                     creatorEnvoiMetadata = results[0].metadata;
@@ -84,192 +96,213 @@
     // Subscribe to wallet changes
     selectedWallet.subscribe((value) => {
         wallet = value;
+        // Detect wallet changes to trigger re-fetch of Mine tab data if needed
+        if (value && currentView === 'mine' && !tabDataLoaded.mine) {
+            fetchMineTokens();
+        }
     });
 
-    // Calculate counts for tabs
+    // Variables and reactive declarations
     $: forSaleCount = data.forSaleCount ?? 0;
     $: totalTokens = data.totalTokenCount ?? 0;
     $: burnedTokens = data.burnedTokenCount ?? 0;
-    $: uniqueCollectors = new Set(tokens?.map(t => t.owner)).size;
+    let burnedTokenCount = data.burnedTokenCount ?? 0;
     $: userTokenCount = data.userTokenCount ?? 0;
 
-    $: tabs = [ 
-        {id: 'tokens', name: 'All Tokens', count: totalTokens, sortable: true}, 
+    // Define views for the view switcher
+    $: views = [
+        {id: 'tokens', name: 'All Tokens', count: totalTokens, sortable: true},
         {id: 'forsale', name: 'For Sale', count: forSaleCount, sortable: true},
         {id: 'mine', name: 'Mine', count: userTokenCount, sortable: true},
-        {id: 'ranking', name: 'Ranking', sortable: true},
-        {id: 'transactions', name: 'Transactions', sortable: true},
-        {id: 'collectors', name: 'Collectors', count: uniqueCollectors, sortable: true}, 
+        {id: 'ranking', name: 'Ranking', count: undefined, sortable: true},
+        {id: 'transactions', name: 'Transactions', count: undefined, sortable: true},
+        {id: 'collectors', name: 'Collectors', count: rawCollectors.length, sortable: true},
         {id: 'burned', name: 'Burned Tokens', count: burnedTokens, sortable: true},
-        {id: 'feed', name: 'Feed', sortable: true},
+        {id: 'analytics', name: 'Analytics', count: undefined, sortable: false},
+        {id: 'feed', name: 'Feed', count: undefined, sortable: true},
     ];
+
+    function setView(viewId: string) {
+        // Only proceed if actually changing views
+        if (currentView !== viewId) {
+            previousView = currentView;
+            currentView = viewId;
+            onSubpageChange(viewId);
+        }
+    }
 
     // Variables for pagination
     let loading = false;
     let tokensNextToken: string | null = data.initialNextToken;
     let listingsNextToken: string | null = data.listingsNextToken;
-    $: nextToken = displayTab === 'forsale' ? listingsNextToken : tokensNextToken;
+    $: nextToken = currentView === 'forsale' ? listingsNextToken : tokensNextToken;
 
-    // Add scroll handler
-    onMount(() => {
-        // Add scroll handler
-        const handleScroll = () => {
-            const scrollY = window.scrollY;
-            const fadeStartPoint = 0;
-            const fadeEndPoint = 300;
-            bannerOpacity = Math.max(0, 1 - (scrollY - fadeStartPoint) / (fadeEndPoint - fadeStartPoint));
-        };
-
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    });
-
-    // Initialize the token cache when tokens change
+    // Initialize the token cache when tokens change - but only once
     $: {
-        if (tokens && tokens.length > 0) {
+        if (tokens && tokens.length > 0 && !$tokenCache[contractId.toString()]) {
             tokenCache.setTokens(contractId.toString(), tokens);
-            // Apply initial visibility based on current tab
-            tokenCache.updateVisibility(contractId.toString(), searchText, displayTab, filters);
+            tokenCache.updateVisibility(contractId.toString(), searchText, currentView, filters);
         }
     }
 
-    // Update visibility when search text, tab, or filters change
+    // Watch for filter changes and refresh from API when using server-side filtering
+    // Only triggers when filters or search text actually change - not on tab changes
     $: {
-        if (tokens && tokens.length > 0 && $tokenCache[contractId.toString()]) {
-            // Reset display count when search text changes
-            if (searchText !== $tokenCache[contractId.toString()].searchText) {
-                displayCount = 10;
+        if (tokens && tokens.length > 0 && 
+            (searchText !== '' || Object.values(filters).some(v => v !== ''))) {
+            loadFilteredTokens(searchText, filters);
+        }
+    }
+    
+    // Track state to avoid duplicate requests
+    let lastSearch = '';
+    let isSearchPending = false;
+    
+    // Function to fetch tokens with filters directly from API
+    async function loadFilteredTokens(searchValue: string, filterValues: Record<string, string>) {
+        if (!contractId || loading) return;
+        
+        // Create a hash of the current search parameters
+        const searchHash = `${searchValue}:${JSON.stringify(filterValues)}`;
+        
+        // Skip if this exact search is already being processed or was just completed
+        if (isSearchPending || searchHash === lastSearch) return;
+        
+        // Mark as pending and save for comparison
+        isSearchPending = true;
+        lastSearch = searchHash;
+        
+        loading = true;
+        try {
+            // Create metadata properties filter from current filters
+            const metadataProperties = createMetadataFilters(filterValues);
+            
+            // Use the getTokensWithPagination function with metadata filtering
+            const response = await getTokensWithPagination({
+                contractId: contractId.toString(),
+                fetch,
+                limit: 50,
+                nextToken: tokensNextToken || undefined,
+                metadataSearch: searchValue || undefined,
+                metadataProperties: Object.keys(metadataProperties).length > 0 ? metadataProperties : undefined
+            });
+            
+            if (response.tokens.length > 0) {
+                // Replace tokens in the cache with filtered results
+                tokenCache.setTokens(contractId.toString(), response.tokens);
+                
+                // Update nextToken for future pagination
+                tokensNextToken = response.nextToken;
+            } else {
+                // If no matching tokens were found, show empty state
+                tokenCache.setTokens(contractId.toString(), []);
+                tokensNextToken = null;
             }
-            tokenCache.updateVisibility(contractId.toString(), searchText, displayTab, filters);
+        } catch (error) {
+            console.error('Error loading filtered tokens:', error);
+        } finally {
+            loading = false;
+            isSearchPending = false;
         }
     }
 
-    // Get tokens from the cache and apply sorting
+    // Helper function for sorting tokens
+    function sortTokens(tokensToSort: Token[]): Token[] {
+        if (!views.find(t => t.id === currentView)?.sortable) {
+            return tokensToSort;
+        }
+
+        return [...tokensToSort].sort((a: Token, b: Token) => {
+            if (currentView === 'ranking') {
+                if (a.rank === undefined || a.rank === null) return 1;
+                if (b.rank === undefined || b.rank === null) return -1;
+                return sortDirection === 'asc' ? a.rank - b.rank : b.rank - a.rank;
+            }
+            else if (currentView === 'forsale') {
+                const aPrice = a.marketData?.price ?? Number.MAX_VALUE;
+                const bPrice = b.marketData?.price ?? Number.MAX_VALUE;
+                // Handle potential null/undefined prices during sort
+                if (aPrice === Number.MAX_VALUE && bPrice === Number.MAX_VALUE) return 0;
+                if (aPrice === Number.MAX_VALUE) return 1;
+                if (bPrice === Number.MAX_VALUE) return -1;
+                return sortDirection === 'asc' ? aPrice - bPrice : bPrice - aPrice;
+            } else { // Default sort by tokenId
+                const aId = Number(a.tokenId) || 0;
+                const bId = Number(b.tokenId) || 0;
+                return sortDirection === 'asc' ? aId - bId : bId - aId;
+            }
+        });
+    }
+
+    // Consolidated reactive block to handle all tab views
     $: {
         const cached = $tokenCache[contractId.toString()];
-        if (cached) {
-            let visibleTokens = cached.tokens;
+        let tokensToDisplay: Token[] = []; // Initialize default
+
+        if (currentView === 'forsale') {
+            // 'forsale' uses the listings array
+            const filteredListings = listings.filter(l => l.delete === null && l.price > 0);
+            tokensToDisplay = filteredListings.map(l => {
+                if (!l.token) return null; 
+                return { 
+                    ...(l.token as any),
+                    marketData: l,
+                    contractId: l.collectionId,
+                    tokenId: l.tokenId,
+                    rank: null
+                } as Token;
+            }).filter(t => t !== null) as Token[];
             
-            // First apply visibility filter
-            visibleTokens = visibleTokens.filter(t => t.visible);
-            
-            // Then apply tab-specific filters
-            if (displayTab === 'forsale') {
-                // Create tokens with market data for listings that match our filter criteria
-                const filteredListings = listings.filter(l => !l.sale && !l.delete);
-                console.log(`Processing ${filteredListings.length} filtered listings for "For Sale" tab`);
-                
-                visibleTokens = filteredListings.map(l => {
-                    // Only proceed if we have a token
-                    if (!l.token) return null;
-                    
-                    // Create a proper Token object that includes the required properties
-                    const listingToken: any = {
-                        ...l.token,
-                        marketData: l,
-                        contractId: l.collectionId,
-                        visible: true,
-                        rank: null
-                    };
-                    
-                    return listingToken;
-                }).filter(t => t !== null) as any[];
-                
-                // Fetch owner Envoi names for tokens on the For Sale page
-                const uniqueOwners = Array.from(new Set(visibleTokens.map(t => t.owner)));
-                if (uniqueOwners.length > 0) {
-                    // Only resolve Envoi names for token owners
-                    getEnvoiNames(uniqueOwners).then((envoiResults) => {
-                        if (envoiResults.length > 0) {
-                            console.log(`Found ${envoiResults.length} Envoi names for owners`);
-                            // Update visibleTokens with owner info
-                            const updatedTokens = visibleTokens.map(token => {
-                                const ownerEnvoi = envoiResults.find(r => r.address === token.owner);
-                                if (ownerEnvoi) {
-                                    return {
-                                        ...token,
-                                        ownerNFD: ownerEnvoi.name,
-                                        ownerAvatar: ownerEnvoi.metadata?.avatar || '/blank_avatar_small.png'
-                                    };
-                                }
-                                return token;
-                            });
-                            
-                            // Update both visibleTokens and filteredTokens
-                            visibleTokens = updatedTokens;
-                            filteredTokens = updatedTokens;
-                        }
-                    }).catch(error => {
-                        console.error("Error resolving Envoi names for owners:", error);
-                    });
-                }
-                
-                // Separately handle Envoi tokens for the "For Sale" tab
-                const envoiTokens = visibleTokens.filter(t => 
-                    t.contractId === 797609 && 
-                    t.metadata && 
-                    !t.metadata.envoiName && 
-                    !t.metadata.envoiMetadata
-                );
-                
-                console.log(`Found ${envoiTokens.length} Envoi tokens needing resolution in "For Sale" tab`);
-                if (envoiTokens.length > 0) {
-                    console.log(`Envoi tokens to resolve: ${envoiTokens.map(t => t.tokenId).join(', ')}`);
-                    // Store token IDs for later reference
-                    const pendingEnvoiTokenIds = envoiTokens.map(t => t.tokenId);
-                    resolveEnvoiTokens(envoiTokens, pendingEnvoiTokenIds);
-                }
-            } else if (displayTab === 'mine' && wallet) {
-                // If we don't have any tokens that match the current wallet, trigger a fetch
-                const hasWalletTokens = visibleTokens.some(t => t.owner === wallet.address);
-                if (!hasWalletTokens && !loading && tokensNextToken !== null) {
-                    // Load wallet tokens
-                    onSubpageChange('mine').catch(err => console.error('Error loading mine tab:', err));
-                }
-                
-                visibleTokens = visibleTokens.filter(t => t.owner === wallet.address);
-                
-                // Update the Mine tab count when we're on this tab
-                // This shows the actual count of current tokens owned by the wallet
-                const userOwnedCount = visibleTokens.length;
-                tabs = tabs.map(tab => 
-                    tab.id === 'mine' 
-                    ? {...tab, count: userOwnedCount} 
-                    : tab
-                );
-            } else if (displayTab === 'burned') {
-                // If we don't have any burned tokens yet, trigger a fetch
-                const hasBurnedTokens = visibleTokens.some(t => t.isBurned);
-                if (!hasBurnedTokens && !loading && tokensNextToken !== null) {
-                    // Load burned tokens
-                    onSubpageChange('burned').catch(err => console.error('Error loading burned tab:', err));
-                }
-                
-                visibleTokens = visibleTokens.filter(t => t.isBurned);
+            // Load forsale data if not already loaded
+            if (!tabDataLoaded.forsale && !loading) {
+                tabDataLoaded.forsale = true;
+                loadForSaleData();
             }
+        
+        } else if (cached) { // Handle other views that rely on the token cache
             
-            // Apply sorting based on current tab and direction
-            if (tabs.find(t => t.id === displayTab)?.sortable) {
-                visibleTokens.sort((a: Token, b: Token) => {
-                    if (displayTab === 'ranking') {
-                        if (a.rank === undefined) return 1;
-                        if (b.rank === undefined) return -1;
-                        return sortDirection === 'asc' ? (a?.rank??0) - (b?.rank??0) : (b?.rank??0) - (a?.rank??0);
-                    }
-                    else if (displayTab === 'forsale') {
-                        const aPrice = a.marketData?.price ?? Number.MAX_VALUE;
-                        const bPrice = b.marketData?.price ?? Number.MAX_VALUE;
-                        return sortDirection === 'asc' ? aPrice - bPrice : bPrice - aPrice;
-                    } else {
-                        const aName = Number(a.tokenId) || 0;
-                        const bName = Number(b.tokenId) || 0;
-                        return sortDirection === 'asc' ? aName - bName : bName - aName;
-                    }
-                });
+            if (currentView === 'mine' && wallet) {
+                tokensToDisplay = cached.tokens.filter(t => t.owner === wallet.address);
+                const userOwnedCount = tokensToDisplay.length;
+                views = views.map(tab => tab.id === 'mine' ? {...tab, count: userOwnedCount} : tab);
+                
+                // Load mine data if not already loaded and wallet exists
+                if (!tabDataLoaded.mine && wallet?.address && !loading) {
+                    fetchMineTokens();
+                }
+
+            } else if (currentView === 'burned') {
+                tokensToDisplay = cached.tokens.filter(t => t.isBurned === 'true');
+                
+                // Load burned data if not already loaded
+                if (!tabDataLoaded.burned && !loading) {
+                    tabDataLoaded.burned = true;
+                    loadBurnedTokens();
+                }
+            
+            } else if (currentView === 'tokens' || currentView === 'ranking') { 
+                if (data.tokens && data.tokens.length > 0) {
+                    tokensToDisplay = data.tokens;
+                    cached.tokens = data.tokens;
+                }
+            } else if (currentView === 'collectors') {
+                // For collectors tab, use the original tokens array directly
+                // This ensures we pass the complete tokens array to HoldersList
+                tokensToDisplay = data.tokens || [];
+            } else {
+                // Default for other views (transactions, analytics, feed) is empty grid
+                tokensToDisplay = []; 
             }
-            
-            filteredTokens = visibleTokens;
+        } else if (currentView === 'collectors' && data.tokens && data.tokens.length > 0) {
+            // If cache is not available but we're on collectors tab with data
+            tokensToDisplay = data.tokens;
+        } else {
+            // No cache AND not 'forsale' or 'collectors' view
+            tokensToDisplay = [];
         }
+            
+        // Apply sorting and assign final result to filteredTokens
+        filteredTokens = sortTokens(tokensToDisplay);
     }
 
     onDestroy(() => {
@@ -280,136 +313,97 @@
     // Update displayTab reactivity to handle subpage changes
     $: {
         const newTab = subpage === 'forsale' ? 'forsale' : subpage === '' ? 'tokens' : subpage;
-        if (displayTab !== newTab) {
-            displayTab = newTab;
+        if (currentView !== newTab) {
+            previousView = currentView;
+            currentView = newTab;
             // Reset display count when changing tabs
             displayCount = 10;
         }
     }
 
+    // Setup navigation listener to handle browser back/forward without full reloads
+    onMount(() => {
+        if (browser) {
+            // Listen for popstate events (back/forward navigation)
+            const handlePopState = () => {
+                const path = window.location.pathname;
+                const segments = path.split('/');
+                const newSubpage = segments[segments.length - 1] === contractId.toString() ? '' : segments[segments.length - 1];
+                
+                // Only update if the subpage actually changed
+                if (subpage !== newSubpage) {
+                    subpage = newSubpage;
+                    currentView = newSubpage === '' ? 'tokens' : newSubpage;
+                    displayCount = 10; // Reset display count
+                }
+            };
+            
+            window.addEventListener('popstate', handlePopState);
+            
+            return () => {
+                window.removeEventListener('popstate', handlePopState);
+            };
+        }
+    });
+
+    // Replace the onSubpageChange function
     async function onSubpageChange(newPage: string | number) {
-        // Update the subpage immediately
-        subpage = newPage === 'tokens' ? '' : newPage.toString();
-        displayTab = newPage.toString();
+        const targetView = newPage === 'tokens' ? '' : newPage.toString();
+        
+        // Check if the target is the same as the current state
+        if (subpage === targetView) {
+            return;
+        }
+        
+        // Update the subpage state variable
+        subpage = targetView;
         
         // Reset display count
         displayCount = 10;
-
-        // For 'mine' and 'burned' tabs, we need to fetch specific data when they're selected
-        if (newPage === 'mine' && wallet?.address) {
-            loading = true;
-            try {
-                // Fetch tokens owned by this wallet for this collection
-                const response = await getTokensWithPagination({
-                    contractId: contractId.toString(),
-                    owner: wallet.address,
-                    fetch,
-                    limit: 50,
-                    includes: 'metadata'
-                });
-                
-                if (response.tokens.length > 0) {
-                    // Add to token cache without clearing existing tokens
-                    tokenCache.addTokens(contractId.toString(), response.tokens);
-                    
-                    // Update the userTokenCount
-                    userTokenCount = response.tokens.length;
-                    
-                    // Update tabs with the accurate count
-                    tabs = tabs.map(tab => 
-                        tab.id === 'mine' 
-                        ? {...tab, count: userTokenCount} 
-                        : tab
-                    );
-                    
-                    console.log(`Loaded ${response.tokens.length} tokens for wallet ${wallet.address}`);
-                }
-            } catch (error) {
-                console.error('Error fetching wallet tokens:', error);
-            } finally {
-                loading = false;
-            }
-        } else if (newPage === 'burned') {
-            loading = true;
-            try {
-                // We need to get all burned tokens for this collection
-                // Check if we already have them in our token cache
-                const cached = $tokenCache[contractId.toString()];
-                const hasBurnedTokens = cached && cached.tokens.some(t => t.isBurned);
-                
-                if (!hasBurnedTokens) {
-                    // Fetch burned tokens
-                    const response = await getTokensWithPagination({
-                        contractId: contractId.toString(),
-                        fetch,
-                        limit: 50,
-                        includes: 'metadata'
-                    });
-                    
-                    if (response.tokens.length > 0) {
-                        // Add to token cache
-                        tokenCache.addTokens(contractId.toString(), response.tokens);
-                        
-                        // Update burnedTokens count
-                        burnedTokens = response.tokens.filter(t => t.isBurned).length;
-                        
-                        // Update tabs with the accurate count
-                        tabs = tabs.map(tab => 
-                            tab.id === 'burned' 
-                            ? {...tab, count: burnedTokens} 
-                            : tab
-                        );
-                        
-                        console.log(`Loaded ${response.tokens.length} tokens, ${burnedTokens} are burned`);
-                    }
-                }
-            } catch (error) {
-                console.error('Error fetching burned tokens:', error);
-            } finally {
-                loading = false;
-            }
+        
+        // Update the URL without triggering a full navigation if in browser
+        if (browser) {
+            const newUrl = newPage === 'tokens' 
+                ? `/collection/${contractId}`
+                : `/collection/${contractId}/${newPage}`;
+            
+            // Use history.pushState to update URL without reload
+            window.history.pushState({ id: Date.now() }, '', newUrl);
+            
+            // Tell SvelteKit the URL changed, but prevent redundant data fetching
+            // by manually handling the navigation in our code
+            await invalidateAll();
+            return;
         }
-
-        // Navigate to new URL
-        if (newPage === 'tokens') {
-            await goto(`/collection/${contractId}`);
-        } else {
-            await goto(`/collection/${contractId}/${newPage}`);
-        }
+        
+        // Fallback to regular navigation if not in browser (server-side)
+        return newPage === 'tokens' 
+            ? goto(`/collection/${contractId}`)
+            : goto(`/collection/${contractId}/${newPage}`);
     }
     
     function showMore() {
         // Increase the display count first
         displayCount += 10;
         
-        // If we're close to the end of our filtered tokens and there are more to fetch, load more
-        if ((displayTab === 'tokens' || displayTab === 'mine' || displayTab === 'burned') && 
-            filteredTokens.length - displayCount < 15 && 
-            nextToken && 
-            !loading) {
-            loadMoreTokens();
-        } else if (displayTab === 'forsale' && 
-                   filteredTokens.length - displayCount < 15 && 
-                   listingsNextToken && 
-                   !loading) {
+        // If there are more tokens to fetch, load more
+        if (nextToken && !loading) {
             loadMoreTokens();
         }
     }
 
-    let inputElement: HTMLInputElement;
-
     async function handleTabSort(tabId: string) {
-        const tab = tabs.find(t => t.id === tabId);
-        if (tab?.sortable && displayTab === tabId) {
+        const tab = views.find(t => t.id === tabId);
+        if (tab?.sortable && currentView === tabId) {
             tabSortDirections[tabId] = tabSortDirections[tabId] === 'asc' ? 'desc' : 'asc';
         } else {
             await onSubpageChange(tabId);
         }
     }
 
-    // Function to get mint date from round
+    // Function to get mint date from round - only called once
     async function getMintDate() {
-        if (collection?.mintRound) {
+        if (!mintDate && collection?.mintRound) {
             try {
                 const roundInfo = await algodIndexer.lookupBlock(collection.mintRound).do();
                 const timestamp = roundInfo.timestamp;
@@ -440,9 +434,9 @@
         window.open(`https://explorer.voi.network/explorer/block/${round}`, '_blank');
     }
 
-    // Call getMintDate when collection changes
+    // Call getMintDate when collection changes - but only once
     $: {
-        if (collection?.mintRound) {
+        if (collection?.mintRound && !mintDate) {
             getMintDate();
         }
     }
@@ -476,38 +470,134 @@
         });
     }
 
+    // Create a helper function to handle filter values
+    function createMetadataFilters(currentFilters: Record<string, string>): Record<string, string> {
+        const metadataProperties: Record<string, string> = {};
+        
+        if (Object.values(currentFilters).some(v => v !== '')) {
+            Object.entries(currentFilters).forEach(([key, value]) => {
+                if (value !== '') {
+                    metadataProperties[key] = String(value);
+                }
+            });
+        }
+        
+        return metadataProperties;
+    }
+
+    // Dedicated function to load For Sale listings
+    async function loadForSaleData() {
+        if (loading || !contractId) return;
+        
+        loading = true;
+        try {
+            const response = await getListingsWithPagination({
+                collectionId: contractId.toString(),
+                active: true,
+                includes: 'token,collection',
+                fetch,
+                limit: 50,
+                nextToken: listingsNextToken || undefined
+            });
+            
+            if (response.listings.length > 0) {
+                listings = response.listings;
+                listingsNextToken = response.nextToken;
+                forSaleCount = response.totalCount;
+                views = views.map(v => v.id === 'forsale' ? {...v, count: forSaleCount } : v);
+            }
+        } catch (error) {
+            console.error('Error loading for sale listings:', error);
+        } finally {
+            loading = false;
+        }
+    }
+
+    // Dedicated function to load burned tokens
+    async function loadBurnedTokens() {
+        if (loading || !contractId) return;
+        
+        loading = true;
+        try {
+            const response = await getTokensWithPagination({
+                contractId: contractId.toString(),
+                fetch,
+                limit: 50,
+                // Using a type-safe way to pass the isBurned filter
+                metadataProperties: { "isBurned": "true" }
+            });
+            
+            if (response.tokens.length > 0) {
+                // Add tokens to the cache, don't replace existing cached tokens
+                tokenCache.addTokens(contractId.toString(), response.tokens);
+                burnedTokenCount = response.totalCount;
+                views = views.map(tab => tab.id === 'burned' ? {...tab, count: burnedTokenCount} : tab);
+            }
+        } catch (error) {
+            console.error('Error loading burned tokens:', error);
+        } finally {
+            loading = false;
+        }
+    }
+
     async function loadMoreTokens() {
         if (loading || !contractId || nextToken === null) return;
         
         loading = true;
         try {
             // Load more tokens based on the current tab
-            if (displayTab === 'tokens') {
-                // Use the getTokensWithPagination function from mimir
-                const response = await getTokensWithPagination({
+            if (currentView === 'tokens' || currentView === 'burned' || currentView === 'mine' || currentView === 'ranking') {
+                // Create metadata properties filter from current filters
+                const metadataProperties = createMetadataFilters(filters);
+                
+                // Parameters for the API call
+                const params: any = {
                     contractId: contractId.toString(),
                     fetch,
                     limit: 50,
                     nextToken: tokensNextToken || undefined,
-                    includes: 'metadata'
-                });
+                    metadataSearch: searchText || undefined,
+                    metadataProperties: Object.keys(metadataProperties).length > 0 ? metadataProperties : undefined
+                };
+                
+                // Add owner filter for 'mine' tab
+                if (currentView === 'mine' && wallet?.address) {
+                    params.owner = wallet.address;
+                }
+                
+                // Add isBurned filter for 'burned' tab using metadataProperties
+                if (currentView === 'burned') {
+                    params.metadataProperties = {
+                        ...params.metadataProperties,
+                        "isBurned": "true"
+                    };
+                }
+                
+                const response = await getTokensWithPagination(params);
                 
                 if (response.tokens.length > 0) {
                     // Add tokens to the cache
                     tokenCache.addTokens(contractId.toString(), response.tokens);
                     
-                    // Update nextToken for future pagination from the API response
+                    // Update nextToken for future pagination
                     tokensNextToken = response.nextToken;
                     
                     // Update the tokens array with new ones
                     tokens = [...tokens, ...response.tokens];
                     
-                    console.log(`Loaded ${response.tokens.length} more tokens. Next token: ${tokensNextToken}`);
+                    // Update counts if needed
+                    if (currentView === 'mine') {
+                        userTokenCount = response.totalCount;
+                        views = views.map(tab => tab.id === 'mine' ? {...tab, count: userTokenCount} : tab);
+                    } else if (currentView === 'burned') {
+                        burnedTokenCount = response.totalCount;
+                        views = views.map(tab => tab.id === 'burned' ? {...tab, count: burnedTokenCount} : tab);
+                    }
+                    
                 } else {
                     tokensNextToken = null;
-                    console.log('No more tokens to load');
                 }
-            } else if (displayTab === 'forsale') {
+            } else if (currentView === 'forsale') {
                 // For the forsale tab, we need to get more listings
                 const response = await getListingsWithPagination({
                     collectionId: contractId.toString(),
@@ -528,84 +618,13 @@
                     
                     // Update nextToken for future pagination
                     listingsNextToken = response.nextToken;
-                    
-                    console.log(`Loaded ${newListings.length} more listings. Next token: ${listingsNextToken}`);
                 } else {
                     listingsNextToken = null;
-                    console.log('No more listings to load');
-                }
-            } else if (displayTab === 'mine' && wallet?.address) {
-                // For the mine tab, we need to get more tokens owned by the current wallet
-                const response = await getTokensWithPagination({
-                    contractId: contractId.toString(),
-                    owner: wallet.address,
-                    fetch,
-                    limit: 50,
-                    nextToken: tokensNextToken || undefined,
-                    includes: 'metadata'
-                });
-                
-                if (response.tokens.length > 0) {
-                    // Add tokens to the cache
-                    tokenCache.addTokens(contractId.toString(), response.tokens);
-                    
-                    // Update nextToken for future pagination
-                    tokensNextToken = response.nextToken;
-                    
-                    // Update the tokens array with new ones
-                    tokens = [...tokens, ...response.tokens];
-                    
-                    // Update tabs with the accurate count
-                    tabs = tabs.map(tab => 
-                        tab.id === 'mine' 
-                        ? {...tab, count: userTokenCount} 
-                        : tab
-                    );
-                    
-                    console.log(`Loaded ${response.tokens.length} more tokens for wallet. Next token: ${tokensNextToken}`);
-                } else {
-                    tokensNextToken = null;
-                    console.log('No more tokens to load for wallet');
-                }
-            } else if (displayTab === 'burned') {
-                // For the burned tab, we need to get more burned tokens
-                const response = await getTokensWithPagination({
-                    contractId: contractId.toString(),
-                    fetch,
-                    limit: 50,
-                    nextToken: tokensNextToken || undefined,
-                    includes: 'metadata'
-                });
-                
-                if (response.tokens.length > 0) {
-                    // Add tokens to the cache
-                    tokenCache.addTokens(contractId.toString(), response.tokens);
-                    
-                    // Update nextToken for future pagination
-                    tokensNextToken = response.nextToken;
-                    
-                    // Update the tokens array with new ones
-                    tokens = [...tokens, ...response.tokens];
-                    
-                    // Update burnedTokens count
-                    burnedTokens = tokens.filter(t => t.isBurned).length;
-                    
-                    // Update tabs with the accurate count
-                    tabs = tabs.map(tab => 
-                        tab.id === 'burned' 
-                        ? {...tab, count: burnedTokens} 
-                        : tab
-                    );
-                    
-                    console.log(`Loaded ${response.tokens.length} more tokens, filtered for burned. Next token: ${tokensNextToken}`);
-                } else {
-                    tokensNextToken = null;
-                    console.log('No more tokens to load for burned');
                 }
             }
         } catch (error) {
             console.error('Error loading more tokens:', error);
-            if (displayTab === 'forsale') {
+            if (currentView === 'forsale') {
                 listingsNextToken = null;
             } else {
                 tokensNextToken = null;
@@ -615,29 +634,23 @@
         }
     }
 
-    // Function to resolve Envoi names for tokens
-    async function resolveEnvoiTokens(tokens: any[], pendingTokenIds: string[]) {
-        if (!tokens || tokens.length === 0) return;
+    // Function to resolve Envoi names for tokens - only used when explicitly needed
+    async function resolveEnvoiTokens(tokens: any[], pendingTokenIds: string[]): Promise<any[]> {
+        if (!tokens || tokens.length === 0) return [];
         
         const tokenIds = tokens.map(token => token.tokenId);
         try {
-            console.log(`Resolving ${tokenIds.length} Envoi names...`);
             const envoiResults = await resolveEnvoiToken(tokenIds);
             
             if (envoiResults.length === 0) {
-                console.log("No Envoi results returned");
-                return;
+                return tokens;
             }
             
-            console.log(`Received ${envoiResults.length} Envoi results`);
-            
-            // First update the filtered tokens that are displayed
-            filteredTokens = filteredTokens.map(token => {
+            // Create a new array with updated tokens
+            const updatedTokens = tokens.map(token => {
                 if (token.contractId === 797609 && pendingTokenIds.includes(token.tokenId)) {
                     const envoiData = envoiResults.find(result => result.token_id === token.tokenId);
                     if (envoiData && token.metadata) {
-                        console.log(`Found Envoi data for token ${token.tokenId}: ${envoiData.name}`);
-                        // Create a new token object with updated metadata
                         return {
                             ...token,
                             metadata: {
@@ -652,437 +665,139 @@
                 return token;
             });
             
-            // Then update the listings array
-            listings = listings.map(listing => {
-                // Skip if no token or not an Envoi token in our pending list
-                if (!listing.token || 
-                    listing.collectionId !== 797609 || 
-                    !pendingTokenIds.includes(listing.token.tokenId)) {
-                    return listing;
-                }
-                
-                const envoiData = envoiResults.find(result => result.token_id === listing.token!.tokenId);
-                if (!envoiData) return listing;
-                
-                // Create a new listing with updated token metadata
-                let tokenMetadata: Record<string, unknown>;
-                
-                if (typeof listing.token.metadata === 'string') {
-                    try {
-                        tokenMetadata = JSON.parse(listing.token.metadata);
-                    } catch (e) {
-                        console.error("Error parsing token metadata", e);
-                        tokenMetadata = {};
-                    }
-                } else {
-                    tokenMetadata = listing.token.metadata as Record<string, unknown>;
-                }
-                
-                return {
-                    ...listing,
-                    token: {
-                        ...listing.token,
-                        metadata: {
-                            ...tokenMetadata,
-                            name: tokenMetadata.name || '',
-                            envoiName: envoiData.name,
-                            envoiMetadata: envoiData.metadata
-                        }
-                    }
-                };
-            });
-            
-            console.log('Envoi names resolved and UI updated');
+            return updatedTokens;
         } catch (error) {
             console.error("Error resolving Envoi names:", error);
+            return tokens;
+        }
+    }
+
+    // Update the setFilter function to use API filtering
+    function setFilterAndLoad(trait: string, value: string) {
+        filters[trait] = value;
+    }
+
+    // Update the setSearchText function to use API filtering
+    function setSearchTextAndLoad(value: string) {
+        searchText = value;
+    }
+
+    function setSortDirection(dir: 'asc' | 'desc') {
+        sortDirection = dir;
+    }
+
+    let isMobile = false;
+    if (typeof window !== 'undefined') {
+        isMobile = window.innerWidth < 768;
+    }
+
+    // Fetch initial listings only once when the component mounts
+    onMount(async () => {
+        if (!contractId) return;
+        
+        // We'll load the initial data here
+        if (currentView === 'forsale' && !tabDataLoaded.forsale) {
+            tabDataLoaded.forsale = true;
+            loadForSaleData();
+        }
+        
+        if (currentView === 'mine' && wallet?.address && !tabDataLoaded.mine) {
+            fetchMineTokens();
+        }
+        
+        if (currentView === 'burned' && !tabDataLoaded.burned) {
+            tabDataLoaded.burned = true;
+            loadBurnedTokens();
+        }
+    });
+
+    // Dedicated Fetch Logic for 'Mine' Tab - only runs once
+    async function fetchMineTokens() {
+        if (!wallet?.address || !contractId || loading || tabDataLoaded.mine) return;
+        
+        tabDataLoaded.mine = true;
+        loading = true;
+        try {
+            const response = await getTokensWithPagination({
+                contractId: contractId.toString(),
+                owner: wallet.address,
+                fetch,
+                limit: 50
+            });
+
+            if (response.tokens.length > 0) {
+                // Add tokens to the cache, don't replace existing cached tokens
+                tokenCache.addTokens(contractId.toString(), response.tokens);
+                userTokenCount = response.totalCount;
+                views = views.map(tab => tab.id === 'mine' ? {...tab, count: userTokenCount} : tab);
+            } else {
+                userTokenCount = 0;
+                views = views.map(tab => tab.id === 'mine' ? {...tab, count: userTokenCount} : tab);
+            }
+        } catch (error) {
+            console.error('Error fetching Mine tokens:', error);
+            tabDataLoaded.mine = false; // Allow retry on error
+        } finally {
+            loading = false;
         }
     }
 </script>
 
 {#if collection}
-<div class="banner_container min-h-[400px] md:h-60 justify-between overflow-hidden relative flex flex-row text-white" style="opacity: {bannerOpacity}; transition: opacity 0.3s ease-out;">
-    {#if tokens[0] && tokens[0].metadata?.image}
-        <img src="{getImageUrl(data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata?.image,480)}" alt="Collection Banner" class="banner_img object-cover" />
-        <img src="{getImageUrl(data.collection?.highforgeData?.coverImageURL ?? tokens[0].metadata?.image,480)}" alt="Collection Banner" class="banner_img2 w-1/2 object-cover" />
-    {/if}
-    <div class="mask_dark flex justify-center h-full absolute w-full content-center">
-        <div class="collection_detail w-1/2 flex justify-center content-center md:space-x-10 pr-2">
-            <div class="flex h-full place-items-center space-between flex-col space-y-1 w-full sm:w-3/4 md:flex-grow">
-                    <div class="p-0 sm:p-4 overflow-auto mb-auto">
-                        {#if collectionDescription}
-                            <div class="text-4xl font-bold md:text-left text-center">{data.collection?.highforgeData?.title??collectionName}</div>
-                            <div class="text-md md:text-left text-center">{collectionDescription}</div>
-                        {/if}
-                        <!-- Add creator's Envoi metadata if available -->
-                        {#if collection?.creatorName?.endsWith('.voi') && creatorEnvoiMetadata}
-                            <div class="flex flex-col space-y-2 mt-4">
-                                {#if creatorEnvoiMetadata.url}
-                                    <div class="flex items-center space-x-2">
-                                        <i class="fas fa-globe text-gray-300"></i>
-                                        <a href={creatorEnvoiMetadata.url} target="_blank" rel="noopener noreferrer" 
-                                           class="text-blue-400 hover:text-blue-300 text-sm">{creatorEnvoiMetadata.url}</a>
-                                    </div>
-                                {/if}
-                                {#if creatorEnvoiMetadata.location}
-                                    <div class="flex items-center space-x-2">
-                                        <i class="fas fa-map-marker-alt text-gray-300"></i>
-                                        <span class="text-gray-300 text-sm">{creatorEnvoiMetadata.location}</span>
-                                    </div>
-                                {/if}
-                                {#if creatorEnvoiMetadata['com.twitter']}
-                                    <div class="flex items-center space-x-2">
-                                        <i class="fab fa-x-twitter text-gray-300"></i>
-                                        <a href="https://twitter.com/{creatorEnvoiMetadata['com.twitter']}" target="_blank" 
-                                           class="text-blue-400 hover:text-blue-300 text-sm">@{creatorEnvoiMetadata['com.twitter']}</a>
-                                    </div>
-                                {/if}
-                                {#if creatorEnvoiMetadata['com.github']}
-                                    <div class="flex items-center space-x-2">
-                                        <i class="fab fa-github text-gray-300"></i>
-                                        <a href="https://github.com/{creatorEnvoiMetadata['com.github']}" target="_blank" 
-                                           class="text-blue-400 hover:text-blue-300 text-sm">{creatorEnvoiMetadata['com.github']}</a>
-                                    </div>
-                                {/if}
-                            </div>
-                        {/if}
-                    </div>
-                <!-- Integrated buttons section for desktop -->
-                <div class="hidden md:flex flex-row gap-2 mb-4 px-4">
-                    <LoungeButton contractid={contractId} buttonClass="w-32 flex flex-row items-center justify-center bg-gray-100 bg-opacity-90 dark:bg-gray-100 px-2 py-1.5 rounded-lg cursor-pointer text-black hover:bg-opacity-100 transition-all hover:scale-105 hover:bg-gray-200 space-x-2"/>
-                    <NautilusButton contractid={contractId} buttonClass="w-32 flex flex-row items-center justify-center bg-gray-100 bg-opacity-90 dark:bg-gray-100 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-opacity-100 transition-all hover:scale-105 hover:bg-gray-200"/>
-                    <HighforgeButton contractid={contractId} buttonClass="w-32 flex flex-row items-center justify-center bg-gray-100 bg-opacity-90 dark:bg-gray-100 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-opacity-100 transition-all hover:scale-105 hover:bg-gray-200"/>
-                        <PixelPursuitButton contractid={contractId} buttonClass="w-32 flex flex-row items-center justify-center bg-gray-100 bg-opacity-90 dark:bg-gray-100 text-black dark:text-black px-2 py-1.5 rounded-lg cursor-pointer hover:bg-opacity-100 transition-all hover:scale-105 hover:bg-gray-200"/>
-                </div>
-                <div class="flex flex-row pl-4 mt-auto w-full pt-4 bg-black bg-opacity-50 rounded-t-xl">
-                    <div class="flex flex-row justify-between w-full mx-4 flex-wrap gap-y-2">
-                        {#if isMinting}
-                            <div class="w-full mb-3">
-                                <div class="flex justify-between items-center text-sm mb-1.5">
-                                    <span class="font-medium">Mint Progress</span>
-                                    <span class="text-blue-300">{totalMinted} / {maxSupply} ({mintProgress}%)</span>
-                                </div>
-                                <div class="w-full bg-gray-700 bg-opacity-50 rounded-full h-2">
-                                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500 relative" style="width: {mintProgress}%">
-                                        <div class="absolute -right-1 -top-1 w-4 h-4 bg-blue-500 rounded-full border-2 border-white"></div>
-                                    </div>
-                                </div>
-                                {#if launchEnd > 0}
-                                    <div class="text-xs text-gray-400 mt-1 text-right">
-                                        Mint Ends: {new Date(launchEnd * 1000).toLocaleString()}
-                                    </div>
-                                {/if}
-                            </div>
-                        {/if}
-                        <div class="w-1/3 md:w-auto text-center md:text-left">
-                            <div class="text-sm">Floor</div>
-                            <button class="text-lg text-blue-300 cursor-pointer hover:text-blue-200 transition-colors" 
-                                on:click={() => {
-                                    tabSortDirections.forsale = 'asc';
-                                    onSubpageChange('forsale');
-                                }}>
-                                {data.floor}
-                            </button>
-                        </div>
-                        <div class="w-1/3 md:w-auto text-center md:text-left">
-                            <div class="text-sm">Ceiling</div>
-                            <button class="text-lg text-blue-300 cursor-pointer hover:text-blue-200 transition-colors" 
-                                on:click={() => {
-                                    tabSortDirections.forsale = 'desc';
-                                    onSubpageChange('forsale');
-                                }}>
-                                {data.ceiling}
-                            </button>
-                        </div>
-                        <div class="tooltip w-1/3 md:w-auto text-center md:text-left">
-                            <div class="text-sm">Tokens</div>
-                            <button class="text-lg text-blue-300 cursor-pointer hover:text-blue-200 transition-colors" 
-                                on:click={() => onSubpageChange('tokens')}>
-                                {data.totalTokenCount ? (data.totalTokenCount - data.burnedTokenCount) : '-'}
-                            </button>
-                            <div class="tooltiptext flex flex-col space-y-1 w-auto whitespace-nowrap p-2 bg-slate-700">
-                                <div>Original Supply: {data.totalTokenCount ?? '-'}</div>
-                                <div>Tokens Burned: {data.burnedTokenCount ?? '0'}</div>
-                                <div>Tokens Remaining: {data.totalTokenCount ? (data.totalTokenCount - data.burnedTokenCount) : '-'}</div>
-                            </div>
-                        </div>
-                        <div class="w-1/3 md:w-auto text-center md:text-left">
-                            <div class="text-sm">Collectors</div>
-                            <button class="text-lg text-blue-300 cursor-pointer hover:text-blue-200 transition-colors" 
-                                on:click={() => onSubpageChange('collectors')}>
-                                {collection?.uniqueOwners}
-                            </button>
-                        </div>
-                        <div class="w-1/3 md:w-auto text-center md:text-left">
-                            <div class="text-sm">Minted</div>
-                            <div class="text-lg text-blue-300">
-                                <button class="tooltip cursor-pointer" on:click={() => collection?.mintRound && openExplorer(collection.mintRound)}>
-                                    {mintDate ?? '-'}
-                                    {#if mintDateTime}
-                                        <div class="tooltiptext w-[400px] p-4 bg-gray-800 border border-gray-700 rounded-lg shadow-xl">
-                                            <div class="text-base font-semibold mb-3 text-white border-b border-gray-700 pb-2">Collection Details</div>
-                                            
-                                            <!-- Collection Creation -->
-                                            <div class="mb-4">
-                                                <div class="text-xs text-gray-400 mb-1">Collection Created</div>
-                                                <div class="flex items-center gap-2 text-sm text-gray-200">
-                                                    <i class="fas fa-calendar text-blue-400"></i>
-                                                    <span>{mintDateTime}</span>
-                                                </div>
-                                                <div class="flex items-center gap-2 text-sm text-gray-200 mt-1">
-                                                    <i class="fas fa-cube text-blue-400"></i>
-                                                    <span>Block #{collection?.mintRound}</span>
-                                                </div>
-                                            </div>
+<CollectionHeader
+  {collection}
+  {collectionDescription}
+  {creatorEnvoiMetadata}
+/>
+<CollectionStats
+  isMinting={isMinting}
+  totalMinted={totalMinted}
+  maxSupply={maxSupply}
+  mintProgress={mintProgress}
+  launchEnd={launchEnd}
+  floor={data.floor}
+  ceiling={data.ceiling}
+  totalTokenCount={data.totalTokenCount}
+  burnedTokenCount={data.burnedTokenCount}
+  onSubpageChange={onSubpageChange}
+  tabSortDirections={tabSortDirections}
+  collection={collection}
+  mintDate={mintDate}
+  mintDateTime={mintDateTime}
+  openExplorer={openExplorer}
+  wlLaunchStart={wlLaunchStart}
+  wlPrice={wlPrice}
+  launchStart={launchStart}
+  publicPrice={publicPrice}
+  formatDateTime={formatDateTime}
+  uniqueCollectors={rawCollectors.length}
+/>
 
-                                            <!-- Mint Phases -->
-                                            <div class="space-y-3">
-                                                {#if wlLaunchStart}
-                                                    <div>
-                                                        <div class="text-xs text-gray-400 mb-1">Whitelist Launch Phase</div>
-                                                        <div class="bg-gray-900 rounded p-2">
-                                                            <div class="flex justify-between items-center text-sm">
-                                                                <div class="flex items-center gap-2 text-gray-200">
-                                                                    <i class="fas fa-clock text-purple-400"></i>
-                                                                    <span>{formatDateTime(wlLaunchStart)}</span>
-                                                                </div>
-                                                                {#if wlPrice}
-                                                                    <div class="flex items-center gap-2 text-gray-200">
-                                                                        <i class="fas fa-tag text-purple-400"></i>
-                                                                        <span>{wlPrice.toLocaleString()} VOI</span>
-                                                                    </div>
-                                                                {/if}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                {/if}
-
-                                                {#if launchStart}
-                                                    <div>
-                                                        <div class="text-xs text-gray-400 mb-1">Public Launch Phase</div>
-                                                        <div class="bg-gray-900 rounded p-2">
-                                                            <div class="flex justify-between items-center text-sm">
-                                                                <div class="flex items-center gap-2 text-gray-200">
-                                                                    <i class="fas fa-clock text-green-400"></i>
-                                                                    <span>{formatDateTime(launchStart)}</span>
-                                                                </div>
-                                                                {#if publicPrice}
-                                                                    <div class="flex items-center gap-2 text-gray-200">
-                                                                        <i class="fas fa-tag text-green-400"></i>
-                                                                        <span>{publicPrice.toLocaleString()} VOI</span>
-                                                                    </div>
-                                                                {/if}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                {/if}
-                                            </div>
-
-                                            <div class="text-[10px] text-blue-400 mt-3 text-center">Click to view creation block in explorer</div>
-                                        </div>
-                                    {/if}
-                                </button>
-                            </div>
-                        </div>
-                        <div class="w-1/3 md:w-auto text-center md:text-left">
-                            <div class="text-sm">Creator</div>
-                            <div class="text-lg text-blue-300 hover:text-blue-200"><a href='/creator/{collection?.creator}'>{collection?.creatorName ?? collection?.creator.substring(0,8) + '...'}</a></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+<!-- Main content area with modern design -->
+<div class="max-w-7xl mx-auto px-1 sm:px-2 lg:px-4 py-6 pb-20">
+  <CollectionTabs
+    views={views}
+    {currentView}
+    setView={setView}
+    {sortDirection}
+    {filteredTokens}
+    {displayCount}
+    {loading}
+    {searchText}
+    setSearchText={setSearchTextAndLoad}
+    {filters}
+    setFilter={setFilterAndLoad}
+    setSortDirection={setSortDirection}
+    {categories}
+    {isMobile}
+    {tokens}
+    {collection}
+    {contractId}
+    {rawCollectors}
+    onLoadMore={showMore}
+  />
 </div>
 
-<!-- Mobile buttons container -->
-<div class="flex md:hidden justify-between gap-2 p-4 bg-black bg-opacity-50">
-    <LoungeButton contractid={contractId} buttonClass="flex-1 flex flex-row items-center justify-center bg-gray-100 dark:bg-gray-100 px-2 py-2 rounded-md cursor-pointer text-black min-w-0"/>
-    <NautilusButton contractid={contractId} buttonClass="flex-1 flex flex-row items-center justify-center bg-gray-100 dark:bg-gray-100 px-2 py-2 rounded-md cursor-pointer min-w-0"/>
-    <HighforgeButton contractid={contractId} buttonClass="flex-1 flex flex-row items-center justify-center bg-gray-100 dark:bg-gray-100 px-2 py-2 rounded-md cursor-pointer min-w-0"/>
-    <PixelPursuitButton contractid={contractId} buttonClass="flex-1 flex flex-row items-center justify-center bg-gray-100 dark:bg-gray-100 text-black dark:text-black px-2 py-2 rounded-md cursor-pointer min-w-0"/>
-</div>
-<div class="flex flex-col md:flex-row pb-16 relative z-0">
-    <!-- Mobile Dropdown and Sort -->
-    <div class="md:hidden px-4 py-2 space-y-2">
-        <div class="flex gap-2">
-            <select
-                class="flex-1 p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600"
-                value={displayTab}
-                on:change={(e) => {
-                    const target = e.target as HTMLSelectElement;
-                    if (target) {
-                        onSubpageChange(target.value);
-                    }
-                }}
-            >
-                {#each tabs as tab}
-                    <option value={tab.id}>
-                        {tab.name}{tab.count !== undefined ? ` (${tab.count})` : ''}
-                    </option>
-                {/each}
-            </select>
-            {#if tabs.find(t => t.id === displayTab)?.sortable}
-                <button
-                    class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 flex items-center justify-center min-w-[44px]"
-                    on:click={() => handleTabSort(displayTab)}
-                    aria-label="Toggle sort order"
-                >
-                    {sortDirection === 'asc' ? '↑' : '↓'}
-                </button>
-            {/if}
-        </div>
-    </div>
-
-    <div class="p-4 w-full md:w-auto">
-        <div class="relative self-start">
-            <input type="text" placeholder="Search tokens..." bind:value={searchText} bind:this={inputElement} class="p-2 border border-gray-300 rounded-lg dark:bg-gray-600 w-full pr-10"/>
-            {#if searchText}
-                <button class="absolute inset-y-0 right-0 pr-3 flex items-center w-10" on:click={() => { searchText = ''; inputElement.focus(); }}
-                    aria-label="Clear Search">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-5 w-5 text-gray-500">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            {/if}
-        </div>
-        <div class="hidden md:block">
-            {#each Object.entries(categories) as [category, traits]}
-                <div class="mt-2 mb-2">
-                    <button class="text-gray-700 dark:text-gray-300 text-sm font-bold mb-2 cursor-pointer flex items-center gap-2" 
-                        on:click={() => handleTabSort(category)}>
-                        {category}
-                    </button>
-                    <div class="relative">
-                        <select bind:value={filters[category]} class="block appearance-none w-48 bg-white border border-gray-300 dark:border-gray-500 text-gray-700 dark:bg-gray-600 dark:text-gray-200 py-3 px-4 pr-8 rounded leading-tight focus:outline-none focus:bg-white focus:border-gray-500" id={category}>
-                            <option value="">All</option>
-                            {#if traits}
-                                {#each Object.entries(traits) as [trait, count]}
-                                    <option value={trait}>{trait+' ('+count+')'}</option>
-                                {/each}
-                            {/if}
-                        </select>
-                    </div>
-                </div>
-            {/each}
-        </div>
-    </div>
-
-    <div class="w-full md:mt-3">
-        <!-- Desktop Tabs -->
-        <div class="hidden md:flex justify-start gap-2">
-            {#each tabs as tab}
-                <button
-                    class="rounded-lg transition-colors flex flex-col items-center p-1.5 min-w-[80px]
-                        {displayTab === tab.id 
-                            ? 'bg-blue-400 dark:bg-blue-500 text-white' 
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'} 
-                        relative"
-                    on:click={() => handleTabSort(tab.id)}
-                >
-                    <div class="flex items-center gap-1.5">
-                        <!-- Icons for each tab -->
-                        {#if tab.id === 'tokens'}
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                            </svg>
-                        {:else if tab.id === 'forsale'}
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        {:else if tab.id === 'ranking'}
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                            </svg>
-                        {:else if tab.id === 'transactions'}
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                            </svg>
-                        {:else if tab.id === 'collectors'}
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                        {:else if tab.id === 'burned'}
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
-                            </svg>
-                        {:else if tab.id === 'mine'}
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                        {:else if tab.id === 'feed'}
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 18v-3a2 2 0 012-2h12a2 2 0 012 2v3" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 15V8a2 2 0 012-2h12a2 2 0 012 2v7" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 8h12" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 11h12" />
-                            </svg>
-                            <div class="absolute -top-1 -right-1 bg-amber-500 dark:bg-amber-400 text-white dark:text-gray-900 text-[10px] px-1.5 py-0.5 rounded-full font-medium">
-                                NEW
-                            </div>
-                        {/if}
-                        {#if tab.sortable && displayTab === tab.id}
-                            <span class="text-xs font-bold">
-                                {sortDirection === 'asc' ? '↑' : '↓'}
-                            </span>
-                        {/if}
-                    </div>
-                    <div class="flex items-center gap-1 mt-0.5">
-                        <span class="text-xs">{tab.name}</span>
-                        {#if tab.count !== undefined}
-                            <span class="bg-gray-200 dark:bg-gray-600 px-1 py-0.5 rounded text-xs font-normal {displayTab === tab.id ? 'bg-opacity-25 text-white' : ''}">{tab.count}</span>
-                        {/if}
-                    </div>
-                </button>
-            {/each}
-        </div>
-        <div class="flex flex-wrap flex-grow justify-center md:justify-start mt-3 md:mt-2">
-            {#if displayTab === 'tokens' || displayTab === 'forsale' || displayTab === 'burned' || displayTab === 'ranking' || displayTab === 'mine'}
-                {#each filteredTokens.slice(0, displayCount) as token (token.tokenId)}
-                    <div class="p-1 relative">
-                        <TokenDetail {collection} token={token} format="small" />
-                    </div>
-                {/each}
-                {#if filteredTokens.length > displayCount}
-                    <div class="sentinel" use:inview={{ threshold: 1 }} on:inview_enter={showMore}></div>
-                {/if}
-                {#if loading}
-                    <div class="w-full flex justify-center items-center py-8">
-                        <div class="animate-pulse flex space-x-4">
-                            <div class="rounded-full bg-slate-700 h-10 w-10"></div>
-                            <div class="flex-1 space-y-6 py-1 max-w-md">
-                                <div class="h-2 bg-slate-700 rounded"></div>
-                                <div class="space-y-3">
-                                    <div class="grid grid-cols-3 gap-4">
-                                        <div class="h-2 bg-slate-700 rounded col-span-2"></div>
-                                        <div class="h-2 bg-slate-700 rounded col-span-1"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                {/if}
-                {#if filteredTokens.length === 0 && !loading}
-                    <div class="w-full text-center py-10">
-                        <p class="text-gray-500 dark:text-gray-400">No tokens found matching your criteria.</p>
-                    </div>
-                {/if}
-            {:else if displayTab === 'transactions'}
-                <div class="w-full">
-                    <SalesTable collectionId={Number(contractId)} sortDirection={sortDirection} tokenId={!isNaN(Number(searchText)) && displayTab === 'transactions' ? searchText : ''} />
-                </div>
-            {:else if displayTab === 'collectors'}
-                <div class="w-full">
-                    <HoldersList tokens={tokens} sortDirection={sortDirection} searchText={searchText} />
-                </div>
-            {:else if displayTab === 'feed'}
-                <div class="w-full">
-                    <LoungeView collectionId={Number(contractId)} sortDirection={sortDirection} searchText={searchText} />
-                </div>
-            {/if}
-        </div>
-    </div>
-</div>
 {:else}
     <div class="w-full flex justify-center items-center h-screen">
         <div class="text-xl font-bold">Unable to locate collection: {contractId}</div>
@@ -1090,79 +805,4 @@
 {/if}
 
 <style>
-    /*.show-more {
-        display: block;
-        margin: 0px auto 40px auto;
-        padding: 10px 20px;
-        font-size: 16px;
-        color: white;
-        background-color: #007BFF;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-    }
-    .show-more:hover {
-        background-color: #0056b3;
-    }*/
-    .sentinel {
-        height: 1px;
-        width: 100%;
-    }
-    .mask_dark {
-        background: radial-gradient(circle at center, rgba(0,0,0,0.85) 20%, rgba(0,0,0,0.9), rgba(0,0,0,0), rgba(0,0,0,1) 100%);
-    }
-    .banner_img {
-        width: calc(50%);
-    }
-    .collection_detail {
-        width: 50%;
-    }
-    .tooltip {
-        position: relative;
-        display: inline-block;
-    }
-
-    .tooltip .tooltiptext {
-        visibility: hidden;
-        border-radius: 6px;
-        position: absolute;
-        z-index: 100;
-        bottom: 125%;
-        left: 50%;
-        margin-left: -60px;
-        opacity: 0;
-        transition: opacity 0.3s;
-    }
-
-    .tooltip:hover .tooltiptext {
-        visibility: visible;
-        opacity: 1;
-    }
-    @media (max-width: 768px) {
-        .mask_dark {
-            background: linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(0,0,0,0.9));
-        }
-        .banner_img {
-            filter: blur(2px);
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .banner_img2 {
-            display: none;
-        }
-        .banner_container {
-            height: auto;
-        }
-        .collection_detail {
-            width: 100%;
-            padding: 1rem;
-            padding-bottom: 0;
-        }
-        .tooltip .tooltiptext {
-            left: 0;
-            margin-left: 0;
-            width: 100%;
-        }
-    }
 </style>

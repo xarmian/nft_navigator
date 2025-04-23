@@ -1,12 +1,26 @@
 import type { Token, Collection, Listing } from '$lib/data/types';
-import { getCollection, getTokensWithPagination, mimirBaseURL, getListingsWithPagination } from '$lib/utils/mimir';
+import { getCollection, getTokensWithPagination, mimirBaseURL, getListingsWithPagination, getCollectors } from '$lib/utils/mimir';
 import { getCurrency } from '$lib/utils/currency';
 import { userPreferences, recentSearch } from '../../../../../stores/collection';
 import { get } from 'svelte/store';
 import { resolveEnvoiToken } from '$lib/utils/envoi';
 import { selectedWallet } from 'avm-wallet-svelte';
+import { getImageUrl } from '$lib/utils/functions';
 
-export const load = (async ({ params, fetch }) => {
+// Interface for collection metadata with trait counts
+interface TraitCountMetadata {
+    traitCount?: {
+        [category: string]: {
+            [value: string]: number;
+        };
+    };
+    [key: string]: unknown;
+}
+
+export const load = (async ({ params, fetch, depends }) => {
+	// Add dependency to allow selective reloading when needed
+	depends('app:collection');
+	
 	const contractId = params.cid;
 	let tokens: Token[] = [];
 	let collection: Collection | null = null;
@@ -28,6 +42,7 @@ export const load = (async ({ params, fetch }) => {
 	let burnedTokenCount = 0;
 	let userTokenCount = 0;
 	let forSaleCount = 0;
+	let rawCollectors: any[] = [];
 
 	if (contractId) {
 		if (get(userPreferences).analyticsCollectionId !== Number(contractId)) {
@@ -36,74 +51,88 @@ export const load = (async ({ params, fetch }) => {
 			});
 		}
 
-		// Fetch collection, tokens, and counts in parallel
-		const [
-			collectionResult, 
-			tokensResponse, 
-			burnedResponse, 
-			userResponse,
-			listingsResponse
-		] = await Promise.all([
+		// Fetch essential data in parallel
+		const [collectionResult, tokensResponse, listingsResponse, collectorsResponse] = await Promise.all([
 			// Get collection
 			getCollection({ contractId: Number(contractId), fetch }),
 			
-			// Fetch tokens with pagination
+			// Fetch tokens (always needed for metadata and filters)
 			getTokensWithPagination({ 
 				contractId: contractId.toString(), 
 				fetch,
-				limit: 50,
-				includes: 'metadata'
+				limit: 50
 			}),
 			
-			// Get count of burned tokens
-			fetch(`${mimirBaseURL}/tokens?contractId=${contractId}&isBurned=true&limit=1`)
-				.then(res => res.json())
-				.catch(err => {
-					console.error('Error fetching burned token count:', err);
-					return { 'total-count': 0 };
-				}),
-				
-			// Get user's tokens count
-			fetch(`${mimirBaseURL}/tokens?contractId=${contractId}&owner=${get(selectedWallet)?.address}&limit=1`)
-				.then(res => res.json())
-				.catch(err => {
-					console.error('Error fetching user token count:', err);
-					return { 'total-count': 0 };
-				}),
-				
-			// Get marketplace data for collection
+			// Get marketplace data (always needed for counts, used directly in forsale tab)
 			getListingsWithPagination({
 				collectionId: contractId.toString(),
 				active: true,
 				includes: 'token,collection',
 				fetch,
 				limit: 50
-			})
+			}),
+			
+			getCollectors({ contractId: Number(contractId), limit: 1000, fetch })
 		]);
+
+		rawCollectors = collectorsResponse;
 		
-		// Process results
+		// Process collection data
 		collection = collectionResult;
+		collectionName = collection?.name ?? tokens[0]?.metadata?.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
 		
+		// Add to recent search if valid collection
 		if (collection) {
 			let recentSearchValue = get(recentSearch) as Collection[];
 			recentSearchValue = [collection, ...recentSearchValue.filter((r) => r.contractId !== collection?.contractId)].slice(0,5);
 			recentSearch.set(recentSearchValue);
 		}
 		
+		// Process tokens data
 		tokens = tokensResponse.tokens.sort((a: Token, b: Token) => 
 			a.tokenId.toString().localeCompare(b.tokenId.toString())
 		);
 		initialNextToken = tokensResponse.nextToken;
 		totalTokenCount = tokensResponse.totalCount;
 		
-		burnedTokenCount = burnedResponse['total-count'] || 0;
-		userTokenCount = userResponse['total-count'] || 0;
-		
+		// Process listings data
 		listings = listingsResponse.listings;
 		listingsNextToken = listingsResponse.nextToken;
 		forSaleCount = listingsResponse.totalCount;
-
-		collectionName = tokens[0]?.metadata?.name.replace(/(\d+|#)(?=\s*\S*$)/g, '') ?? '';
+		
+		// Get additional counts in parallel
+		const countPromises = [
+			// Get count of burned tokens
+			fetch(`${mimirBaseURL}/tokens?contractId=${contractId}&isBurned=true&limit=1`)
+				.then(res => res.json())
+				.catch(err => {
+					console.error('Error fetching burned token count:', err);
+					return { 'total-count': 0 };
+				})
+		];
+		
+		// Only fetch user token count if logged in
+		if (get(selectedWallet)?.address) {
+			countPromises.push(
+				fetch(`${mimirBaseURL}/tokens?contractId=${contractId}&owner=${get(selectedWallet)?.address}&limit=1`)
+					.then(res => res.json())
+					.catch(err => {
+						console.error('Error fetching user token count:', err);
+						return { 'total-count': 0 };
+					})
+			);
+		}
+		
+		// Get additional counts 
+		const countResults = await Promise.all(countPromises);
+		
+		// Set burned count
+		burnedTokenCount = countResults[0]['total-count'] || 0;
+		
+		// Set user token count if available
+		if (countResults.length > 1 && get(selectedWallet)?.address) {
+			userTokenCount = countResults[1]['total-count'] || 0;
+		}
 		
 		// Use collection data if available for total supply and burned count
 		if (collection?.totalSupply) {
@@ -113,55 +142,60 @@ export const load = (async ({ params, fetch }) => {
 			burnedTokenCount = parseInt(collection.burnedSupply.toString());
 		}
 
-		// Process Envoi tokens in listings
-		const envoiListingTokens = listings
-			.filter(l => l.collectionId === 797609 && l.token)
-			.map(l => l.token?.tokenId)
-			.filter(Boolean) as string[];
-
-		if (envoiListingTokens.length > 0) {
-			try {
-				console.log(`Initial load: Resolving ${envoiListingTokens.length} Envoi tokens`);
-				const envoiResults = await resolveEnvoiToken(envoiListingTokens);
-				console.log(`Initial load: Received ${envoiResults.length} Envoi results`);
+		// Process Envoi tokens in listings if needed (for forsale tab)
+		if (subpage === 'forsale') {
+			const envoiListingTokens = listings
+				.filter(l => l.collectionId === 797609 && l.token)
+				.map(l => l.token?.tokenId)
+				.filter(Boolean) as string[];
 				
-				// Update the listing tokens with Envoi data
-				listings.forEach(listing => {
-					if (listing.collectionId === 797609 && listing.token) {
-						const envoiData = envoiResults.find(result => result.token_id === listing.token?.tokenId);
-						if (envoiData && listing.token) {
-							console.log(`Initial load: Processing Envoi token ${listing.token.tokenId}: ${envoiData.name}`);
-							// Parse metadata if it's a string
-							let metadata: Record<string, unknown> = {};
-							if (typeof listing.token.metadata === 'string') {
-								try {
-									metadata = JSON.parse(listing.token.metadata);
-								} catch (e) {
-									console.error("Error parsing token metadata", e);
-									// Parsing failed, use empty object
+			if (envoiListingTokens.length > 0) {
+				try {
+					const envoiResults = await resolveEnvoiToken(envoiListingTokens);
+					
+					// Update listing tokens with Envoi data
+					if (envoiResults.length > 0) {
+						listings = listings.map(listing => {
+							if (listing.collectionId === 797609 && listing.token) {
+								const envoiData = envoiResults.find(r => r.token_id === listing.token?.tokenId);
+								if (envoiData) {
+									// Parse metadata to ensure it's an object
+									let metadata = {};
+									if (typeof listing.token.metadata === 'string') {
+										try {
+											metadata = JSON.parse(listing.token.metadata);
+										} catch (e) {
+											console.error("Error parsing token metadata", e);
+											metadata = {};
+										}
+									} else if (listing.token.metadata) {
+										metadata = listing.token.metadata;
+									}
+									
+									return {
+										...listing,
+										token: {
+											...listing.token,
+											metadata: {
+												...metadata,
+												name: envoiData.name,
+												envoiName: envoiData.name,
+												envoiMetadata: envoiData.metadata
+											}
+										}
+									};
 								}
-							} else {
-								metadata = listing.token.metadata as Record<string, unknown>;
 							}
-							
-							// Update the metadata with Envoi info
-							listing.token.metadata = {
-								...metadata,
-								name: metadata.name || '',
-								envoiName: envoiData.name,
-								avatar: envoiData.metadata?.avatar || null,
-								envoiMetadata: envoiData.metadata || null
-							};
-							console.log(`Initial load: Updated metadata for ${listing.token.tokenId}`, listing.token.metadata);
-						}
+							return listing;
+						});
 					}
-				});
-			} catch (error) {
-				console.error("Error resolving Envoi names for listings:", error);
+				} catch (error) {
+					console.error("Error resolving Envoi names:", error);
+				}
 			}
 		}
-
-		// Find lowest and highest prices in listings
+		
+		// Find floor and ceiling prices from listings
 		if (listings.length > 0) {
 			// Find lowest price (floor)
 			const floorListing = listings.reduce((acc, listing) => {
@@ -190,38 +224,65 @@ export const load = (async ({ params, fetch }) => {
 			}
 		}
 
-		// populate/clear filters
-		const combinedProperties = {} as { [key: string]: { [key: string]: number } };
-		tokens.forEach(token => {
-			Object.entries(token.metadata?.properties ?? {}).forEach(([key, value]) => {
-				if (combinedProperties[key]) {
-					if (combinedProperties[key][value]) {
-						combinedProperties[key][value]++;
-					} else {
-						combinedProperties[key][value] = 1;
-					}
+		// Try to use collection metadata trait counts for filters if available
+		let useCollectionMetadata = false;
+		
+		if (collection?.metadata) {
+			try {
+				// Parse metadata if it's a string
+				let parsedMetadata: TraitCountMetadata = {};
+				if (typeof collection.metadata === 'string') {
+					parsedMetadata = JSON.parse(collection.metadata);
 				} else {
-					combinedProperties[key] = { [value]: 1 };
+					parsedMetadata = collection.metadata as TraitCountMetadata;
 				}
+
+				// Check if the metadata contains traitCount
+				if (parsedMetadata.traitCount && Object.keys(parsedMetadata.traitCount).length > 0) {
+					categories = parsedMetadata.traitCount;
+					useCollectionMetadata = true;
+				}
+			} catch (error) {
+				console.error("Error parsing collection metadata for traits:", error);
+				// If parsing fails, we'll fall back to using tokens
+			}
+		}
+		
+		// Fallback to using tokens to build filters if collection metadata isn't available or doesn't have traits
+		if (!useCollectionMetadata && tokens.length > 0) {
+			const combinedProperties = {} as { [key: string]: { [key: string]: number } };
+			tokens.forEach(token => {
+				Object.entries(token.metadata?.properties ?? {}).forEach(([key, value]) => {
+					if (combinedProperties[key]) {
+						if (combinedProperties[key][value]) {
+							combinedProperties[key][value]++;
+						} else {
+							combinedProperties[key][value] = 1;
+						}
+					} else {
+						combinedProperties[key] = { [value]: 1 };
+					}
+				});
 			});
-		});
 
-		Object.keys(combinedProperties).forEach(key => {
-			const sortedObject = Object.entries(combinedProperties[key])
-				.sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-				.reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
-			combinedProperties[key] = sortedObject;
-		});
+			Object.keys(combinedProperties).forEach(key => {
+				const sortedObject = Object.entries(combinedProperties[key])
+					.sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+					.reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
+				combinedProperties[key] = sortedObject;
+			});
 
-		categories = combinedProperties;
+			categories = combinedProperties;
+		}
 
+		// Set up initial filter values
 		filters = {};
 		Object.keys(categories).forEach(key => {
 			filters[key] = '';
 		});
 	}
 
-	let title = collection?.highforgeData?.title ?? collectionName;
+	let title = collectionName;
 	if (subpage === 'forsale') {
 		title = `For Sale | ${title}`;
 	}
@@ -238,10 +299,12 @@ export const load = (async ({ params, fetch }) => {
 		title = `Ranking | ${title}`;
 	}
 
+	const imageUrl = collection?.imageUrl ?? collection?.highforgeData?.coverImageURL ?? tokens[0]?.metadata?.image ?? undefined;
+
 	const pageMetaTags = {
         title: title,
         description: tokens[0]?.metadata?.description ?? collection?.highforgeData?.description ?? undefined,
-        imageUrl: collection?.imageUrl ?? collection?.highforgeData?.coverImageURL ?? tokens[0]?.metadata?.image ?? undefined,
+        imageUrl: getImageUrl(imageUrl ?? ''),
       };
 
 	return {
@@ -261,6 +324,7 @@ export const load = (async ({ params, fetch }) => {
 		userTokenCount,
 		initialNextToken,
 		listingsNextToken,
-		forSaleCount
+		forSaleCount,
+		rawCollectors
 	};
 });
