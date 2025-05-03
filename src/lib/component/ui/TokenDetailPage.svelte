@@ -446,7 +446,7 @@
 
 </script>
 
-<div class="{isModal ? 'bg-gray-900' : 'min-h-screen bg-gray-50 dark:bg-gray-900 py-4 px-4 sm:px-6 lg:px-8'}">
+<div class="{isModal ? 'bg-gray-100 dark:bg-gray-900' : 'min-h-screen bg-gray-50 dark:bg-gray-900 py-4 px-4 sm:px-6 lg:px-8'}">
     <div class="{isModal ? '' : 'max-w-7xl mx-auto'}">
         <!-- Main Content Card -->
         <div class="{isModal ? '' : 'bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden'}">

@@ -127,11 +127,11 @@
     <div class="dialog-container">
         <!-- Modal Content -->
         <div 
-            class="modal-content bg-gray-900 rounded-2xl shadow-2xl overflow-hidden"
+            class="modal-content bg-gray-100 dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden"
             transition:scale={{ duration: 300, easing: quintOut, start: 0.95 }}
         >
             <!-- Header Bar with controls -->
-            <div class="sticky top-0 z-20 px-4 py-3 bg-gray-900 border-b border-gray-800 flex justify-between items-center">
+            <div class="sticky top-0 z-20 px-4 py-3 bg-gray-100 dark:bg-gray-900 border-b border-gray-800 flex justify-between items-center">
                 <!-- Full Page Link -->
                 <a href="/collection/{token.contractId}/token/{token.tokenId}"
                    class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600/90 hover:bg-purple-700/90 text-white rounded-lg transition-colors">
@@ -242,7 +242,6 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: rgba(0, 0, 0, 0.8);
             backdrop-filter: blur(4px);
             z-index: -1;
         }
