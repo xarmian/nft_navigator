@@ -127,6 +127,7 @@ export interface Listing {
     token?: {
         owner: string;
         tokenId: string;
+        contractId: number;
         approved: string;
         isBurned: string;
         metadata: string | Record<string, unknown>;

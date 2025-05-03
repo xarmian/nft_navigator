@@ -655,6 +655,7 @@ function processListingResponse(data: IListingResponse): Listing[] {
             processedListing.token = {
                 owner: listing.token.owner,
                 tokenId: listing.token.tokenId,
+                contractId: Number(listing.token.contractId),
                 approved: listing.token.approved,
                 isBurned: String(listing.token.isBurned),
                 metadata: metadata,

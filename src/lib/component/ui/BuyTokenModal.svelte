@@ -82,7 +82,13 @@
 
         const resp = await mp.buy(
             fromAddr,  // Address of buyer
-            listing as Listing,
+            {
+                ...listing,
+                token: {
+                    ...listing.token,
+                    metadata: (typeof listing.token?.metadata === 'object' ? JSON.stringify(listing.token.metadata) : listing.token?.metadata) ?? ''
+                }
+            } as Listing,
             c, // ARC200IndexerToken
             opts,
         );
