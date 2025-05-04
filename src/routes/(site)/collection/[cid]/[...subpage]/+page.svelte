@@ -1,12 +1,8 @@
 <script lang="ts">
 	import type { PageData } from '../$types';
     import type { Token, Collection, Metadata, Listing } from '$lib/data/types';
-	import NautilusButton from '$lib/component/ui/NautilusButton.svelte';
-    import HighforgeButton from '$lib/component/ui/HighforgeButton.svelte';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
-	import PixelPursuitButton from '$lib/component/ui/PixelPursuitButton.svelte';
-	import LoungeButton from '$lib/component/ui/LoungeButton.svelte';
     import { onMount, onDestroy } from 'svelte';
     import { tokenCache } from '$lib/stores/tokenCache';
     import { algodIndexer } from '$lib/utils/algod';
@@ -17,7 +13,6 @@
     import CollectionHeader from './components/CollectionHeader.svelte';
     import CollectionStats from './components/CollectionStats.svelte';
     import CollectionTabs from './components/CollectionTabs.svelte';
-    import { onNavigate } from '$app/navigation';
     import { invalidateAll } from '$app/navigation';
 
     export let data: PageData;

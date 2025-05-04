@@ -512,28 +512,6 @@
                         {/if}
                     </div>
                     
-                    <!-- Sale Badge -->
-                    {#if listing && !listing.sale && !listing.delete}
-                        <div class="absolute top-4 right-4">
-                            <div class="flex items-center gap-2 bg-gradient-to-r from-purple-600/90 to-purple-800/90 rounded-lg px-4 py-2 shadow-lg backdrop-blur-sm">
-                                <i class="fas {listing?.type === 'dutch_auction' ? 'fa-gavel' : 'fa-tag'} text-white/90"></i>
-                                <div class="flex flex-col">
-                                    <span class="text-white/90 text-sm font-medium">
-                                        {#if listing?.type === 'dutch_auction'}
-                                            Reverse Auction
-                                        {:else}
-                                            For Sale
-                                        {/if}
-                                    </span>
-                                    {#if currency}
-                                        <span class="text-white font-bold">
-                                            {(listing.price / Math.pow(10,currency.decimals)).toLocaleString()} {currency?.unitName}
-                                        </span>
-                                    {/if}
-                                </div>
-                            </div>
-                        </div>
-                    {/if}
                 </div>
                 
                 <!-- Right Column - Token Info -->

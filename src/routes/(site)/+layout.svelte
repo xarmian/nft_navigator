@@ -151,8 +151,8 @@
 	//import { Footer, FooterCopyright, FooterLinkGroup, FooterBrand, FooterLink } from 'flowbite-svelte';
 </script>
 
-<div class="app dark:text-white min-h-screen flex flex-col">
-	<div class="fixed w-full z-10">
+<div class="app dark:text-white min-h-screen flex flex-col w-screen">
+	<div class="fixed z-10 w-screen">
 		{#if showBanner}
 			<div transition:slide="{{ duration: 300, axis: 'y' }}" class="bg-blue-500 text-white text-center py-2 text-sm font-medium">
 				You are connected to Voi MainNet. Please use caution.
@@ -161,11 +161,11 @@
 		<header class="bg-white dark:bg-gray-800 py-4 px-6 flex items-center justify-between w-full z-50 shadow-md">
 			<div class="flex items-center space-x-3">
 				<a href="/">
-					<img src="{Icon}" class="h-10 rounded-lg" alt="Logo" />
+					<img src="{Icon}" class="h-10 w-10 rounded-lg" alt="Logo" />
 				</a>
 				<div>
 					<div class="text-xl font-bold font-sans">NFT Navigator</div>
-					<div class="text-xs">on the <a href="https://voi.network" target="_blank" class="underline text-blue-500 hover:text-blue-600">Voi</a> Network</div>
+					<div class="text-xs">on <a href="https://voi.network" target="_blank" class="underline text-blue-500 hover:text-blue-600">Voi</a> Network</div>
 				</div>
 			</div>
 			<nav class="hidden lg:flex items-center space-x-6">
@@ -204,7 +204,7 @@
 					 walletListClass="bg-gray-100 dark:bg-gray-700 dark:text-gray-200"/>
 				</div>
 				<DarkMode />
-				<button on:click|stopPropagation={() => showMenu = !showMenu} aria-label="Menu" class="lg:hidden">
+				<button on:click|stopPropagation={() => {showMenu = !showMenu; showBanner = false;}} aria-label="Menu" class="lg:hidden">
 					<i class="fas fa-bars text-2xl"></i>
 				</button>
 			</div>
@@ -214,6 +214,7 @@
 		<div transition:fly={{ y: -50, duration: 300 }} class="lg:hidden fixed top-20 right-0 left-0 bg-white dark:bg-gray-800 shadow-lg z-40 p-4">
 			<nav class="flex flex-col space-y-4">
 				<a href="/" class="nav-link {currentPath == '' ? 'text-blue-500' : ''}">Home</a>
+				<a href="/collection" class="nav-link {currentPath == 'collection' ? 'text-blue-500' : ''}">Collections</a>
 				<a href="/forsale" class="nav-link {currentPath == 'forsale' ? 'text-blue-500' : ''}">For Sale</a>
 				<a href="/lounge{extensionRouteLounge}" class="nav-link {currentPath == 'lounge' ? 'text-blue-500' : ''}">Lounge</a>
 				<a href="/analytics{extensionRoute}" class="nav-link {currentPath == 'analytics' ? 'text-blue-500' : ''}">Analytics</a>

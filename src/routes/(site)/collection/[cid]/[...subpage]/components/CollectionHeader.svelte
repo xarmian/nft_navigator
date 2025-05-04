@@ -63,7 +63,7 @@
                     {/if}
                 </div>
                 <!-- Integrated buttons section for desktop -->
-                <div class="hidden md:flex flex-row gap-2 mb-4 px-4">
+                <div class="hidden md:flex flex-row gap-2 mb-4 p-4">
                     <LoungeButton contractid={String(contractId)} buttonClass="w-32 flex flex-row items-center justify-center bg-gray-100 bg-opacity-90 dark:bg-gray-100 px-2 py-1.5 rounded-lg cursor-pointer text-black hover:bg-opacity-100 transition-all hover:scale-105 hover:bg-gray-200 space-x-2"/>
                     <NautilusButton contractid={String(contractId)} buttonClass="w-32 flex flex-row items-center justify-center bg-gray-100 bg-opacity-90 dark:bg-gray-100 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-opacity-100 transition-all hover:scale-105 hover:bg-gray-200"/>
                     <HighforgeButton contractid={String(contractId)} buttonClass="w-32 flex flex-row items-center justify-center bg-gray-100 bg-opacity-90 dark:bg-gray-100 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-opacity-100 transition-all hover:scale-105 hover:bg-gray-200"/>

@@ -220,17 +220,8 @@
     function formatVOI(amount: number): string {
         return (amount / Math.pow(10, 6)).toLocaleString();
     }
-</script>
 
-<script context="module">
-    // Type definitions
-    interface Sale {
-        collectionId: number;
-        price: number;
-        // Add other properties as needed
-    }
-
-    let salesByCollection: Record<number, {count: number, volume: number}> = {};
+    /*let salesByCollection: Record<number, {count: number, volume: number}> = {};
     
     // Populate salesByCollection from salesData if not already done
     function populateSalesByCollection(salesData: Sale[]) {
@@ -246,7 +237,7 @@
             });
         }
         return salesByCollection;
-    }
+    }*/
 </script>
 
 <svelte:head>

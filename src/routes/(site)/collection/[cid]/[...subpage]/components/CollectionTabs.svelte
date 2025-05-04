@@ -29,6 +29,14 @@
   export let onLoadMore: () => void;
   export let rawCollectors: any[];
   
+  // Mobile grid columns state
+  let mobileGridColumns: 1 | 2 = 2;
+  
+  // Function to set mobile grid columns
+  function setMobileGridColumns(cols: 1 | 2) {
+    mobileGridColumns = cols;
+  }
+  
   // Mobile dropdown state
   let isDropdownOpen = false;
   
@@ -261,13 +269,15 @@
           setSortDirection={setSortDirection}
           availableTraits={categories}
           {isMobile}
+          {mobileGridColumns}
+          {setMobileGridColumns}
         />
       </div>
       
       <!-- Token Grid Section -->
       <div class="flex-1">
         {#if filteredTokens.length > 0}
-          <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          <div class="grid gap-3 {isMobile ? (mobileGridColumns === 1 ? 'grid-cols-1' : 'grid-cols-2') : ''} sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {#each filteredTokens.slice(0, displayCount) as token (token.tokenId)}
               <div class="w-full">
                 <TokenDetail {collection} token={token} format="small" />
@@ -342,8 +352,4 @@
 </div>
 
 <style>
-  .sentinel {
-    height: 10px;
-    width: 100%;
-  }
 </style> 

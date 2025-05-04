@@ -135,9 +135,9 @@ function createMimirListingsStore() {
                             : token.metadata;
                         
                         // Extract traits from properties
-                        const traits = metadata.properties 
+                        const traits = metadata?.properties 
                             ? Object.entries(metadata.properties).map(([key, value]) => `${key}: ${value}`) 
-                            : metadata.attributes 
+                            : metadata?.attributes 
                                 ? metadata.attributes.map((attr: { trait_type: string, value: string | number }) => `${attr.trait_type}: ${attr.value}`)
                                 : [];
 

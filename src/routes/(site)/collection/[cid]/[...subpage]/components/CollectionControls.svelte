@@ -7,6 +7,8 @@
   export let setSortDirection: (dir: 'asc' | 'desc') => void;
   export let availableTraits: Record<string, Record<string, number>>;
   export let isMobile: boolean = false;
+  export let mobileGridColumns: 1 | 2;
+  export let setMobileGridColumns: (cols: 1 | 2) => void;
   
   let showFilters = false;
   let inputValue = searchText;
@@ -93,27 +95,53 @@
       {/if}
     </div>
     
-    <!-- Sort Controls -->
-    <div class="mt-3 flex items-center justify-between">
-      <div class="text-sm text-gray-500 dark:text-gray-400">
-        Sort
+    <!-- Sort & Mobile Grid Controls -->
+    <div class="mt-3 flex flex-col gap-3">
+      <div class="flex items-center justify-between">
+        <div class="text-sm text-gray-500 dark:text-gray-400">
+          Sort
+        </div>
+        <div class="inline-flex rounded-md shadow-sm" role="group">
+          <button 
+            type="button" 
+            class="py-1 px-3 text-sm font-medium rounded-l-lg border border-gray-300 dark:border-gray-600 {sortDirection === 'asc' ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'}"
+            on:click={() => setSortDirection('asc')}
+          >
+            Ascending
+          </button>
+          <button 
+            type="button" 
+            class="py-1 px-3 text-sm font-medium rounded-r-lg border border-gray-300 dark:border-gray-600 border-l-0 {sortDirection === 'desc' ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'}"
+            on:click={() => setSortDirection('desc')}
+          >
+            Descending
+          </button>
+        </div>
       </div>
-      <div class="inline-flex rounded-md shadow-sm" role="group">
-        <button 
-          type="button" 
-          class="py-1 px-3 text-sm font-medium rounded-l-lg border border-gray-300 dark:border-gray-600 {sortDirection === 'asc' ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'}"
-          on:click={() => setSortDirection('asc')}
-        >
-          Ascending
-        </button>
-        <button 
-          type="button" 
-          class="py-1 px-3 text-sm font-medium rounded-r-lg border border-gray-300 dark:border-gray-600 border-l-0 {sortDirection === 'desc' ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'}"
-          on:click={() => setSortDirection('desc')}
-        >
-          Descending
-        </button>
-      </div>
+      
+      {#if isMobile}
+        <div class="flex md:hidden items-center justify-between">
+          <div class="text-sm text-gray-500 dark:text-gray-400">
+            Grid View
+          </div>
+          <div class="inline-flex rounded-md shadow-sm" role="group">
+            <button 
+              type="button" 
+              class="py-1 px-3 text-sm font-medium rounded-l-lg border border-gray-300 dark:border-gray-600 {mobileGridColumns === 1 ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'}"
+              on:click={() => setMobileGridColumns(1)}
+            >
+              Single
+            </button>
+            <button 
+              type="button" 
+              class="py-1 px-3 text-sm font-medium rounded-r-lg border border-gray-300 dark:border-gray-600 border-l-0 {mobileGridColumns === 2 ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'}"
+              on:click={() => setMobileGridColumns(2)}
+            >
+              Double
+            </button>
+          </div>
+        </div>
+      {/if}
     </div>
   </div>
   
