@@ -28,6 +28,8 @@
   export let isMobile: boolean;
   export let onLoadMore: () => void;
   export let rawCollectors: any[];
+  export let nextToken: string | null;
+  export let tabDataLoaded: Record<string, boolean>;
   
   // Mobile grid columns state
   let mobileGridColumns: 1 | 2 = 2;
@@ -154,7 +156,6 @@
               {:else if view.id === 'burned'}
                 <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
                 </svg>
               {:else if view.id === 'mine'}
                 <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -276,6 +277,19 @@
       
       <!-- Token Grid Section -->
       <div class="flex-1">
+        <!-- Ranking calculation status -->
+        {#if currentView === 'ranking' && !tabDataLoaded?.ranking}
+          <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+            <div class="flex items-center text-sm text-blue-700 dark:text-blue-300">
+              <svg class="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Calculating rarity rankings in the background...
+            </div>
+          </div>
+        {/if}
+        
         {#if filteredTokens.length > 0}
           <div class="grid gap-3 {isMobile ? (mobileGridColumns === 1 ? 'grid-cols-1' : 'grid-cols-2') : ''} sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {#each filteredTokens.slice(0, displayCount) as token (token.tokenId)}
@@ -285,7 +299,8 @@
             {/each}
           </div>
           
-          {#if filteredTokens.length > displayCount}
+          {#if (currentView === 'ranking' && tabDataLoaded?.ranking && filteredTokens.length > displayCount) || 
+                (currentView !== 'ranking' && (filteredTokens.length > displayCount || nextToken))}
             <div class="mt-6 flex justify-center">
               <button 
                 class="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-md shadow-sm flex items-center gap-2 transition-colors duration-200"

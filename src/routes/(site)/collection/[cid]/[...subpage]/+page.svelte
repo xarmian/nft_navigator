@@ -8,8 +8,7 @@
     import { algodIndexer } from '$lib/utils/algod';
     import { getEnvoiNames, resolveEnvoiToken } from '$lib/utils/envoi';
     import { selectedWallet } from "avm-wallet-svelte";
-    import { getTokensWithPagination } from '$lib/utils/mimir';
-    import { getListingsWithPagination } from '$lib/utils/mimir';
+    import { getTokensWithPagination, getListingsWithPagination, getCollection, calculateTokenRanks } from '$lib/utils/mimir';
     import CollectionHeader from './components/CollectionHeader.svelte';
     import CollectionStats from './components/CollectionStats.svelte';
     import CollectionTabs from './components/CollectionTabs.svelte';
@@ -55,7 +54,7 @@
         forsale: false,
         mine: false,
         burned: false,
-        ranking: true, // Uses the same data as tokens
+        ranking: false, // Needs special handling to load all tokens
         transactions: true, // Component handles its own data
         collectors: true, // Component handles its own data
         feed: true, // Component handles its own data
@@ -142,9 +141,12 @@
 
     // Watch for filter changes and refresh from API when using server-side filtering
     // Only triggers when filters or search text actually change - not on tab changes
+    // For ranking tab, use local filtering if we have all tokens loaded
     $: {
         if (tokens && tokens.length > 0 && 
-            (searchText !== '' || Object.values(filters).some(v => v !== ''))) {
+            (searchText !== '' || Object.values(filters).some(v => v !== '')) &&
+            !(currentView === 'ranking' && tabDataLoaded.ranking)) {
+            console.log('Triggering API search/filter:', { searchText, filters, currentView });
             loadFilteredTokens(searchText, filters);
         }
     }
@@ -156,6 +158,8 @@
     // Function to fetch tokens with filters directly from API
     async function loadFilteredTokens(searchValue: string, filterValues: Record<string, string>) {
         if (!contractId || loading) return;
+        
+        console.log('loadFilteredTokens called:', { searchValue, filterValues, contractId });
         
         // Create a hash of the current search parameters
         const searchHash = `${searchValue}:${JSON.stringify(filterValues)}`;
@@ -183,16 +187,21 @@
             });
             
             if (response.tokens.length > 0) {
+                console.log('Setting filtered tokens in cache:', response.tokens.length);
                 // Replace tokens in the cache with filtered results
                 tokenCache.setTokens(contractId.toString(), response.tokens);
                 
                 // Update nextToken for future pagination
                 tokensNextToken = response.nextToken;
             } else {
+                console.log('No filtered tokens found, setting empty cache');
                 // If no matching tokens were found, show empty state
                 tokenCache.setTokens(contractId.toString(), []);
                 tokensNextToken = null;
             }
+            
+            // Reset display count when search/filter changes
+            displayCount = 10;
         } catch (error) {
             console.error('Error loading filtered tokens:', error);
         } finally {
@@ -232,6 +241,12 @@
     // Consolidated reactive block to handle all tab views
     $: {
         const cached = $tokenCache[contractId.toString()];
+        console.log('Main reactive declaration triggered:', { 
+            currentView, 
+            cachedTokensCount: cached?.tokens?.length || 0,
+            searchText,
+            filters
+        });
         let tokensToDisplay: Token[] = []; // Initialize default
 
         if (currentView === 'forsale') {
@@ -275,8 +290,51 @@
                     loadBurnedTokens();
                 }
             
-            } else if (currentView === 'tokens' || currentView === 'ranking') { 
-                if (data.tokens && data.tokens.length > 0) {
+            } else if (currentView === 'tokens') { 
+                // Use cached tokens if available, otherwise fall back to data.tokens
+                if (cached.tokens && cached.tokens.length > 0) {
+                    // Convert TokenWithVisibility back to Token for display
+                    tokensToDisplay = cached.tokens.map(t => ({
+                        ...t,
+                        visible: undefined // Remove the visible property
+                    }));
+                } else if (data.tokens && data.tokens.length > 0) {
+                    tokensToDisplay = data.tokens;
+                    cached.tokens = data.tokens;
+                }
+            } else if (currentView === 'ranking') {
+                // For ranking, we need all tokens to calculate proper ranks
+                if (cached.tokens && cached.tokens.length > 0) {
+                    // Convert TokenWithVisibility back to Token for display
+                    let allTokens = cached.tokens.map(t => ({
+                        ...t,
+                        visible: undefined // Remove the visible property
+                    }));
+                    
+                    // Apply local filtering if we have all tokens loaded
+                    if (tabDataLoaded.ranking && (searchText !== '' || Object.values(filters).some(v => v !== ''))) {
+                        allTokens = allTokens.filter(token => {
+                            // Search filter
+                            const searchMatch = !searchText || 
+                                token.metadata?.name?.toLowerCase().includes(searchText.toLowerCase()) ||
+                                token.traits?.some(trait => trait.toLowerCase().includes(searchText.toLowerCase())) ||
+                                token.tokenId.toString().includes(searchText.toLowerCase()) ||
+                                token.owner?.toLowerCase().includes(searchText.toLowerCase()) ||
+                                token.ownerNFD?.toLowerCase().includes(searchText.toLowerCase()) ||
+                                (token.contractId === 797609 && token.metadata?.envoiName?.toLowerCase().includes(searchText.toLowerCase()));
+                            
+                            // Trait filters
+                            const filterMatch = Object.entries(filters).every(([key, value]) => {
+                                if (value === '') return true;
+                                return token.metadata?.properties?.[key] === value;
+                            });
+                            
+                            return searchMatch && filterMatch;
+                        });
+                    }
+                    
+                    tokensToDisplay = allTokens;
+                } else if (data.tokens && data.tokens.length > 0) {
                     tokensToDisplay = data.tokens;
                     cached.tokens = data.tokens;
                 }
@@ -298,6 +356,15 @@
             
         // Apply sorting and assign final result to filteredTokens
         filteredTokens = sortTokens(tokensToDisplay);
+    }
+
+    // Separate reactive declaration for background ranking calculation
+    // This runs independently and doesn't trigger the main reactive declaration
+    $: if (currentView === 'ranking' && !tabDataLoaded.ranking && contractId) {
+        // Use setTimeout to break the reactive cycle
+        setTimeout(() => {
+            loadAllTokensForRanking();
+        }, 0);
     }
 
     onDestroy(() => {
@@ -377,14 +444,20 @@
             : goto(`/collection/${contractId}/${newPage}`);
     }
     
-    function showMore() {
-        // Increase the display count first
-        displayCount += 10;
-        
-        // If there are more tokens to fetch, load more
-        if (nextToken && !loading) {
-            loadMoreTokens();
+    async function showMore() {
+        // For ranking tab with all tokens loaded, just increase display count
+        if (currentView === 'ranking' && tabDataLoaded.ranking) {
+            displayCount += 10;
+            return;
         }
+        
+        // For other tabs, use normal pagination
+        if (nextToken && !loading) {
+            await loadMoreTokens();
+        }
+        
+        // Then increase the display count
+        displayCount += 10;
     }
 
     async function handleTabSort(tabId: string) {
@@ -527,6 +600,10 @@
                 tokenCache.addTokens(contractId.toString(), response.tokens);
                 burnedTokenCount = response.totalCount;
                 views = views.map(tab => tab.id === 'burned' ? {...tab, count: burnedTokenCount} : tab);
+                // Update nextToken for future pagination
+                tokensNextToken = response.nextToken;
+            } else {
+                tokensNextToken = null;
             }
         } catch (error) {
             console.error('Error loading burned tokens:', error);
@@ -725,15 +802,78 @@
                 tokenCache.addTokens(contractId.toString(), response.tokens);
                 userTokenCount = response.totalCount;
                 views = views.map(tab => tab.id === 'mine' ? {...tab, count: userTokenCount} : tab);
+                // Update nextToken for future pagination
+                tokensNextToken = response.nextToken;
             } else {
                 userTokenCount = 0;
                 views = views.map(tab => tab.id === 'mine' ? {...tab, count: userTokenCount} : tab);
+                tokensNextToken = null;
             }
         } catch (error) {
             console.error('Error fetching Mine tokens:', error);
             tabDataLoaded.mine = false; // Allow retry on error
         } finally {
             loading = false;
+        }
+    }
+
+    // Dedicated function to load all tokens for ranking calculation (background process)
+    async function loadAllTokensForRanking() {
+        if (!contractId || tabDataLoaded.ranking) return;
+        
+        // Don't set loading to true for this background process
+        // We want the UI to remain responsive while loading all tokens
+        
+        try {
+            // Load all tokens for the collection to calculate rankings
+            const allTokens: Token[] = [];
+            let currentNextToken: string | null = null;
+            
+            do {
+                const response = await getTokensWithPagination({
+                    contractId: contractId.toString(),
+                    fetch,
+                    limit: 100, // Use larger limit to reduce API calls
+                    nextToken: currentNextToken || undefined
+                });
+                
+                allTokens.push(...response.tokens);
+                currentNextToken = response.nextToken;
+                
+                // Add tokens to cache as we load them
+                tokenCache.addTokens(contractId.toString(), response.tokens);
+                
+            } while (currentNextToken);
+            
+            // Now calculate rankings for all tokens
+            if (allTokens.length > 0) {
+                // Get collection metadata to check for trait counts
+                const collection = await getCollection({ contractId: Number(contractId), fetch });
+                
+                if (collection?.metadata) {
+                    try {
+                        const collectionData = typeof collection.metadata === 'string'
+                            ? JSON.parse(collection.metadata)
+                            : collection.metadata;
+                        
+                        if (collectionData?.traitCount) {
+                            // Calculate rarity scores and ranks
+                            calculateTokenRanks(allTokens, collectionData.traitCount);
+                            
+                            // Update the cache with ranked tokens
+                            tokenCache.setTokens(contractId.toString(), allTokens);
+                        }
+                    } catch (error) {
+                        console.error('Error calculating token ranks:', error);
+                    }
+                }
+            }
+            
+            // Mark ranking as loaded
+            tabDataLoaded.ranking = true;
+            
+        } catch (error) {
+            console.error('Error loading all tokens for ranking:', error);
         }
     }
 </script>
@@ -790,6 +930,8 @@
     {contractId}
     {rawCollectors}
     onLoadMore={showMore}
+    {nextToken}
+    {tabDataLoaded}
   />
 </div>
 
