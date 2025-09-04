@@ -535,6 +535,11 @@ export async function getCollection(params: { contractId: number, fetch?: (input
 async function processCollectionResponse(data: ICollectionResponse): Promise<Collection[]> {
     const collections = data.collections
         .filter(c => c.firstToken !== null)
+        .filter(c => {
+            // Skip collections with achievement_token set to 1
+            const hasAchievementToken = c.globalState?.find(obj => obj.key === 'achievement_token' && obj.value === 1);
+            return !hasAchievementToken;
+        })
         .map(collection => {
             const col: Collection = {
                 contractId: collection.contractId,
