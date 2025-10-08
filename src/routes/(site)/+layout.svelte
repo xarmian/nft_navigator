@@ -189,7 +189,7 @@
 					<CollectionSearch expandDirection="left" />
 				</div>
 				<div class="hidden lg:block">
-					<Web3Wallet availableWallets={['Kibisis','LuteWallet','Biatec Wallet','WalletConnect']}
+					<Web3Wallet availableWallets={['Kibisis','LuteWallet','Biatec Wallet','VoiWallet','WalletConnect']}
 					 showAuthButtons={true} 
 					 algodClient={algodClient} 
 					 indexerClient={algodIndexer} 
@@ -224,7 +224,7 @@
 				<CollectionSearch expandDirection="right" isExpanded={true} />
 			</div>
 			<div class="mt-4 flex justify-center">
-				<Web3Wallet availableWallets={['Kibisis', 'LuteWallet', 'WalletConnect']}
+				<Web3Wallet availableWallets={['Kibisis','LuteWallet','Biatec Wallet','VoiWallet','WalletConnect']}
 					showAuthButtons={true} 
 					algodClient={algodClient} 
 					indexerClient={algodIndexer} 
