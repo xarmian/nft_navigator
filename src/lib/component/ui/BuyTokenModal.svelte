@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Currency, Listing, Token } from '$lib/data/types';
-    import { isSubmitted, pollUntil, classifyOwner } from '$lib/utils/txFlow';
+    import { isSubmitted, pollUntil, classifyBuyerOwner, createRunGate } from '$lib/utils/txFlow';
     import Modal from './Modal.svelte';
     import { reformatTokenName, getTokens } from "$lib/utils/indexer";
     import { mp } from 'ulujs';
@@ -38,6 +38,8 @@
 
     let walletBalance: number;
     let run = 0;
+    const gate = createRunGate();
+    let inFlight = false;
     let sendingError: string = '';
     let transactionId: string = '';
     let listingCurrency: Currency | null = null;
@@ -65,6 +67,9 @@
     });
 
     async function buyToken() {
+        const ticket = gate.tryStart();
+        if (ticket === null) return;
+        inFlight = true;
         const myRun = ++run;
         const shouldStop = () => myRun !== run;
         try {
@@ -134,7 +139,7 @@
             });
             if (myRun !== run) return;
 
-            switch (classifyOwner(initialOwner, result.value?.owner, fromAddr)) {
+            switch (classifyBuyerOwner(initialOwner, result.value?.owner, fromAddr)) {
                 case 'confirmed':
                     token = result.value!;
                     sendingView = SendingView.Sent;
@@ -154,6 +159,10 @@
             if (myRun !== run) return;
             sendingError = typeof err?.message === 'string' ? err.message : 'Unknown error';
             sendingView = SendingView.Error;
+        }
+        finally {
+            gate.end(ticket);
+            inFlight = gate.busy;
         }
     }
 
@@ -209,9 +218,12 @@
                         <div class="text-sm text-gray-400">The selected address has no Voi.</div>
                     </div>
                 {/if}
+                {#if inFlight}
+                    <div class="mt-2 text-gray-400">Your wallet may still be waiting for you. If you approve there, the purchase can still go through. Wait for this to finish before submitting again.</div>
+                {/if}
                 <div class="flex flex-row justify-between mt-4 space-x-2">
                     <button on:click={close} class="w-52 h-10 bg-blue-500 text-white rounded-md">Close</button>
-                    <button on:click={buyToken} class="w-52 h-10 bg-blue-500 text-white rounded-md">Submit</button>
+                    <button on:click={buyToken} disabled={inFlight} class="w-52 h-10 bg-blue-500 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed">Submit</button>
                 </div>
             {:else if sendingView === "sending"}
                 <div class="flex flex-col items-center m-2 h-full place-content-center">

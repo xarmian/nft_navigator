@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Token, Collection, Listing, Currency } from '$lib/data/types';
     import TokenName from '$lib/component/ui/TokenName.svelte';
-    import { hasArcpayResult, pollUntil } from '$lib/utils/txFlow';
+    import { hasArcpayResult, pollUntil, createRunGate } from '$lib/utils/txFlow';
     import { zeroAddress } from '$lib/data/constants';
     import { selectedWallet } from 'avm-wallet-svelte';
 	import SendTokenModal from './SendTokenModal.svelte';
@@ -46,6 +46,8 @@
     let waitingForConfirmationModal = false;
     let arcpayNotice: string | null = null;
     let arcpayRun = 0;
+    const arcpayGate = createRunGate();
+    let arcpayBusy = false;
     let isExpanded = false;
 
     $: imageUrl = (token) ? getTokenImageUrl(token,((format == 'small') ? 480 : 0)) : '';
@@ -246,6 +248,9 @@
 
     async function cancelListing() {
         if (listing && listing.source === 'arcpay') {
+            const ticket = arcpayGate.tryStart();
+            if (ticket === null) return;
+            arcpayBusy = true;
             const myRun = ++arcpayRun;
             arcpayNotice = null;
             waitingForConfirmationModal = false;
@@ -274,6 +279,8 @@
                 if (myRun !== arcpayRun) return;
                 arcpayNotice = typeof err?.message === 'string' ? err.message : 'The wallet service returned an error.';
             } finally {
+                arcpayGate.end(ticket);
+                arcpayBusy = arcpayGate.busy;
                 if (myRun === arcpayRun) waitingForConfirmationModal = false;
             }
         }
@@ -293,11 +300,15 @@
 
     async function listArcpay() {
         if (!browser) return;
+        const ticket = arcpayGate.tryStart();
+        if (ticket === null) return;
+        arcpayBusy = true;
         const myRun = ++arcpayRun;
         arcpayNotice = null;
         waitingForConfirmationModal = false;
 
         try {
+            const initialApproved = token.approved;
             const txId = await listTokenArcpay(token);
             if (myRun !== arcpayRun) return;
             if (!hasArcpayResult(txId)) {
@@ -311,7 +322,7 @@
                 delayMs: 2000,
                 shouldStop: () => myRun !== arcpayRun,
                 read: async () => (await getTokens({ contractId, tokenId, invalidate: true }))[0],
-                isDone: (t) => !!t && t.approved !== zeroAddress,
+                isDone: (t) => !!t && t.approved !== zeroAddress && t.approved !== initialApproved,
             });
             if (myRun !== arcpayRun || result.stopped) return;
             if (result.value) token = result.value;
@@ -337,6 +348,8 @@
             if (myRun !== arcpayRun) return;
             arcpayNotice = typeof err?.message === 'string' ? err.message : 'The wallet service returned an error.';
         } finally {
+            arcpayGate.end(ticket);
+            arcpayBusy = arcpayGate.busy;
             if (myRun === arcpayRun) waitingForConfirmationModal = false;
         }
     }
@@ -746,8 +759,8 @@
 
                         {#if (!listing || (listing && listing?.source === 'arcpay'))}
                             <div class="border-t border-white/10 p-2">
-                                <button on:click={listArcpay}
-                                        class="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/90 hover:bg-white/10 rounded-lg transition-colors">
+                                <button on:click={listArcpay} disabled={arcpayBusy}
+                                        class="disabled:opacity-50 disabled:cursor-not-allowed w-full flex items-center gap-3 px-3 py-2 text-sm text-white/90 hover:bg-white/10 rounded-lg transition-colors">
                                     <i class="fas fa-tag w-4"></i>
                                     <div class="flex flex-col items-start">
                                         <span>{listing ? 'Update' : 'List'} on NFT Navigator</span>
@@ -776,8 +789,8 @@
 
                         {#if listing}
                             <div class="border-t border-white/10 p-2">
-                                <button on:click={cancelListing}
-                                        class="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
+                                <button on:click={cancelListing} disabled={listing.source === 'arcpay' && arcpayBusy}
+                                        class="disabled:opacity-50 disabled:cursor-not-allowed w-full flex items-center gap-3 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
                                     <i class="fas fa-times w-4"></i>
                                     <span>Cancel Listing</span>
                                 </button>

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Currency, Listing, Metadata, Token } from '$lib/data/types';
-    import { isSubmitted, pollUntil, classifyChange } from '$lib/utils/txFlow';
+    import { isSubmitted, pollUntil, classifyChange, createRunGate } from '$lib/utils/txFlow';
     import Modal from './Modal.svelte';
     import { reformatTokenName, getTokens } from "$lib/utils/indexer";
     import { arc72, mp } from 'ulujs';
@@ -40,6 +40,8 @@
 
     let walletBalance: number;
     let run = 0;
+    const gate = createRunGate();
+    let inFlight = false;
     let sendingError: string = '';
     let transactionId: string = '';
 
@@ -60,6 +62,9 @@
 
 
     async function listToken() {
+        const ticket = gate.tryStart();
+        if (ticket === null) return;
+        inFlight = true;
         const myRun = ++run;
         const shouldStop = () => myRun !== run;
         try {
@@ -195,6 +200,10 @@
             sendingError = typeof err?.message === 'string' ? err.message : 'Unknown error';
             sendingView = SendingView.Error;
         }
+        finally {
+            gate.end(ticket);
+            inFlight = gate.busy;
+        }
     }
 
     function reset() {
@@ -283,9 +292,12 @@
                         </div>
                     </div>
                 {/if}
+                {#if inFlight}
+                    <div class="mt-2 text-gray-400">Your wallet may still be waiting for you. If you approve there, the listing change can still go through. Wait for this to finish before submitting again.</div>
+                {/if}
                 <div class="flex flex-row justify-between mt-4 space-x-2">
                     <button on:click={close} class="w-52 h-10 bg-blue-500 text-white rounded-md">Close</button>
-                    <button on:click={listToken} class="w-52 h-10 bg-blue-500 text-white rounded-md">Submit</button>
+                    <button on:click={listToken} disabled={inFlight} class="w-52 h-10 bg-blue-500 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed">Submit</button>
                 </div>
             {:else if sendingView === "sending"}
                 <div class="flex flex-col items-center m-2 h-full place-content-center">

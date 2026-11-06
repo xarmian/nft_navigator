@@ -1,12 +1,96 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 // @ts-expect-error Node's direct TypeScript runner requires the .ts extension.
-import { isSubmitted, hasArcpayResult, pollUntil, classifyChange, classifyOwner } from './txFlow.ts';
+import { isSubmitted, hasArcpayResult, pollUntil, classifyChange, classifyOwner, classifyBuyerOwner, countPending, createRunGate } from './txFlow.ts';
 
 function fakeSleep() {
 	const calls: number[] = [];
 	return { calls, sleep: async (ms: number) => { calls.push(ms); } };
 }
+
+test('classifyBuyerOwner: undefined buyer', () => {
+	assert.equal(classifyBuyerOwner('a', 'b', undefined), 'pending');
+});
+
+test('classifyBuyerOwner: empty buyer', () => {
+	assert.equal(classifyBuyerOwner('a', 'b', ''), 'pending');
+});
+
+test('classifyBuyerOwner: whitespace buyer', () => {
+	assert.equal(classifyBuyerOwner('a', 'b', '   '), 'pending');
+});
+
+test('classifyBuyerOwner: buyer owns changed token', () => {
+	assert.equal(classifyBuyerOwner('a', 'b', 'b'), 'confirmed');
+});
+
+test('classifyBuyerOwner: unexpected owner', () => {
+	assert.equal(classifyBuyerOwner('a', 'c', 'b'), 'unexpected');
+});
+
+test('classifyBuyerOwner: unchanged owner', () => {
+	assert.equal(classifyBuyerOwner('a', 'a', 'b'), 'pending');
+});
+
+test('classifyBuyerOwner: missing owner', () => {
+	assert.equal(classifyBuyerOwner('a', undefined, 'b'), 'pending');
+});
+
+test('countPending: empty arrays', () => {
+	assert.equal(countPending([], []), 0);
+});
+
+test('countPending: all changed', () => {
+	assert.equal(countPending(['a', 'b'], ['c', 'd']), 0);
+});
+
+test('countPending: one unchanged', () => {
+	assert.equal(countPending(['a', 'b'], ['a', 'd']), 1);
+});
+
+test('countPending: missing observations', () => {
+	assert.equal(countPending(['a', 'b', 'c'], ['d']), 2);
+});
+
+test('countPending: all unchanged', () => {
+	assert.equal(countPending(['a', 'b'], ['a', 'b']), 2);
+});
+
+test('createRunGate rejects a second active run', () => {
+	const gate = createRunGate();
+	assert.equal(gate.tryStart(), 1);
+	assert.equal(gate.tryStart(), null);
+});
+
+test('createRunGate issues larger tickets after ending', () => {
+	const gate = createRunGate();
+	const first = gate.tryStart()!;
+	gate.end(first);
+	const second = gate.tryStart()!;
+	assert.ok(second > first);
+});
+
+test('createRunGate ignores stale and unknown tickets', () => {
+	const gate = createRunGate();
+	const first = gate.tryStart()!;
+	gate.end(first);
+	const second = gate.tryStart()!;
+	gate.end(first);
+	assert.equal(gate.busy, true);
+	assert.equal(gate.tryStart(), null);
+	gate.end(second + 1);
+	assert.equal(gate.busy, true);
+	assert.equal(gate.tryStart(), null);
+});
+
+test('createRunGate busy follows the active run', () => {
+	const gate = createRunGate();
+	assert.equal(gate.busy, false);
+	const ticket = gate.tryStart()!;
+	assert.equal(gate.busy, true);
+	gate.end(ticket);
+	assert.equal(gate.busy, false);
+});
 
 test('isSubmitted accepts only true', () => {
 	assert.equal(isSubmitted(true), true);

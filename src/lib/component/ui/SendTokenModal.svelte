@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Token } from '$lib/data/types';
-    import { pollUntil, classifyChange } from '$lib/utils/txFlow';
+    import { pollUntil, classifyChange, countPending, createRunGate } from '$lib/utils/txFlow';
     import Modal from './Modal.svelte';
     import { reformatTokenName, getTokens } from "$lib/utils/indexer";
     import WalletSearch from '../WalletSearch.svelte';
@@ -57,6 +57,10 @@
     let transactionIds: string[] = [];
     let tokenTransactions: { tokenId: string; txId: string; contractId: number }[] = [];
     let sentCount = 0;
+    let unconfirmedCount = 0;
+    let unconfirmedTotal = 0;
+    const gate = createRunGate();
+    let inFlight = false;
     $: imageUrl = (tokens[0] && tokens[0].metadataURI) ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(tokens[0].metadataURI)}?w=240` : tokens[0]?.metadata?.image;
 
     let searchQuery = '';
@@ -161,28 +165,32 @@
     }
 
     async function sendToken(skipReset: boolean = false, retryCurrentToken: boolean = false) {
-        console.log('send token to', isIndividualMode ? 'multiple addresses' : transferTo);
-        if (!isIndividualMode && transferTo.length === 0) return;
-        if (isIndividualMode && Object.keys(individualAddresses).length !== tokens.length) return;
-
-        // Reset sentCount and tokenTransactions when starting a new send attempt, unless skipping or retrying
-        if (!skipReset && !retryCurrentToken) {
-            sentCount = 0;
-            tokenTransactions = [];
-        }
-
-        const opts = {
-            acc: {
-                addr: fromAddr,
-                sk: new Uint8Array(0),
-            },
-            formatBytes: false,
-            simulate: true,
-        }
-
-        sendingView = SendingView.Sending;
-
+        const ticket = gate.tryStart();
+        if (ticket === null) return;
+        inFlight = true;
         try {
+            console.log('send token to', isIndividualMode ? 'multiple addresses' : transferTo);
+            if (!isIndividualMode && transferTo.length === 0) return;
+            if (isIndividualMode && Object.keys(individualAddresses).length !== tokens.length) return;
+
+            // Reset sentCount and tokenTransactions when starting a new send attempt, unless skipping or retrying
+            if (!skipReset && !retryCurrentToken) {
+                sentCount = 0;
+                tokenTransactions = [];
+            }
+
+            const opts = {
+                acc: {
+                    addr: fromAddr,
+                    sk: new Uint8Array(0),
+                },
+                formatBytes: false,
+                simulate: true,
+            }
+
+            sendingView = SendingView.Sending;
+
+            const initialValues = tokens.map((t) => (type == 'send' ? t.owner : t.approved));
             const startIndex = retryCurrentToken ? sentCount : 0;
             const endIndex = retryCurrentToken ? sentCount + 1 : tokens.length;
             
@@ -315,9 +323,9 @@
 
             sendingView = SendingView.Waiting;
 
-            // Wait for the last token's transaction to be confirmed
-            if (tokens.length > 0) {
-                const lastToken = tokens[tokens.length - 1];
+            // Wait for the last token this attempt sent to be confirmed (a retry sends only one token)
+            if (tokens.length > 0 && endIndex > startIndex) {
+                const lastToken = tokens[endIndex - 1];
                 const initial = type == 'send' ? lastToken.owner : lastToken.approved;
                 const result = await pollUntil({
                     read: async () => (await getTokens({contractId: lastToken.contractId, tokenId: lastToken.tokenId, invalidate: true}))[0],
@@ -327,6 +335,24 @@
                 });
                 const observed = type == 'send' ? result.value?.owner : result.value?.approved;
                 if (classifyChange(initial, observed) === 'pending') {
+                    unconfirmedCount = 1;
+                    unconfirmedTotal = endIndex - startIndex;
+                    sendingView = SendingView.Pending;
+                    return;
+                }
+
+                const observedAll = await Promise.all(tokens.slice(startIndex, endIndex).map(async (tk) => {
+                    try {
+                        const r = (await getTokens({contractId: tk.contractId, tokenId: tk.tokenId, invalidate: true}))[0];
+                        return type == 'send' ? r?.owner : r?.approved;
+                    } catch {
+                        return undefined;
+                    }
+                }));
+                const unconfirmed = countPending(initialValues.slice(startIndex, endIndex), observedAll);
+                if (unconfirmed > 0) {
+                    unconfirmedCount = unconfirmed;
+                    unconfirmedTotal = endIndex - startIndex;
                     sendingView = SendingView.Pending;
                     return;
                 }
@@ -356,6 +382,9 @@
             console.error('error sending token', err);
             sendingError = (err instanceof Error) ? err.message : 'Unknown error';
             sendingView = SendingView.Error;
+        } finally {
+            gate.end(ticket);
+            inFlight = gate.busy;
         }
     }
 
@@ -737,7 +766,7 @@
                         </div>
                         <div class="mt-2 text-gray-400">Please sign the transaction{transactionIds.length > 1 ? ' group' : ''} in your wallet</div>
                         <div class="flex flex-col items-center mt-4">
-                            <button on:click={handleReset()} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
+                            <button on:click={() => sendingView = SendingView.Confirm} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
                         </div>
                     </div>
                 {:else if sendingView === "waiting"}
@@ -852,7 +881,7 @@
                 {:else if sendingView === "pending"}
                     <div class="flex flex-col items-center space-y-4 py-10">
                         <div class="text-xl font-bold">Transactions Submitted</div>
-                        <div class="mt-2 text-gray-400">The transactions were signed and sent, but the last one has not been confirmed yet. They may still complete. Check them before trying again.</div>
+                        <div class="mt-2 text-gray-400">The transactions were signed and sent, but {unconfirmedCount} of {unconfirmedTotal} have not been confirmed yet. They may still complete. Check them before trying again.</div>
                         <div class="mt-2 text-gray-400 flex flex-col items-center">
                             <div class="font-bold mb-2">Transactions</div>
                             {#each transactionIds as id}
@@ -937,6 +966,9 @@
 
         {#if sendingView === "presend" || sendingView === "confirm"}
             <div class="mt-auto border-t border-gray-200 dark:border-gray-700 py-4">
+                {#if sendingView === "confirm" && inFlight}
+                    <div class="mt-2 text-gray-400">Your wallet may still be waiting for you. If you approve there, the transfer can still go through. Wait for this to finish before submitting again.</div>
+                {/if}
                 <div class="flex justify-between max-w-md mx-auto w-full space-x-4">
                     {#if sendingView === "presend"}
                         <button on:click={afterClose} class="flex-1 h-11 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">Cancel</button>
@@ -946,7 +978,7 @@
                         >Next</button>
                     {:else if sendingView === "confirm"}
                         <button on:click={handleReset(true)} class="flex-1 h-11 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">Back</button>
-                        <button on:click={() => sendToken()} class="flex-1 h-11 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">Submit</button>
+                        <button on:click={() => sendToken()} disabled={inFlight} class="flex-1 h-11 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Submit</button>
                     {/if}
                 </div>
             </div>
