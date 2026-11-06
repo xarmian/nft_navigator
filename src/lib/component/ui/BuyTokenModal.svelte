@@ -61,7 +61,6 @@
     });
 
     onDestroy(() => {
-        run++;
         unsub();
     });
 
@@ -159,13 +158,11 @@
     }
 
     function reset() {
-        run++;
         sendingError = '';
         sendingView = SendingView.Confirm;
     }
 
     function close() {
-        run++;
         showModal = false;
         sendingError = '';
         sendingView = SendingView.Confirm;
