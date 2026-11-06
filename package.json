@@ -15,10 +15,10 @@
 		"format": "prettier --plugin-search-dir . --write ."
 	},
 	"engines": {
-		"node": "20.x"
+		"node": "24.x"
 	},
 	"devDependencies": {
-		"@sveltejs/adapter-vercel": "^5.4.5",
+		"@sveltejs/adapter-vercel": "6.3.0",
 		"@sveltejs/kit": "^2.8.1",
 		"@sveltejs/vite-plugin-svelte": "^4.0.0",
 		"@types/d3": "^7.4.3",
@@ -60,7 +60,7 @@
 		"compare-versions": "^6.1.0",
 		"csv-parse": "^5.6.0",
 		"d3": "^7.9.0",
-		"d3-scale": "github:d3/d3-scale",
+		"d3-scale": "^4.0.2",
 		"echarts": "^5.6.0",
 		"flowbite-svelte": "^0.47.3",
 		"flowbite-svelte-icons": "^2.0.2",
