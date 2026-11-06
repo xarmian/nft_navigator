@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Currency, Listing, Token } from '$lib/data/types';
+    import { isSubmitted, pollUntil, classifyOwner } from '$lib/utils/txFlow';
     import Modal from './Modal.svelte';
     import { reformatTokenName, getTokens } from "$lib/utils/indexer";
     import { mp } from 'ulujs';
@@ -27,6 +28,7 @@
         Confirm: "confirm",
         Sending: "sending",
         Waiting: "waiting",
+        Pending: "pending",
         Error: "error",
         Sent: "sent",
     } as const;
@@ -35,6 +37,7 @@
     let tokenName = reformatTokenName(token.metadata?.name??'', token.tokenId);
 
     let walletBalance: number;
+    let run = 0;
     let sendingError: string = '';
     let transactionId: string = '';
     let listingCurrency: Currency | null = null;
@@ -58,42 +61,50 @@
     });
 
     onDestroy(() => {
+        run++;
         unsub();
     });
 
     async function buyToken() {
-        console.log('buying token');
-        sendingView = SendingView.Sending;
-        
-        const c = { 
-            ...buyCurrency, 
-            symbol: (buyCurrency?.unitName??''), 
-            tokenId: (listing.currency === TOKEN_WVOI2 ? 0 : listing.currency).toString()
-        };
+        const myRun = ++run;
+        const shouldStop = () => myRun !== run;
+        try {
+            sendingView = SendingView.Sending;
+            const c = { 
+                ...buyCurrency, 
+                symbol: (buyCurrency?.unitName??''), 
+                tokenId: (listing.currency === TOKEN_WVOI2 ? 0 : listing.currency).toString()
+            };
 
-        const opts = {
-            paymentTokenId: listing.currency === 0 ? TOKEN_WVOI2 : listing.currency, // which token to use for payment with network token as wrapped network 
-            wrappedNetworkTokenId: TOKEN_WVOI2, // which token to use for wrapped network token
-            extraTxns: [], // optional extra transactions to include in the atomic transfer such voi swap to payment token if available
-            algodClient,
-            indexerClient: algodIndexer,
-            skipEnsure: false
-        };
+            const opts = {
+                paymentTokenId: listing.currency === 0 ? TOKEN_WVOI2 : listing.currency, // which token to use for payment with network token as wrapped network 
+                wrappedNetworkTokenId: TOKEN_WVOI2, // which token to use for wrapped network token
+                extraTxns: [], // optional extra transactions to include in the atomic transfer such voi swap to payment token if available
+                algodClient,
+                indexerClient: algodIndexer,
+                skipEnsure: false
+            };
 
-        const resp = await mp.buy(
-            fromAddr,  // Address of buyer
-            {
-                ...listing,
-                token: {
-                    ...listing.token,
-                    metadata: (typeof listing.token?.metadata === 'object' ? JSON.stringify(listing.token.metadata) : listing.token?.metadata) ?? ''
-                }
-            } as Listing,
-            c, // ARC200IndexerToken
-            opts,
-        );
+            const resp = await mp.buy(
+                fromAddr,  // Address of buyer
+                {
+                    ...listing,
+                    token: {
+                        ...listing.token,
+                        metadata: (typeof listing.token?.metadata === 'object' ? JSON.stringify(listing.token.metadata) : listing.token?.metadata) ?? ''
+                    }
+                } as Listing,
+                c, // ARC200IndexerToken
+                opts,
+            );
+            if (myRun !== run) return;
 
-        if (resp && resp.success) {
+            if (!resp || !resp.success) {
+                sendingError = typeof resp?.error === 'string' && resp.error.trim() ? resp.error : 'Could not prepare the transaction.';
+                sendingView = SendingView.Error;
+                return;
+            }
+
             const txnsForSigning = resp.txns;
             const decodedTxns: algosdk.Transaction[] = [];
 
@@ -104,78 +115,57 @@
                 transactionId = tx.txID();
                 decodedTxns.push(tx);
             }
-            
-            try {
-                const status = await signAndSendTransactions([decodedTxns]);
-                console.log('signing status', status);
-                sendingView = status ? SendingView.Waiting : SendingView.Error;
-                let t = null;
 
-                let owner = token.owner;
-                let newOwner = owner;
-                let i = 0;
-                while (owner === newOwner && i < 30) {
-                    await new Promise(r => setTimeout(r, 1000));
-                    t = await getTokens({contractId: token.contractId, tokenId: token.tokenId, invalidate: true});
-                    newOwner = t[0].owner;
-                    i++;
-                }
-
-                if (t && t.length > 0) token = t[0];
-                sendingView = SendingView.Sent;
-
-                // submit POST to /api/quests to record action
-                /*const response = await fetch('/api/quests', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: type == 'send' ? 'token_transfer' : 'token_approve',
-                        detail: {
-                            from: fromAddr,
-                            to: transferTo,
-                            token: String(token.contractId)+'-'+String(token.tokenId),
-                            transactionId: transactionId,
-                        }
-                    }),
-                });
-
-                if (!response.ok) {
-                    console.error('Failed to send wallet data to backend', await response.text());
-                }
-                else {
-                    const data = await response.json();
-                    if (data.isFirstAction) {
-                        showConfetti.set(true);
-                        toast.push(`Congratulations! The ${type === 'send' ? 'Transfer' : 'Approve'} Token Quest has been Completed!`);
-                        setTimeout(() => {
-                            showConfetti.set(false)
-                        }, 10000);
-                    }
-                }*/
-
-                invalidateAll();
-                onAfterSend(token);
-            }
-            catch(err: any) {
-                console.log(err);
-                sendingError = err.message;
+            const initialOwner = token.owner;
+            const { contractId, tokenId } = token;
+            const status = await signAndSendTransactions([decodedTxns]);
+            if (myRun !== run) return;
+            if (!isSubmitted(status)) {
+                sendingError = 'The transaction was not submitted (cancelled or rejected in the wallet).';
                 sendingView = SendingView.Error;
+                return;
+            }
+            sendingView = SendingView.Waiting;
+            const result = await pollUntil({
+                read: async () => (await getTokens({contractId, tokenId, invalidate: true}))[0],
+                isDone: (t) => !!t && t.owner !== initialOwner,
+                attempts: 30,
+                delayMs: 1000,
+                shouldStop,
+            });
+            if (myRun !== run) return;
+
+            switch (classifyOwner(initialOwner, result.value?.owner, fromAddr)) {
+                case 'confirmed':
+                    token = result.value!;
+                    sendingView = SendingView.Sent;
+                    invalidateAll();
+                    onAfterSend(token);
+                    break;
+                case 'unexpected':
+                    sendingError = 'The token owner changed to an address other than the buyer. Check the transaction in the explorer.';
+                    sendingView = SendingView.Error;
+                    break;
+                case 'pending':
+                    sendingView = SendingView.Pending;
+                    break;
             }
         }
-        else {
-            sendingError = resp.error;
+        catch(err: any) {
+            if (myRun !== run) return;
+            sendingError = typeof err?.message === 'string' ? err.message : 'Unknown error';
             sendingView = SendingView.Error;
         }
     }
 
     function reset() {
+        run++;
         sendingError = '';
         sendingView = SendingView.Confirm;
     }
 
     function close() {
+        run++;
         showModal = false;
         sendingError = '';
         sendingView = SendingView.Confirm;
@@ -265,6 +255,18 @@
                         <a href={"https://explorer.voi.network/explorer/transaction/" + transactionId} target="_blank" class="text-xs underline text-blue-500 hover:text-blue-600">{transactionId}</a>
                     </div>
                     <div class="flex flex-row items-center mt-4 space-x-4">
+                        <button on:click={close} class="w-64 h-10 bg-blue-500 text-white rounded-md">Close</button>
+                    </div>
+                </div>
+            {:else if sendingView === "pending"}
+                <div class="flex flex-col items-center m-2">
+                    <div class="text-xl font-bold">Transaction Submitted</div>
+                    <div class="mt-2 text-gray-400">The transaction was signed and sent, but the purchase has not been confirmed yet. It may still complete. Check the transaction before trying again.</div>
+                    <div class="mt-2 text-gray-400 flex flex-col">
+                        <div class="font-bold">Transaction ID</div>
+                        <a href={"https://explorer.voi.network/explorer/transaction/" + transactionId} target="_blank" class="text-xs underline text-blue-500 hover:text-blue-600">{transactionId}</a>
+                    </div>
+                    <div class="flex flex-col items-center mt-4">
                         <button on:click={close} class="w-64 h-10 bg-blue-500 text-white rounded-md">Close</button>
                     </div>
                 </div>

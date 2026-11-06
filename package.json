@@ -6,6 +6,7 @@
 	"module": "dist/index.js",
 	"svelte": "dist/index.js",
 	"scripts": {
+		"test": "node --test src/lib/utils/txFlow.test.ts",
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
