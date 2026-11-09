@@ -43,6 +43,7 @@
     let run = 0;
     const gate = sharedTxGate;
     let inFlight = false;
+    let stoppedWaiting = false;
     let sendingError: string = '';
     let transactionId: string = '';
 
@@ -65,8 +66,10 @@
 
 
     async function listToken() {
-        const ticket = gate.tryStart();
+        const abandonKey = 'list:' + token.contractId + '-' + token.tokenId;
+        const ticket = gate.tryStart(abandonKey);
         if (ticket === null) return;
+        const afterAbandon = gate.wasAbandoned(abandonKey);
         inFlight = true;
         const myRun = ++run;
         const shouldStop = () => myRun !== run || !gate.isCurrent(ticket);
@@ -180,6 +183,10 @@
             if (myRun !== run || !gate.isCurrent(ticket)) return;
 
             const classification = classifyTarget(initialApproved, result.value?.approved, expectedApproved);
+            if (classification === 'confirmed' && afterAbandon) {
+                sendingView = SendingView.Pending;
+                return;
+            }
             if (classification === 'pending') {
                 sendingView = SendingView.Pending;
                 return;
@@ -211,8 +218,11 @@
             sendingView = SendingView.Error;
         }
         finally {
+            const wasCurrent = gate.isCurrent(ticket);
             gate.end(ticket);
             inFlight = gate.busy;
+            if (wasCurrent) stoppedWaiting = false;
+            if (wasCurrent) gate.forgetAbandoned(abandonKey);
         }
     }
 
@@ -302,9 +312,9 @@
                         </div>
                     </div>
                 {/if}
-                {#if inFlight}
+                {#if sendingView === "confirm" && (inFlight || stoppedWaiting)}
                     <div class="mt-2 text-gray-400">Your wallet may still be waiting. If you approve the earlier request, it can still complete, so check your wallet before trying again.</div>
-                    <button type="button" class="mt-2 text-sm text-gray-500 underline" on:click={() => sharedTxGate.abandon()}>Stop waiting</button>
+                    {#if inFlight}<button type="button" class="mt-2 text-sm text-gray-500 underline" on:click={() => { stoppedWaiting = true; sharedTxGate.abandon(); }}>Stop waiting</button>{/if}
                 {/if}
                 <div class="flex flex-row justify-between mt-4 space-x-2">
                     <button on:click={close} class="w-52 h-10 bg-blue-500 text-white rounded-md">Close</button>

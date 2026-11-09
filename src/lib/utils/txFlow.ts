@@ -69,21 +69,25 @@ export function countPending(initial: string[], observed: (string | undefined)[]
 	return initial.filter((value, i) => classifyChange(value, observed[i]) === 'pending').length;
 }
 
-export function createRunGate(): { tryStart(): number | null; end(ticket: number): void; subscribe(fn: (busy: boolean) => void): () => void; abandon(): void; isCurrent(ticket: number): boolean; readonly busy: boolean } {
+export function createRunGate(): { tryStart(label?: string): number | null; end(ticket: number): void; subscribe(fn: (busy: boolean) => void): () => void; abandon(): void; wasAbandoned(label: string): boolean; forgetAbandoned(label: string): void; isCurrent(ticket: number): boolean; readonly busy: boolean } {
 	let latest = 0;
 	let active = false;
+	let activeLabel: string | undefined;
+	const abandonedLabels = new Set<string>();
 	const subscribers = new Set<(busy: boolean) => void>();
 	const notify = () => subscribers.forEach(fn => fn(active));
 	return {
-		tryStart() {
+		tryStart(label?: string) {
 			if (active) return null;
 			active = true;
+			activeLabel = label;
 			notify();
 			return ++latest;
 		},
 		end(ticket: number) {
 			if (ticket === latest && active) {
 				active = false;
+				activeLabel = undefined;
 				notify();
 			}
 		},
@@ -94,10 +98,14 @@ export function createRunGate(): { tryStart(): number | null; end(ticket: number
 		},
 		abandon() {
 			if (!active) return;
+			if (activeLabel !== undefined) abandonedLabels.add(activeLabel);
 			active = false;
+			activeLabel = undefined;
 			latest++;
 			notify();
 		},
+		wasAbandoned(label: string) { return abandonedLabels.has(label); },
+		forgetAbandoned(label: string) { abandonedLabels.delete(label); },
 		isCurrent(ticket: number) { return active && ticket === latest; },
 		get busy() { return active; },
 	};

@@ -61,6 +61,7 @@
     let unconfirmedTotal = 0;
     const gate = sharedTxGate;
     let inFlight = false;
+    let stoppedWaiting = false;
     let noRetry = false;
     $: imageUrl = (tokens[0] && tokens[0].metadataURI) ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(tokens[0].metadataURI)}?w=240` : tokens[0]?.metadata?.image;
 
@@ -188,7 +189,7 @@
             sendingView = SendingView.Sending;
             const initialValues = tokens.map(t => type == 'send' ? t.owner : t.approved);
             const targets = tokens.map(t => isIndividualMode ? individualAddresses[`${t.contractId}-${t.tokenId}`] : transferTo);
-            const { start: startIndex, end: endIndex } = planSendRange(sentCount, tokens.length, retryCurrentToken);
+            const { start: startIndex, end: endIndex } = planSendRange(sentCount, tokens.length, retryCurrentToken || skipReset);
             const runResult = await runGroups({
                 start: startIndex, end: endIndex, groupSize: MAX_GROUP_SIZE,
                 isCurrent: () => gate.isCurrent(ticket),
@@ -257,7 +258,7 @@
             });
             if (runResult.status === 'stale' || runResult.status === 'failed') return;
             sendingView = SendingView.Waiting;
-            if (tokens.length > 0 && endIndex > startIndex) {
+            if (tokens.length > 0) {
                 const lastToken = tokens[tokens.length - 1];
                 const initial = type == 'send' ? lastToken.owner : lastToken.approved;
                 const result = await pollUntil({
@@ -285,8 +286,10 @@
                     if (!isIndividualMode) {
                         await getTokens({ owner: fromAddr, invalidate: true });
                         if (!gate.isCurrent(ticket)) return;
-                        await getTokens({ owner: targets[startIndex], invalidate: true });
-                        if (!gate.isCurrent(ticket)) return;
+                        if (transferTo) {
+                            await getTokens({ owner: transferTo, invalidate: true });
+                            if (!gate.isCurrent(ticket)) return;
+                        }
                     } else {
                         await getTokens({ owner: fromAddr, invalidate: true });
                         if (!gate.isCurrent(ticket)) return;
@@ -310,8 +313,10 @@
             sendingError = (err instanceof Error) ? err.message : 'Unknown error';
             sendingView = SendingView.Error;
         } finally {
+            const wasCurrent = gate.isCurrent(ticket);
             gate.end(ticket);
             inFlight = gate.busy;
+            if (wasCurrent) stoppedWaiting = false;
         }
     }
 
@@ -897,9 +902,9 @@
 
         {#if sendingView === "presend" || sendingView === "confirm"}
             <div class="mt-auto border-t border-gray-200 dark:border-gray-700 py-4">
-                {#if sendingView === "confirm" && inFlight}
+                {#if sendingView === "confirm" && (inFlight || stoppedWaiting)}
                     <div class="mt-2 text-gray-400">Your wallet may still be waiting. If you approve the earlier request, it can still complete, so check your wallet before trying again.</div>
-                    <button type="button" class="mt-2 text-sm text-gray-500 underline" on:click={() => sharedTxGate.abandon()}>Stop waiting</button>
+                    {#if inFlight}<button type="button" class="mt-2 text-sm text-gray-500 underline" on:click={() => { stoppedWaiting = true; sharedTxGate.abandon(); }}>Stop waiting</button>{/if}
                 {/if}
                 <div class="flex justify-between max-w-md mx-auto w-full space-x-4">
                     {#if sendingView === "presend"}

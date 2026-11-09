@@ -50,6 +50,7 @@ test('component must check isCurrent after poll before applying a result', async
 test('planSendRange starts a first attempt at zero', () => assert.deepEqual(planSendRange(0, 3, false), { start: 0, end: 3 }));
 test('planSendRange retries the entire failed first group', () => assert.deepEqual(planSendRange(0, 3, true), { start: 0, end: 3 }));
 test('planSendRange retries only the failed second group and remaining batch', () => assert.deepEqual(planSendRange(16, 20, true), { start: 16, end: 20 }));
+test('planSendRange skips to the remaining range', () => assert.deepEqual(planSendRange(16, 40, true), { start: 16, end: 40 }));
 test('planSendRange permits an empty retry range', () => assert.deepEqual(planSendRange(3, 3, true), { start: 3, end: 3 }));
 test('planSendRange clamps retry sentCount', () => {
 	assert.deepEqual(planSendRange(20, 3, true), { start: 3, end: 3 });
@@ -269,6 +270,59 @@ test('createRunGate abandon on idle does not notify', () => {
 	gate.subscribe(value => values.push(value));
 	gate.abandon();
 	assert.deepEqual(values, [false]);
+});
+
+test('createRunGate abandon records a labelled busy run', () => {
+	const gate = createRunGate();
+	gate.tryStart('label');
+	gate.abandon();
+	assert.equal(gate.wasAbandoned('label'), true);
+});
+
+test('createRunGate abandon does not record an unlabelled busy run', () => {
+	const gate = createRunGate();
+	gate.tryStart();
+	gate.abandon();
+	assert.equal(gate.wasAbandoned('label'), false);
+});
+
+test('createRunGate abandon on idle records nothing', () => {
+	const gate = createRunGate();
+	gate.abandon();
+	assert.equal(gate.wasAbandoned('label'), false);
+});
+
+test('createRunGate forgetAbandoned clears a label', () => {
+	const gate = createRunGate();
+	gate.tryStart('label');
+	gate.abandon();
+	gate.forgetAbandoned('label');
+	assert.equal(gate.wasAbandoned('label'), false);
+});
+
+test('createRunGate normal end does not record abandonment', () => {
+	const gate = createRunGate();
+	const ticket = gate.tryStart('label');
+	gate.end(ticket!);
+	assert.equal(gate.wasAbandoned('label'), false);
+});
+
+test('createRunGate abandonment of another label does not mark a later label', () => {
+	const gate = createRunGate();
+	gate.tryStart('first');
+	gate.abandon();
+	gate.tryStart('second');
+	assert.equal(gate.wasAbandoned('second'), false);
+});
+
+test('createRunGate repeated abandoned label stays marked until forgotten', () => {
+	const gate = createRunGate();
+	gate.tryStart('a');
+	gate.abandon();
+	gate.tryStart('a');
+	assert.equal(gate.wasAbandoned('a'), true);
+	gate.forgetAbandoned('a');
+	assert.equal(gate.wasAbandoned('a'), false);
 });
 
 test('createRunGate notifies once per change', () => {
