@@ -44,3 +44,28 @@ export function classifyOwner(initial: string, observed: string | undefined, exp
 	return 'confirmed';
 }
 
+export function classifyBuyerOwner(initial: string, observed: string | undefined, buyer: string | undefined): 'confirmed' | 'unexpected' | 'pending' {
+	if (buyer === undefined || buyer.trim().length === 0) return 'pending';
+	return classifyOwner(initial, observed, buyer);
+}
+
+export function countPending(initial: string[], observed: (string | undefined)[]): number {
+	return initial.filter((value, i) => classifyChange(value, observed[i]) === 'pending').length;
+}
+
+export function createRunGate(): { tryStart(): number | null; end(ticket: number): void; readonly busy: boolean } {
+	let latest = 0;
+	let active = false;
+	return {
+		tryStart() {
+			if (active) return null;
+			active = true;
+			return ++latest;
+		},
+		end(ticket: number) {
+			if (ticket === latest) active = false;
+		},
+		get busy() { return active; },
+	};
+}
+
