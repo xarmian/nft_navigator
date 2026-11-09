@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { Token, Collection, Listing, Currency } from '$lib/data/types';
     import TokenName from '$lib/component/ui/TokenName.svelte';
+    import { hasArcpayResult, pollUntil, sharedTxGate } from '$lib/utils/txFlow';
     import { zeroAddress } from '$lib/data/constants';
     import { selectedWallet } from 'avm-wallet-svelte';
 	import SendTokenModal from './SendTokenModal.svelte';
@@ -43,6 +44,10 @@
     let menuRef: HTMLElement | null = null;
 	let windowDefined = false;
     let waitingForConfirmationModal = false;
+    let arcpayNotice: string | null = null;
+    let arcpayRun = 0;
+    const arcpayGate = sharedTxGate;
+    let arcpayBusy = false;
     let isExpanded = false;
 
     $: imageUrl = (token) ? getTokenImageUrl(token,((format == 'small') ? 480 : 0)) : '';
@@ -99,7 +104,10 @@
         }
     });
 
+    onMount(() => arcpayGate.subscribe(busy => { arcpayBusy = busy; }));
+
     onDestroy(() => {
+        arcpayRun++;
         if (windowDefined && document) {
             document.removeEventListener('click', handleClickOutside);
         }
@@ -242,27 +250,45 @@
 
     async function cancelListing() {
         if (listing && listing.source === 'arcpay') {
-            const txId = await cancelListingArcpay(listing.transactionId);
-            waitingForConfirmationModal = true;
+            const ticket = arcpayGate.tryStart();
+            if (ticket === null) { arcpayNotice = 'Another transaction is still waiting on your wallet. Wait for it to finish, then try again.'; return; }
+            arcpayBusy = true;
+            const myRun = ++arcpayRun;
+            arcpayNotice = null;
+            waitingForConfirmationModal = false;
 
-            let count = 0;
-            const interval = setInterval(async () => {
-                const tokenChk = (await getTokens({ contractId: token.contractId, tokenId: token.tokenId, invalidate: true }))[0];
-                if (tokenChk.approved === zeroAddress) {
-                    token = tokenChk;
+            try {
+                const submittedResult = await cancelListingArcpay(listing.transactionId);
+                if (myRun !== arcpayRun || !arcpayGate.isCurrent(ticket)) return;
+                if (!hasArcpayResult(submittedResult)) {
+                    arcpayNotice = 'No transaction was submitted.';
+                    return;
+                }
+                waitingForConfirmationModal = true;
+                const { contractId, tokenId } = token;
+                const result = await pollUntil({
+                    attempts: 12,
+                    delayMs: 2000,
+                    shouldStop: () => myRun !== arcpayRun || !arcpayGate.isCurrent(ticket),
+                    read: async () => (await getTokens({ contractId, tokenId, invalidate: true }))[0],
+                    isDone: (t) => !!t && t.approved === zeroAddress,
+                });
+                if (myRun !== arcpayRun || !arcpayGate.isCurrent(ticket) || result.stopped) return;
+                if (result.value) token = result.value;
+                if (result.done && result.value) {
                     // Clear listing after successful cancellation
                     listing = null;
-                    waitingForConfirmationModal = false;
-                    clearInterval(interval);
                 } else {
-                    count++;
-                    if (count === 12) {
-                        token = tokenChk;
-                        waitingForConfirmationModal = false;
-                        clearInterval(interval);
-                    }
+                    arcpayNotice = 'The change has not been confirmed yet. It may still complete.';
                 }
-            }, 2000);
+            } catch(err: any) {
+                if (myRun !== arcpayRun || !arcpayGate.isCurrent(ticket)) return;
+                arcpayNotice = typeof err?.message === 'string' ? err.message : 'The wallet service returned an error.';
+            } finally {
+                arcpayGate.end(ticket);
+                arcpayBusy = arcpayGate.busy;
+                if (myRun === arcpayRun) waitingForConfirmationModal = false;
+            }
         }
         else if (isTokenOwner) {
             sendTokenModalType = 'revoke';
@@ -280,35 +306,57 @@
 
     async function listArcpay() {
         if (!browser) return;
+        const ticket = arcpayGate.tryStart();
+        if (ticket === null) { arcpayNotice = 'Another transaction is still waiting on your wallet. Wait for it to finish, then try again.'; return; }
+        arcpayBusy = true;
+        const myRun = ++arcpayRun;
+        arcpayNotice = null;
+        waitingForConfirmationModal = false;
 
-        const txId = await listTokenArcpay(token);
-        waitingForConfirmationModal = true;
-
-        if (txId !== undefined) {
-            let count = 0;
-            const interval = setInterval(async () => {
-                const tokenChk = (await getTokens({ contractId: token.contractId, tokenId: token.tokenId, invalidate: true }))[0];
-                if (tokenChk.approved !== zeroAddress) {
-                    token = tokenChk;
+        try {
+            const initialApproved = token.approved;
+            const txId = await listTokenArcpay(token);
+            if (myRun !== arcpayRun || !arcpayGate.isCurrent(ticket)) return;
+            if (!hasArcpayResult(txId)) {
+                arcpayNotice = 'No transaction was submitted.';
+                return;
+            }
+            waitingForConfirmationModal = true;
+            const { contractId, tokenId } = token;
+            const result = await pollUntil({
+                attempts: 12,
+                delayMs: 2000,
+                shouldStop: () => myRun !== arcpayRun || !arcpayGate.isCurrent(ticket),
+                read: async () => (await getTokens({ contractId, tokenId, invalidate: true }))[0],
+                isDone: (t) => !!t && t.approved !== zeroAddress && t.approved !== initialApproved,
+            });
+            if (myRun !== arcpayRun || !arcpayGate.isCurrent(ticket) || result.stopped) return;
+            if (result.value) token = result.value;
+            if (result.done && result.value) {
+                try {
                     // Get fresh listing data
-                    const arcpayListing = await getTokenListing(tokenChk);
+                    const arcpayListing = await getTokenListing(result.value);
+                    if (myRun !== arcpayRun || !arcpayGate.isCurrent(ticket)) return;
                     if (arcpayListing) {
                         const processedListing = await processArcpayListing(arcpayListing);
+                        if (myRun !== arcpayRun || !arcpayGate.isCurrent(ticket)) return;
                         if (processedListing) {
                             listing = processedListing;
                         }
                     }
-                    waitingForConfirmationModal = false;
-                    clearInterval(interval);
-                } else {
-                    count++;
-                    if (count === 12) {
-                        token = tokenChk;
-                        waitingForConfirmationModal = false;
-                        clearInterval(interval);
-                    }
+                } catch(err) {
+                    console.error('arcpay listing refresh failed', err);
                 }
-            }, 2000);
+            } else {
+                arcpayNotice = 'The change has not been confirmed yet. It may still complete.';
+            }
+        } catch(err: any) {
+            if (myRun !== arcpayRun || !arcpayGate.isCurrent(ticket)) return;
+            arcpayNotice = typeof err?.message === 'string' ? err.message : 'The wallet service returned an error.';
+        } finally {
+            arcpayGate.end(ticket);
+            arcpayBusy = arcpayGate.busy;
+            if (myRun === arcpayRun) waitingForConfirmationModal = false;
         }
     }
 
@@ -717,8 +765,8 @@
 
                         {#if (!listing || (listing && listing?.source === 'arcpay'))}
                             <div class="border-t border-white/10 p-2">
-                                <button on:click={listArcpay}
-                                        class="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/90 hover:bg-white/10 rounded-lg transition-colors">
+                                <button on:click={listArcpay} disabled={arcpayBusy}
+                                        class="disabled:opacity-50 disabled:cursor-not-allowed w-full flex items-center gap-3 px-3 py-2 text-sm text-white/90 hover:bg-white/10 rounded-lg transition-colors">
                                     <i class="fas fa-tag w-4"></i>
                                     <div class="flex flex-col items-start">
                                         <span>{listing ? 'Update' : 'List'} on NFT Navigator</span>
@@ -747,8 +795,8 @@
 
                         {#if listing}
                             <div class="border-t border-white/10 p-2">
-                                <button on:click={cancelListing}
-                                        class="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
+                                <button on:click={cancelListing} disabled={listing.source === 'arcpay' && arcpayBusy}
+                                        class="disabled:opacity-50 disabled:cursor-not-allowed w-full flex items-center gap-3 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
                                     <i class="fas fa-times w-4"></i>
                                     <span>Cancel Listing</span>
                                 </button>
@@ -810,6 +858,18 @@
             <div class="text-center">
                 <div class="text-2xl font-bold text-red-500">Waiting for Confirmation</div>
                 <div class="text-lg">Please wait while the token information is refreshed.</div>
+                <button on:click={() => { waitingForConfirmationModal = false; }} class="min-h-[44px] px-6 bg-blue-500 text-white rounded-md">Hide</button>
+            </div>
+        </div>
+    </div>
+{/if}
+
+{#if arcpayNotice}
+    <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Transaction notice" tabindex="-1">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl max-w-md w-full">
+            <div class="text-center space-y-4">
+                <div class="text-gray-600 dark:text-gray-300">{arcpayNotice}</div>
+                <button on:click={() => { arcpayNotice = null; }} class="min-h-[44px] px-6 bg-blue-500 text-white rounded-md">Close</button>
             </div>
         </div>
     </div>

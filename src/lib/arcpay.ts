@@ -9,6 +9,7 @@ declare interface AClient {
     toggleDarkMode(isDarkMode: boolean): void;
     create(options?: CreateOptions): Promise<string>;
     buy(id: string): Promise<TransactionConfirmation | undefined>;
+    cancel(id: string): Promise<TransactionConfirmation | undefined>;
     getListings(): Promise<{ data: Listing[] | null; error: PostgrestError | null }>;
 }
 
@@ -18,7 +19,7 @@ declare interface CreateOptions {
 }
 
 declare interface TransactionConfirmation {
-    txIds: string[];
+    txIDs: string[];
 }
 
 declare interface Sale {
@@ -279,17 +280,18 @@ export const buyToken = async (listingId: string): Promise<string | undefined> =
     invalidateListingsCache();
     
     if (tx) {
-        return tx.txIds[0];
+        return tx.txIDs[0];
     }
     return undefined;
 }
 
-export const cancelListing = async (listingId: string): Promise<void> => {
+export const cancelListing = async (listingId: string): Promise<string | undefined> => {
     const client = await getArcpayClient();
-    if (!client) return;
+    if (!client) return undefined;
     
-    await client.cancel(listingId);
+    const tx: TransactionConfirmation | undefined = await client.cancel(listingId);
     
     // Invalidate cache after canceling a listing
     invalidateListingsCache();
+    return tx ? tx.txIDs[0] : undefined;
 }

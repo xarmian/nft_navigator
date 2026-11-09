@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Currency, Listing, Metadata, Token } from '$lib/data/types';
+    import { isSubmitted, pollUntil, classifyTarget, sharedTxGate } from '$lib/utils/txFlow';
     import Modal from './Modal.svelte';
     import { reformatTokenName, getTokens } from "$lib/utils/indexer";
     import { arc72, mp } from 'ulujs';
@@ -14,6 +15,7 @@
 	import { zeroAddress, NAUTILUS_CONTRACT_ID as ctcInfoMp206, WVOI2_CONTRACT_ID as TOKEN_WVOI2, TOKEN_NAUT_VOI_STAKING } from '$lib/data/constants';
     import Share from './Share.svelte';
     import { decodeRoyalties } from '$lib/utils/functions';
+    import { onMount } from 'svelte';
     export let showModal: boolean;
     export let token: Token;
     export let fromAddr: string;
@@ -28,6 +30,7 @@
         Sending: "sending",
         Waiting: "waiting",
         Updating: "updating",
+        Pending: "pending",
         Error: "error",
         Listed: "listed",
         Deleted: "deleted",
@@ -37,6 +40,10 @@
     let tokenName = reformatTokenName(token.metadata?.name??'', token.tokenId);
 
     let walletBalance: number;
+    let run = 0;
+    const gate = sharedTxGate;
+    let inFlight = false;
+    let stoppedWaiting = false;
     let sendingError: string = '';
     let transactionId: string = '';
 
@@ -55,77 +62,95 @@
         }
     });
 
+    onMount(() => gate.subscribe(busy => { inFlight = busy; }));
+
+
     async function listToken() {
-        sendingView = SendingView.Sending;
-        let resp;
-        const doDelete = (salePrice??0) === 0 && listing;
+        const abandonKey = 'list:' + token.contractId + '-' + token.tokenId;
+        const ticket = gate.tryStart(abandonKey);
+        if (ticket === null) return;
+        const afterAbandon = gate.wasAbandoned(abandonKey);
+        inFlight = true;
+        const myRun = ++run;
+        const shouldStop = () => myRun !== run || !gate.isCurrent(ticket);
+        try {
+            sendingView = SendingView.Sending;
+            let resp;
+            const doDelete = (salePrice??0) === 0 && listing;
 
-        // multiply salePrice by 10^(listingCurrency.decimals) and represent as string
-        const salePriceAU = ((salePrice??0) * Math.pow(10, (listingCurrency?.decimals??0))).toString();
+            // multiply salePrice by 10^(listingCurrency.decimals) and represent as string
+            const salePriceAU = ((salePrice??0) * Math.pow(10, (listingCurrency?.decimals??0))).toString();
 
-        if (doDelete && listing) {
-            // delete listing
-            /*const ctc = new mp(listing.mpContractId, algodClient, algodIndexer, {
-                acc: { addr: fromAddr, sk: new Uint8Array() },
-                simulate: true,
-            });
-            resp = await ctc.deleteListing(listing.mpListingId);*/
+            if (doDelete && listing) {
+                // delete listing
+                /*const ctc = new mp(listing.mpContractId, algodClient, algodIndexer, {
+                    acc: { addr: fromAddr, sk: new Uint8Array() },
+                    simulate: true,
+                });
+                resp = await ctc.deleteListing(listing.mpListingId);*/
 
-            const opts = {
-                acc: {
-                    addr: fromAddr,
-                    sk: new Uint8Array(0),
-                },
-                formatBytes: false,
-                simulate: true,
-            }
-
-            const ctc = new arc72(token.contractId, algodClient, algodIndexer, opts);
-            resp = await ctc.arc72_approve(zeroAddress, Number(token.tokenId), true, true);
-        }
-        else {
-            // create or update listing
-
-            // create a clone of token and decode royalties
-            const metadata = JSON.parse(JSON.stringify(token.metadata??'{}'));
-            let royalties = undefined;
-            if (metadata?.royalties) {
-                metadata.royalties = decodeRoyalties(metadata?.royalties);
-                royalties = metadata.royalties;
-            }
-
-            // copy token (Token) to NFTIndexerTokenI
-            const t: NFTIndexerTokenI = {
-                contractId: Number(token.contractId), // number
-                tokenId: Number(token.tokenId), // number
-                owner: token.owner, // string
-                metadata: JSON.stringify(metadata??'{}'),
-                metadataURI: token.metadataURI, // string
-                "mint-round": Number(token.mintRound), // number
-                approved: token.approved, // string
-                royalties: royalties, // string
-            };
-
-            resp = await mp.list(
-                fromAddr, // string
-                t as NFTIndexerTokenI, // NFTIndexerTokenI
-                salePriceAU, // string (AU) (ex "10000000000")
-                listingCurrency, // ARC200IndexerToken
-                {
-                    algodClient, 
-                    indexerClient: algodIndexer,  
-                    paymentTokenId: 0, // number
-                    wrappedNetworkTokenId: TOKEN_WVOI2, // number 
-                    mpContractId: ctcInfoMp206, // number 
-                    extraTxns: [], // extra transaction to include before listing txn (optional)
-                    enforceRoyalties: [TOKEN_NAUT_VOI_STAKING].includes(listing?.collectionId || 0) ? false : true, // include royalty payout in listing (optional, default=false) 
-                    skipEnsure: true, // skip ensure (optional, default=false)
-                    listingsToDelete: listing ? [listing as unknown as NFTIndexerListingI] : [], // listing ids to delete (optional)
+                const opts = {
+                    acc: {
+                        addr: fromAddr,
+                        sk: new Uint8Array(0),
+                    },
+                    formatBytes: false,
+                    simulate: true,
                 }
-            );
-        }
 
-        if (resp && resp.success) {
+                const ctc = new arc72(token.contractId, algodClient, algodIndexer, opts);
+                resp = await ctc.arc72_approve(zeroAddress, Number(token.tokenId), true, true);
+                if (myRun !== run || !gate.isCurrent(ticket)) return;
+            }
+            else {
+                // create or update listing
+
+                // create a clone of token and decode royalties
+                const metadata = JSON.parse(JSON.stringify(token.metadata??'{}'));
+                let royalties = undefined;
+                if (metadata?.royalties) {
+                    metadata.royalties = decodeRoyalties(metadata?.royalties);
+                    royalties = metadata.royalties;
+                }
+
+                // copy token (Token) to NFTIndexerTokenI
+                const t: NFTIndexerTokenI = {
+                    contractId: Number(token.contractId), // number
+                    tokenId: Number(token.tokenId), // number
+                    owner: token.owner, // string
+                    metadata: JSON.stringify(metadata??'{}'),
+                    metadataURI: token.metadataURI, // string
+                    "mint-round": Number(token.mintRound), // number
+                    approved: token.approved, // string
+                    royalties: royalties, // string
+                };
+
+                resp = await mp.list(
+                    fromAddr, // string
+                    t as NFTIndexerTokenI, // NFTIndexerTokenI
+                    salePriceAU, // string (AU) (ex "10000000000")
+                    listingCurrency, // ARC200IndexerToken
+                    {
+                        algodClient, 
+                        indexerClient: algodIndexer,  
+                        paymentTokenId: 0, // number
+                        wrappedNetworkTokenId: TOKEN_WVOI2, // number 
+                        mpContractId: ctcInfoMp206, // number 
+                        extraTxns: [], // extra transaction to include before listing txn (optional)
+                        enforceRoyalties: [TOKEN_NAUT_VOI_STAKING].includes(listing?.collectionId || 0) ? false : true, // include royalty payout in listing (optional, default=false) 
+                        skipEnsure: true, // skip ensure (optional, default=false)
+                        listingsToDelete: listing ? [listing as unknown as NFTIndexerListingI] : [], // listing ids to delete (optional)
+                    }
+                );
+                if (myRun !== run || !gate.isCurrent(ticket)) return;
+            }
+
+            if (!resp || !resp.success) {
+                sendingError = typeof resp?.error === 'string' && resp.error.trim() ? resp.error : 'Could not prepare the transaction.';
+                sendingView = SendingView.Error;
+                return;
+            }
+
             const txnsForSigning = resp.txns;
             const decodedTxns: algosdk.Transaction[] = [];
 
@@ -136,79 +161,67 @@
                 transactionId = tx.txID();
                 decodedTxns.push(tx);
             }
-            
-            try {
-                const status = await signAndSendTransactions([decodedTxns]);
-                console.log('signing status', status);
-                sendingView = status ? SendingView.Waiting : SendingView.Error;
-                let t = null;
 
-                let approved = token.approved;
-                let newApproved = token.approved;
-                let i = 0;
-                while (approved === newApproved && i < 30) {
-                    await new Promise(r => setTimeout(r, 1000));
-                    t = await getTokens({contractId: token.contractId, tokenId: token.tokenId, invalidate: true});
-                    newApproved = t[0].approved;
-                    i++;
-                }
-
-                if (t && t.length > 0) token = t[0];
-                sendingView = SendingView.Updating;
-
-                // wait 5 seconds for indexer to update
-                await new Promise(r => setTimeout(r, 5000));
-
-                if (doDelete) {
-                    sendingView = SendingView.Deleted;
-                }
-                else {
-                    sendingView = SendingView.Listed;
-                }
-
-                // submit POST to /api/quests to record action
-                /*const response = await fetch('/api/quests', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: type == 'send' ? 'token_transfer' : 'token_approve',
-                        detail: {
-                            from: fromAddr,
-                            to: transferTo,
-                            token: String(token.contractId)+'-'+String(token.tokenId),
-                            transactionId: transactionId,
-                        }
-                    }),
-                });
-
-                if (!response.ok) {
-                    console.error('Failed to send wallet data to backend', await response.text());
-                }
-                else {
-                    const data = await response.json();
-                    if (data.isFirstAction) {
-                        showConfetti.set(true);
-                        toast.push(`Congratulations! The ${type === 'send' ? 'Transfer' : 'Approve'} Token Quest has been Completed!`);
-                        setTimeout(() => {
-                            showConfetti.set(false)
-                        }, 10000);
-                    }
-                }*/
-
-                invalidateAll();
-                
-            }
-            catch(err: any) {
-                console.log(err);
-                sendingError = err.message;
+            const initialApproved = token.approved;
+            const expectedApproved = doDelete ? zeroAddress : algosdk.getApplicationAddress(ctcInfoMp206);
+            const { contractId, tokenId } = token;
+            const status = await signAndSendTransactions([decodedTxns]);
+            if (myRun !== run || !gate.isCurrent(ticket)) return;
+            if (!isSubmitted(status)) {
+                sendingError = 'The transaction was not submitted (cancelled or rejected in the wallet).';
                 sendingView = SendingView.Error;
+                return;
             }
+            sendingView = SendingView.Waiting;
+            const result = await pollUntil({
+                read: async () => (await getTokens({contractId, tokenId, invalidate: true}))[0],
+                isDone: (t) => !!t && t.approved !== initialApproved,
+                attempts: 30,
+                delayMs: 1000,
+                shouldStop,
+            });
+            if (myRun !== run || !gate.isCurrent(ticket)) return;
+
+            const classification = classifyTarget(initialApproved, result.value?.approved, expectedApproved);
+            if (classification === 'confirmed' && afterAbandon) {
+                sendingView = SendingView.Pending;
+                return;
+            }
+            if (classification === 'pending') {
+                sendingView = SendingView.Pending;
+                return;
+            }
+            if (classification === 'unexpected') {
+                sendingError = 'The approval changed to a different address than the one expected. Check the transaction in the explorer.';
+                sendingView = SendingView.Error;
+                return;
+            }
+            token = result.value!;
+            sendingView = SendingView.Updating;
+
+            // wait 5 seconds for indexer to update
+            await new Promise(r => setTimeout(r, 5000));
+            if (myRun !== run || !gate.isCurrent(ticket)) return;
+
+            if (doDelete) {
+                sendingView = SendingView.Deleted;
+            }
+            else {
+                sendingView = SendingView.Listed;
+            }
+
+            invalidateAll();
         }
-        else {
-            sendingError = resp.error;
+        catch(err: any) {
+            if (myRun !== run || !gate.isCurrent(ticket)) return;
+            sendingError = typeof err?.message === 'string' ? err.message : 'Unknown error';
             sendingView = SendingView.Error;
+        }
+        finally {
+            const wasCurrent = gate.isCurrent(ticket);
+            gate.end(ticket);
+            inFlight = gate.busy;
+            if (wasCurrent) stoppedWaiting = false;
         }
     }
 
@@ -298,9 +311,13 @@
                         </div>
                     </div>
                 {/if}
+                {#if sendingView === "confirm" && (inFlight || stoppedWaiting)}
+                    <div class="mt-2 text-gray-400">Your wallet may still be waiting. If you approve the earlier request, it can still complete, so check your wallet before trying again.</div>
+                    {#if inFlight}<button type="button" class="mt-2 text-sm text-gray-500 underline" on:click={() => { stoppedWaiting = true; sharedTxGate.abandon(); }}>Stop waiting</button>{/if}
+                {/if}
                 <div class="flex flex-row justify-between mt-4 space-x-2">
                     <button on:click={close} class="w-52 h-10 bg-blue-500 text-white rounded-md">Close</button>
-                    <button on:click={listToken} class="w-52 h-10 bg-blue-500 text-white rounded-md">Submit</button>
+                    <button on:click={listToken} disabled={inFlight} class="w-52 h-10 bg-blue-500 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed">Submit</button>
                 </div>
             {:else if sendingView === "sending"}
                 <div class="flex flex-col items-center m-2 h-full place-content-center">
@@ -374,6 +391,18 @@
                         <button on:click={close} class="w-64 h-10 bg-blue-500 text-white rounded-md">Close</button>
                     </div>
                 </div>
+            {:else if sendingView === "pending"}
+                <div class="flex flex-col items-center m-2">
+                    <div class="text-xl font-bold">Transaction Submitted</div>
+                    <div class="mt-2 text-gray-400">The transaction was signed and sent, but the listing change has not been confirmed yet. It may still complete. Check the transaction before trying again.</div>
+                    <div class="mt-2 text-gray-400 flex flex-col">
+                        <div class="font-bold">Transaction ID</div>
+                        <a href={"https://explorer.voi.network/explorer/transaction/" + transactionId} target="_blank" class="text-xs underline text-blue-500 hover:text-blue-600">{transactionId}</a>
+                    </div>
+                    <div class="flex flex-col items-center mt-4">
+                        <button on:click={close} class="w-64 h-10 bg-blue-500 text-white rounded-md">Close</button>
+                    </div>
+                </div>
             {:else if sendingView === "error"}
                 <div class="flex flex-col items-center m-2">
                     <div class="text-xl font-bold">Error Listing Token</div>
@@ -382,7 +411,7 @@
                         <div class="mt-2 text-gray-400">{sendingError}</div>
                     </div>
                     <div class="flex flex-col items-center mt-4">
-                        <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Start Over</button>
+                        <button on:click={reset} disabled={inFlight} class="w-64 h-10 bg-blue-500 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed">Start Over</button>
                     </div>
                 </div>
             {/if}
