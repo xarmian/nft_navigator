@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { Currency, Listing, Metadata, Token } from '$lib/data/types';
     import { isSubmitted, pollUntil, classifyChange } from '$lib/utils/txFlow';
-    import { onDestroy } from 'svelte';
     import Modal from './Modal.svelte';
     import { reformatTokenName, getTokens } from "$lib/utils/indexer";
     import { arc72, mp } from 'ulujs';
@@ -59,7 +58,6 @@
         }
     });
 
-    onDestroy(() => { run++; });
 
     async function listToken() {
         const myRun = ++run;
@@ -200,13 +198,11 @@
     }
 
     function reset() {
-        run++;
         sendingError = '';
         sendingView = SendingView.Confirm;
     }
 
     function close() {
-        run++;
         showModal = false;
         sendingError = '';
         sendingView = SendingView.Confirm;

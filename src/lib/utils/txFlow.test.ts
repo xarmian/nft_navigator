@@ -82,6 +82,24 @@ test('pollUntil stops after sleeping without reading', async () => {
 	assert.deepEqual(calls, [17]);
 });
 
+test('pollUntil stops between reads and keeps the value of the read in flight', async () => {
+	const { calls, sleep } = fakeSleep();
+	let reads = 0;
+	const result = await pollUntil({ read: async () => { reads++; return 7; }, isDone: () => false, attempts: 3, delayMs: 17, sleep, shouldStop: () => reads > 0 });
+	assert.deepEqual(result, { done: false, stopped: true, value: 7, reads: 1 });
+	assert.equal(reads, 1);
+	assert.deepEqual(calls, [17]);
+});
+
+test('pollUntil reports done even if shouldStop turns true during the finishing read', async () => {
+	const { calls, sleep } = fakeSleep();
+	let stop = false;
+	const result = await pollUntil({ read: async () => { stop = true; return 7; }, isDone: v => v === 7, attempts: 3, delayMs: 17, sleep, shouldStop: () => stop });
+	assert.equal(result.done, true);
+	assert.equal(result.reads, 1);
+	assert.deepEqual(calls, [17]);
+});
+
 test('pollUntil keeps last good value after a read throws', async () => {
 	let reads = 0;
 	const result = await pollUntil({ read: async () => { if (++reads > 1) throw new Error('read'); return 7; }, isDone: () => false, attempts: 2, delayMs: 17, sleep: fakeSleep().sleep });

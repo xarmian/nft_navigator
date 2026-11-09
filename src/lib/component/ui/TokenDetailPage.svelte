@@ -228,27 +228,36 @@
 
     async function cancelListing() {
         if (listing && listing.source === 'arcpay') {
-            const txId = await cancelListingArcpay(listing.transactionId);
-            waitingForConfirmationModal = true;
+            const myRun = ++arcpayRun;
+            arcpayNotice = null;
+            waitingForConfirmationModal = false;
 
-            let count = 0;
-            const interval = setInterval(async () => {
-                const tokenChk = (await getTokens({ contractId: token.contractId, tokenId: token.tokenId, invalidate: true }))[0];
-                if (tokenChk.approved === zeroAddress) {
-                    token = tokenChk;
+            try {
+                await cancelListingArcpay(listing.transactionId);
+                if (myRun !== arcpayRun) return;
+                waitingForConfirmationModal = true;
+                const { contractId, tokenId } = token;
+                const result = await pollUntil({
+                    attempts: 12,
+                    delayMs: 2000,
+                    shouldStop: () => myRun !== arcpayRun,
+                    read: async () => (await getTokens({ contractId, tokenId, invalidate: true }))[0],
+                    isDone: (t) => !!t && t.approved === zeroAddress,
+                });
+                if (myRun !== arcpayRun || result.stopped) return;
+                if (result.value) token = result.value;
+                if (result.done && result.value) {
                     // Clear listing after successful cancellation
                     listing = null;
-                    waitingForConfirmationModal = false;
-                    clearInterval(interval);
                 } else {
-                    count++;
-                    if (count === 12) {
-                        token = tokenChk;
-                        waitingForConfirmationModal = false;
-                        clearInterval(interval);
-                    }
+                    arcpayNotice = 'The change has not been confirmed yet. It may still complete.';
                 }
-            }, 2000);
+            } catch(err: any) {
+                if (myRun !== arcpayRun) return;
+                arcpayNotice = typeof err?.message === 'string' ? err.message : 'The wallet service returned an error.';
+            } finally {
+                if (myRun === arcpayRun) waitingForConfirmationModal = false;
+            }
         }
         else if (isTokenOwner) {
             sendTokenModalType = 'revoke';
@@ -293,15 +302,19 @@
             if (myRun !== arcpayRun || result.stopped) return;
             if (result.value) token = result.value;
             if (result.done && result.value) {
-                // Get fresh listing data
-                const arcpayListing = await getTokenListing(result.value);
-                if (myRun !== arcpayRun) return;
-                if (arcpayListing) {
-                    const processedListing = await processArcpayListing(arcpayListing);
+                try {
+                    // Get fresh listing data
+                    const arcpayListing = await getTokenListing(result.value);
                     if (myRun !== arcpayRun) return;
-                    if (processedListing) {
-                        listing = processedListing;
+                    if (arcpayListing) {
+                        const processedListing = await processArcpayListing(arcpayListing);
+                        if (myRun !== arcpayRun) return;
+                        if (processedListing) {
+                            listing = processedListing;
+                        }
                     }
+                } catch(err) {
+                    console.error('arcpay listing refresh failed', err);
                 }
             } else {
                 arcpayNotice = 'The change has not been confirmed yet. It may still complete.';
@@ -839,7 +852,7 @@
                     <span>Processing</span>
                 </div>
                 <div class="text-gray-600 dark:text-gray-300">Please wait while we update the token information...</div>
-                <button on:click={() => { waitingForConfirmationModal = false; arcpayRun++; }} class="min-h-[44px] px-6 bg-blue-500 text-white rounded-md">Hide</button>
+                <button on:click={() => { waitingForConfirmationModal = false; }} class="min-h-[44px] px-6 bg-blue-500 text-white rounded-md">Hide</button>
             </div>
         </div>
     </div>
