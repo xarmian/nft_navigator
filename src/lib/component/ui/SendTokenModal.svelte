@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Token } from '$lib/data/types';
-    import { pollUntil, summarizeTargets, planSendRange, runGroups, createRunSwitch, skipGroup, splitSkipped, finalSendView, planStop, sharedTxGate } from '$lib/utils/txFlow';
+    import { pollUntil, summarizeTargets, planSendRange, runGroups, createRunSwitch, skipGroup, splitSkipped, finalSendView, planStop, stopSummary, planClosePartial, sharedTxGate } from '$lib/utils/txFlow';
     import Modal from './Modal.svelte';
     import { reformatTokenName, getTokens } from "$lib/utils/indexer";
     import WalletSearch from '../WalletSearch.svelte';
@@ -58,6 +58,7 @@
     let transactionIds: string[] = [];
     let tokenTransactions: { tokenId: string; txId: string; contractId: number }[] = [];
     let sentCount = 0;
+    let landedCount = 0;
     let skippedRanges: { start: number; end: number }[] = [];
     $: split = splitSkipped(tokens.length, skippedRanges);
     let myRunActive = false;
@@ -71,6 +72,7 @@
     let allSubmitted = false;
     let stopHandled = false;
     let stoppedPartial = false;
+    let destroyed = false;
     $: doneWord = type == 'send' ? 'sent' : type == 'approve' ? 'approved' : 'revoked';
     let noRetry = false;
     $: imageUrl = (tokens[0] && tokens[0].metadataURI) ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(tokens[0].metadataURI)}?w=240` : tokens[0]?.metadata?.image;
@@ -193,6 +195,7 @@
         stoppedPartial = false;
         noRetry = false;
         inFlight = true;
+        let latestToken: Token | undefined;
         try {
             console.log('send token to', isIndividualMode ? 'multiple addresses' : transferTo);
             if (!isIndividualMode && transferTo.length === 0) return;
@@ -201,6 +204,7 @@
                 sentCount = 0;
                 tokenTransactions = [];
                 skippedRanges = [];
+                landedCount = 0;
             }
             const opts = { acc: { addr: fromAddr, sk: new Uint8Array(0) }, formatBytes: false, simulate: true };
             sendingView = SendingView.Sending;
@@ -272,6 +276,7 @@
                     tokenTransactions = [...tokenTransactions, ...newTransactions];
                     transactionIds.push(...currentTxIds);
                     sentCount += currentGroupTokens.length;
+                    landedCount += currentGroupTokens.length;
                     return true;
                 },
             });
@@ -316,7 +321,7 @@
                             if (!live()) return;
                         }
                     }
-                    if (result.value) token = result.value;
+                    if (result.value) { latestToken = result.value; if (!destroyed) token = result.value; }
                     if (!live()) return;
                     sendingView = view === 'partial' ? SendingView.Partial : SendingView.Sent;
                     invalidateAll();
@@ -336,13 +341,35 @@
             gate.end(ticket);
             inFlight = gate.busy;
             if (wasCurrent) stoppedWaiting = false;
+            if (wasCurrent && destroyed) reportToParent(latestToken);
             walletOpen = false;
             myRunActive = false;
         }
     }
 
+    function reportToParent(latest?: Token) {
+        const unsent = splitSkipped(tokens.length, skippedRanges).skippedIndices.map(i => tokens[i]);
+        const t = latest ?? token ?? tokens[0];
+        if (sendingView === SendingView.Sent) {
+            onAfterSend(t);
+        } else if (sendingView === SendingView.Partial || (sendingView === SendingView.Pending && unsent.length > 0)) {
+            onAfterSend(t, unsent);
+        }
+    }
+
+    function refreshAfterPartial() {
+        void (async () => {
+            try {
+                if (type == 'send') await getTokens({ owner: fromAddr, invalidate: true });
+            } catch {
+                // a failed cache refresh must not block closing
+            }
+            invalidateAll();
+        })();
+    }
+
     function stopRun() {
-        const plan = planStop({ runActive: myRunActive, submitted: allSubmitted, walletOpen, sentCount, total: tokens.length });
+        const plan = planStop({ runActive: myRunActive, submitted: allSubmitted, walletOpen, landed: landedCount, sentCount, total: tokens.length });
         if (!plan.stop) return;
         runSwitch.stop();
         if (!myRunActive || stopHandled) return;
@@ -381,6 +408,7 @@
         sentCount = 0;
         tokenTransactions = [];  // Also reset tokenTransactions when doing a full reset
         skippedRanges = [];
+        landedCount = 0;
     }
 
     function handleReset(preserveRecipient: boolean = false) {
@@ -393,14 +421,23 @@
     function afterClose() {
         stopRun();
         console.log('afterClose');
-        const unsent = splitSkipped(tokens.length, skippedRanges).skippedIndices.map(i => tokens[i]);
-        if (sendingView === SendingView.Sent) {
-            onAfterSend(token??tokens[0]);
-        } else if (sendingView === SendingView.Partial || (sendingView === SendingView.Pending && unsent.length > 0)) {
-            onAfterSend(token??tokens[0], unsent);
+        const closeRange = planClosePartial({ view: sendingView, landed: landedCount, sentCount, total: tokens.length, handled: stopHandled });
+        if (closeRange) {
+            skippedRanges = [...skippedRanges, closeRange];
+            stoppedPartial = true;
+            stopHandled = true;
+            sendingView = SendingView.Partial;
         }
+        if (stoppedPartial) {
+            toast.push(stopSummary({ landed: landedCount, total: tokens.length, promptOpen: stoppedWaiting, doneWord }), { duration: 12000 });
+            refreshAfterPartial();
+        } else if (stoppedWaiting) {
+            toast.push(stopSummary({ landed: 0, total: tokens.length, promptOpen: true, doneWord }), { duration: 12000 });
+        }
+        reportToParent();
         showModal = false;
-        if (sendingView !== SendingView.Sent) {
+        const finishing = myRunActive && allSubmitted;
+        if (sendingView !== SendingView.Sent && !finishing) {
             reset();
         }
         onClose();
@@ -501,6 +538,7 @@
         window.addEventListener('click', handleClickOutside);
         window.addEventListener('keydown', handleKeydown);
         return () => {
+            destroyed = true;
             stopRun();
             unsubscribe();
             window.removeEventListener('click', handleClickOutside);
@@ -868,7 +906,7 @@
                     <div class="flex flex-col items-center space-y-4 py-10">
                         <div class="text-xl font-bold">{stoppedPartial ? 'Stopped before all tokens were ' + doneWord : 'Some tokens were not ' + doneWord}</div>
                         {#if stoppedPartial}
-                            <div class="mt-2 text-gray-400">{split.sendIndices.length} of {tokens.length} tokens were submitted before you cancelled and {split.skippedIndices.length} were not {doneWord}. The submitted transactions have not been checked yet. Check them in your wallet or the explorer before trying again.</div>
+                            <div class="mt-2 text-gray-400">{stopSummary({ landed: landedCount, total: tokens.length, promptOpen: stoppedWaiting, doneWord })}</div>
                         {:else}
                             <div class="mt-2 text-gray-400">{split.sendIndices.length} of {tokens.length} tokens were {doneWord} and {split.skippedIndices.length} were skipped.</div>
                         {/if}

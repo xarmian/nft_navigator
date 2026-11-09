@@ -1,18 +1,38 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 // @ts-expect-error Node's direct TypeScript runner requires the .ts extension.
-import { isSubmitted, hasArcpayResult, pollUntil, classifyChange, classifyOwner, classifyBuyerOwner, countPending, createRunGate, classifyTarget, summarizeTargets, sharedTxGate, planSendRange, runGroups, createRunSwitch, skipGroup, splitSkipped, finalSendView, nextBuyView, planStop, toggleByKey, sameTokenKey, tokenAfterSend } from './txFlow.ts';
+import { isSubmitted, hasArcpayResult, pollUntil, classifyChange, classifyOwner, classifyBuyerOwner, countPending, createRunGate, classifyTarget, summarizeTargets, sharedTxGate, planSendRange, runGroups, createRunSwitch, skipGroup, splitSkipped, finalSendView, nextBuyView, planStop, stopSummary, planClosePartial, toggleByKey, sameTokenKey, tokenAfterSend } from './txFlow.ts';
 
-test('planStop: no run active', () => assert.deepEqual(planStop({ runActive: false, submitted: false, walletOpen: false, sentCount: 0, total: 1 }), { stop: true, view: 'keep', warn: false }));
-test('planStop: submitted while wallet open', () => assert.deepEqual(planStop({ runActive: true, submitted: true, walletOpen: true, sentCount: 0, total: 1 }), { stop: false, view: 'keep', warn: false }));
-test('planStop: nothing landed while wallet open', () => assert.deepEqual(planStop({ runActive: true, submitted: false, walletOpen: true, sentCount: 0, total: 1 }), { stop: true, view: 'confirm', warn: true }));
-test('planStop: nothing landed while wallet closed', () => assert.deepEqual(planStop({ runActive: true, submitted: false, walletOpen: false, sentCount: 0, total: 1 }), { stop: true, view: 'confirm', warn: false }));
-test('planStop: 16 of 40 landed while wallet open', () => assert.deepEqual(planStop({ runActive: true, submitted: false, walletOpen: true, sentCount: 16, total: 40 }), { stop: true, view: 'partial', warn: true, skipped: { start: 16, end: 40 } }));
-test('planStop: 16 of 40 landed while wallet closed', () => assert.deepEqual(planStop({ runActive: true, submitted: false, walletOpen: false, sentCount: 16, total: 40 }), { stop: true, view: 'partial', warn: false, skipped: { start: 16, end: 40 } }));
-test('planStop: all landed but not submitted', () => assert.deepEqual(planStop({ runActive: true, submitted: false, walletOpen: false, sentCount: 40, total: 40 }), { stop: true, view: 'confirm', warn: false }));
+test('planStop: no run active', () => assert.deepEqual(planStop({ runActive: false, submitted: false, walletOpen: false, landed: 0, sentCount: 0, total: 1 }), { stop: true, view: 'keep', warn: false }));
+test('planStop: submitted while wallet open', () => assert.deepEqual(planStop({ runActive: true, submitted: true, walletOpen: true, landed: 0, sentCount: 0, total: 1 }), { stop: false, view: 'keep', warn: false }));
+test('planStop: nothing landed while wallet open', () => assert.deepEqual(planStop({ runActive: true, submitted: false, walletOpen: true, landed: 0, sentCount: 0, total: 1 }), { stop: true, view: 'confirm', warn: true }));
+test('planStop: nothing landed while wallet closed', () => assert.deepEqual(planStop({ runActive: true, submitted: false, walletOpen: false, landed: 0, sentCount: 0, total: 1 }), { stop: true, view: 'confirm', warn: false }));
+test('planStop: 16 of 40 landed while wallet open', () => assert.deepEqual(planStop({ runActive: true, submitted: false, walletOpen: true, landed: 16, sentCount: 16, total: 40 }), { stop: true, view: 'partial', warn: true, skipped: { start: 16, end: 40 } }));
+test('planStop: 16 of 40 landed while wallet closed', () => assert.deepEqual(planStop({ runActive: true, submitted: false, walletOpen: false, landed: 16, sentCount: 16, total: 40 }), { stop: true, view: 'partial', warn: false, skipped: { start: 16, end: 40 } }));
+test('planStop: all landed but not submitted', () => assert.deepEqual(planStop({ runActive: true, submitted: false, walletOpen: false, landed: 40, sentCount: 40, total: 40 }), { stop: true, view: 'confirm', warn: false }));
+test('planStop: skipped cursor without landed tokens confirms', () => assert.deepEqual(planStop({ runActive: true, submitted: false, walletOpen: true, landed: 0, sentCount: 16, total: 40 }), { stop: true, view: 'confirm', warn: true }));
+test('planStop: skipped then landed group stops partially', () => assert.deepEqual(planStop({ runActive: true, submitted: false, walletOpen: false, landed: 16, sentCount: 32, total: 40 }), { stop: true, view: 'partial', warn: false, skipped: { start: 32, end: 40 } }));
 test('planStop skipped range combines with an earlier skipped range', () => {
-	const plan = planStop({ runActive: true, submitted: false, walletOpen: false, sentCount: 32, total: 40 });
+	const plan = planStop({ runActive: true, submitted: false, walletOpen: false, landed: 16, sentCount: 32, total: 40 });
 	assert.deepEqual(splitSkipped(40, [{ start: 0, end: 16 }, plan.skipped!]), { sendIndices: Array.from({ length: 16 }, (_, i) => i + 16), skippedIndices: [...Array.from({ length: 16 }, (_, i) => i), ...Array.from({ length: 8 }, (_, i) => i + 32)] });
+});
+
+test('stopSummary returns exact message for each stopped state', () => {
+	assert.equal(stopSummary({ landed: 0, total: 40, promptOpen: true, doneWord: 'sent' }), 'Your wallet may still be waiting. If you approve the earlier request, it can still complete, so check your wallet before trying again.');
+	assert.equal(stopSummary({ landed: 0, total: 40, promptOpen: false, doneWord: 'sent' }), '');
+	assert.equal(stopSummary({ landed: 16, total: 40, promptOpen: true, doneWord: 'sent' }), '16 of 40 tokens were submitted before this was stopped. The other 24 are not sent yet: one wallet request is still open and can still complete if you approve it. Check your wallet or the explorer before trying again. The submitted transactions have not been checked yet.');
+	assert.equal(stopSummary({ landed: 16, total: 40, promptOpen: false, doneWord: 'sent' }), '16 of 40 tokens were submitted before this was stopped and 24 were not sent. The submitted transactions have not been checked yet. Check them in your wallet or the explorer before trying again.');
+	assert.match(stopSummary({ landed: 16, total: 40, promptOpen: true, doneWord: 'sent' }), /not sent yet.*still open/);
+	assert.match(stopSummary({ landed: 16, total: 40, promptOpen: false, doneWord: 'sent' }), /were not sent/);
+	assert.doesNotMatch(stopSummary({ landed: 16, total: 40, promptOpen: false, doneWord: 'sent' }), /yet:/);
+});
+
+test('planClosePartial closes only an unhandled remaining partial run', () => {
+	assert.deepEqual(planClosePartial({ view: 'error', landed: 16, sentCount: 16, total: 40, handled: false }), { start: 16, end: 40 });
+	assert.equal(planClosePartial({ view: 'error', landed: 0, sentCount: 0, total: 40, handled: false }), null);
+	assert.equal(planClosePartial({ view: 'sending', landed: 16, sentCount: 16, total: 40, handled: false }), null);
+	assert.equal(planClosePartial({ view: 'error', landed: 16, sentCount: 16, total: 40, handled: true }), null);
+	assert.equal(planClosePartial({ view: 'error', landed: 40, sentCount: 40, total: 40, handled: false }), null);
 });
 
 const keyItem = (contractId: number | string, tokenId: number | string, label = 'item') => ({ contractId, tokenId, label });

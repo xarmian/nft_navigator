@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Currency, Listing, Token } from '$lib/data/types';
-    import { isSubmitted, pollUntil, classifyBuyerOwner, nextBuyView, planStop, sharedTxGate } from '$lib/utils/txFlow';
+    import { isSubmitted, pollUntil, classifyBuyerOwner, nextBuyView, planStop, stopSummary, sharedTxGate } from '$lib/utils/txFlow';
     import Modal from './Modal.svelte';
     import { reformatTokenName, getTokens } from "$lib/utils/indexer";
     import { mp } from 'ulujs';
@@ -185,7 +185,7 @@
     }
 
     function stopRun() {
-        const plan = planStop({ runActive: myRunActive, submitted, walletOpen, sentCount: 0, total: 1 });
+        const plan = planStop({ runActive: myRunActive, submitted, walletOpen, landed: 0, sentCount: 0, total: 1 });
         if (!plan.stop) return;
         run++;
         if (plan.warn) stoppedWaiting = true;
@@ -206,6 +206,7 @@
 
     function afterClose() {
         stopRun();
+        if (stoppedWaiting) toast.push(stopSummary({ landed: 0, total: 1, promptOpen: true, doneWord: 'done' }), { duration: 12000 });
         console.log('afterClose');
         if (sendingView === SendingView.Sent) {
             onAfterSend(token);

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Currency, Listing, Metadata, Token } from '$lib/data/types';
-    import { isSubmitted, pollUntil, classifyTarget, planStop, sharedTxGate } from '$lib/utils/txFlow';
+    import { isSubmitted, pollUntil, classifyTarget, planStop, stopSummary, sharedTxGate } from '$lib/utils/txFlow';
     import Modal from './Modal.svelte';
     import { reformatTokenName, getTokens } from "$lib/utils/indexer";
     import { arc72, mp } from 'ulujs';
@@ -16,6 +16,7 @@
     import Share from './Share.svelte';
     import { decodeRoyalties } from '$lib/utils/functions';
     import { onMount } from 'svelte';
+    import { toast } from '@zerodevx/svelte-toast';
     export let showModal: boolean;
     export let token: Token;
     export let fromAddr: string;
@@ -49,6 +50,8 @@
     let submitted = false;
     let sendingError: string = '';
     let transactionId: string = '';
+    let destroyed = false;
+    let latestToken: Token | undefined;
 
     let salePrice: number | null = null;
 
@@ -65,7 +68,7 @@
         }
     });
 
-    onMount(() => { const unsubscribe = gate.subscribe(busy => { inFlight = busy; }); return () => { stopRun(); unsubscribe(); }; });
+    onMount(() => { const unsubscribe = gate.subscribe(busy => { inFlight = busy; }); return () => { destroyed = true; stopRun(); unsubscribe(); }; });
 
 
     async function listToken() {
@@ -203,7 +206,8 @@
                 sendingView = SendingView.Error;
                 return;
             }
-            token = result.value!;
+            latestToken = result.value!;
+            if (!destroyed) token = result.value!;
             sendingView = SendingView.Updating;
 
             // wait 5 seconds for indexer to update
@@ -229,6 +233,7 @@
             gate.end(ticket);
             inFlight = gate.busy;
             if (wasCurrent) stoppedWaiting = false;
+            if (wasCurrent && destroyed && sendingView === SendingView.Listed) onAfterSend(latestToken ?? token);
             walletOpen = false;
             submitted = false;
             myRunActive = false;
@@ -236,7 +241,7 @@
     }
 
     function stopRun() {
-        const plan = planStop({ runActive: myRunActive, submitted, walletOpen, sentCount: 0, total: 1 });
+        const plan = planStop({ runActive: myRunActive, submitted, walletOpen, landed: 0, sentCount: 0, total: 1 });
         if (!plan.stop) return;
         run++;
         if (plan.warn) stoppedWaiting = true;
@@ -257,6 +262,7 @@
 
     function afterClose() {
         stopRun();
+        if (stoppedWaiting) toast.push(stopSummary({ landed: 0, total: 1, promptOpen: true, doneWord: 'done' }), { duration: 12000 });
         console.log('afterClose');
         if (sendingView === SendingView.Listed) {
             onAfterSend(token);

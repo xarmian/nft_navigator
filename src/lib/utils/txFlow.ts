@@ -116,11 +116,22 @@ export function planSendRange(sentCount: number, total: number, retry: boolean):
 	return { start: Math.min(end, Math.max(0, sentCount)), end };
 }
 
-export function planStop(s: { runActive: boolean; submitted: boolean; walletOpen: boolean; sentCount: number; total: number }): { stop: boolean; view: 'keep' | 'confirm' | 'partial'; warn: boolean; skipped?: { start: number; end: number } } {
+export function planStop(s: { runActive: boolean; submitted: boolean; walletOpen: boolean; landed: number; sentCount: number; total: number }): { stop: boolean; view: 'keep' | 'confirm' | 'partial'; warn: boolean; skipped?: { start: number; end: number } } {
 	if (!s.runActive) return { stop: true, view: 'keep', warn: false };
 	if (s.submitted) return { stop: false, view: 'keep', warn: false };
-	if (s.sentCount > 0 && s.sentCount < s.total) return { stop: true, view: 'partial', warn: s.walletOpen, skipped: { start: s.sentCount, end: s.total } };
+	if (s.landed > 0 && s.sentCount < s.total) return { stop: true, view: 'partial', warn: s.walletOpen, skipped: { start: s.sentCount, end: s.total } };
 	return { stop: true, view: 'confirm', warn: s.walletOpen };
+}
+
+export function stopSummary(s: { landed: number; total: number; promptOpen: boolean; doneWord: string }): string {
+	if (s.landed === 0 && s.promptOpen) return 'Your wallet may still be waiting. If you approve the earlier request, it can still complete, so check your wallet before trying again.';
+	if (s.landed === 0 && !s.promptOpen) return '';
+	if (s.promptOpen) return `${s.landed} of ${s.total} tokens were submitted before this was stopped. The other ${s.total - s.landed} are not ${s.doneWord} yet: one wallet request is still open and can still complete if you approve it. Check your wallet or the explorer before trying again. The submitted transactions have not been checked yet.`;
+	return `${s.landed} of ${s.total} tokens were submitted before this was stopped and ${s.total - s.landed} were not ${s.doneWord}. The submitted transactions have not been checked yet. Check them in your wallet or the explorer before trying again.`;
+}
+
+export function planClosePartial(s: { view: string; landed: number; sentCount: number; total: number; handled: boolean }): { start: number; end: number } | null {
+	return s.view === 'error' && s.landed > 0 && s.sentCount < s.total && !s.handled ? { start: s.sentCount, end: s.total } : null;
 }
 
 export function sameTokenKey(a: { contractId: number | string; tokenId: number | string }, b: { contractId: number | string; tokenId: number | string }): boolean {
