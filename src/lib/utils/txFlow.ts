@@ -38,6 +38,22 @@ export function classifyChange(initial: string, observed: string | undefined): '
 	return observed !== undefined && observed !== initial ? 'confirmed' : 'pending';
 }
 
+export function classifyTarget(initial: string, observed: string | undefined, expected: string | undefined): 'confirmed' | 'unexpected' | 'pending' {
+	if (expected === undefined || expected.trim().length === 0 || observed === undefined || observed === initial) return 'pending';
+	return observed === expected ? 'confirmed' : 'unexpected';
+}
+
+export function summarizeTargets(initial: string[], observed: (string | undefined)[], expected: (string | undefined)[]): { confirmed: number; pending: number; unexpected: number; total: number } {
+	let confirmed = 0, pending = 0, unexpected = 0;
+	for (let i = 0; i < initial.length; i++) {
+		const result = classifyTarget(initial[i], observed[i], expected[i]);
+		if (result === 'confirmed') confirmed++;
+		else if (result === 'unexpected') unexpected++;
+		else pending++;
+	}
+	return { confirmed, pending, unexpected, total: initial.length };
+}
+
 export function classifyOwner(initial: string, observed: string | undefined, expected?: string): 'confirmed' | 'unexpected' | 'pending' {
 	if (observed === undefined || observed === initial) return 'pending';
 	if (expected !== undefined && observed !== expected) return 'unexpected';
@@ -68,4 +84,7 @@ export function createRunGate(): { tryStart(): number | null; end(ticket: number
 		get busy() { return active; },
 	};
 }
+
+// Used only by click handlers, never at module load, so SSR is unaffected.
+export const sharedTxGate = createRunGate();
 

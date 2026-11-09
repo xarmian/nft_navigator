@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Currency, Listing, Metadata, Token } from '$lib/data/types';
-    import { isSubmitted, pollUntil, classifyChange, createRunGate } from '$lib/utils/txFlow';
+    import { isSubmitted, pollUntil, classifyTarget, sharedTxGate } from '$lib/utils/txFlow';
     import Modal from './Modal.svelte';
     import { reformatTokenName, getTokens } from "$lib/utils/indexer";
     import { arc72, mp } from 'ulujs';
@@ -15,6 +15,7 @@
 	import { zeroAddress, NAUTILUS_CONTRACT_ID as ctcInfoMp206, WVOI2_CONTRACT_ID as TOKEN_WVOI2, TOKEN_NAUT_VOI_STAKING } from '$lib/data/constants';
     import Share from './Share.svelte';
     import { decodeRoyalties } from '$lib/utils/functions';
+    import { onMount } from 'svelte';
     export let showModal: boolean;
     export let token: Token;
     export let fromAddr: string;
@@ -40,7 +41,7 @@
 
     let walletBalance: number;
     let run = 0;
-    const gate = createRunGate();
+    const gate = sharedTxGate;
     let inFlight = false;
     let sendingError: string = '';
     let transactionId: string = '';
@@ -59,6 +60,8 @@
             });
         }
     });
+
+    onMount(() => { inFlight = gate.busy; });
 
 
     async function listToken() {
@@ -157,6 +160,7 @@
             }
 
             const initialApproved = token.approved;
+            const expectedApproved = doDelete ? zeroAddress : algosdk.getApplicationAddress(ctcInfoMp206);
             const { contractId, tokenId } = token;
             const status = await signAndSendTransactions([decodedTxns]);
             if (myRun !== run) return;
@@ -175,8 +179,14 @@
             });
             if (myRun !== run) return;
 
-            if (classifyChange(initialApproved, result.value?.approved) === 'pending') {
+            const classification = classifyTarget(initialApproved, result.value?.approved, expectedApproved);
+            if (classification === 'pending') {
                 sendingView = SendingView.Pending;
+                return;
+            }
+            if (classification === 'unexpected') {
+                sendingError = 'The approval changed to a different address than the one expected. Check the transaction in the explorer.';
+                sendingView = SendingView.Error;
                 return;
             }
             token = result.value!;
@@ -391,7 +401,7 @@
                         <div class="mt-2 text-gray-400">{sendingError}</div>
                     </div>
                     <div class="flex flex-col items-center mt-4">
-                        <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Start Over</button>
+                        <button on:click={reset} disabled={inFlight} class="w-64 h-10 bg-blue-500 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed">Start Over</button>
                     </div>
                 </div>
             {/if}

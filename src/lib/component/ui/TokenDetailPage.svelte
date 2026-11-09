@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Token, Collection, Listing, Currency, Auction, Sale } from '$lib/data/types';
     import { reformatTokenName } from '$lib/utils/indexer';
-    import { hasArcpayResult, pollUntil, createRunGate, classifyBuyerOwner } from '$lib/utils/txFlow';
+    import { hasArcpayResult, pollUntil, sharedTxGate, classifyBuyerOwner } from '$lib/utils/txFlow';
     import { zeroAddress } from '$lib/data/constants';
     import { selectedWallet } from 'avm-wallet-svelte';
 	import SendTokenModal from './SendTokenModal.svelte';
@@ -53,7 +53,7 @@
     let waitingForConfirmationModal = false;
     let arcpayNotice: string | null = null;
     let arcpayRun = 0;
-    const arcpayGate = createRunGate();
+    const arcpayGate = sharedTxGate;
     let arcpayBusy = false;
     let activeTab = 'details';
     let mintDate: string | null = null;
@@ -238,8 +238,12 @@
             waitingForConfirmationModal = false;
 
             try {
-                await cancelListingArcpay(listing.transactionId);
+                const submittedResult = await cancelListingArcpay(listing.transactionId);
                 if (myRun !== arcpayRun) return;
+                if (!hasArcpayResult(submittedResult)) {
+                    arcpayNotice = 'No transaction was submitted.';
+                    return;
+                }
                 waitingForConfirmationModal = true;
                 const { contractId, tokenId } = token;
                 const result = await pollUntil({

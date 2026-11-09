@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Token } from '$lib/data/types';
-    import { pollUntil, classifyChange, countPending, createRunGate } from '$lib/utils/txFlow';
+    import { pollUntil, summarizeTargets, sharedTxGate } from '$lib/utils/txFlow';
     import Modal from './Modal.svelte';
     import { reformatTokenName, getTokens } from "$lib/utils/indexer";
     import WalletSearch from '../WalletSearch.svelte';
@@ -59,7 +59,7 @@
     let sentCount = 0;
     let unconfirmedCount = 0;
     let unconfirmedTotal = 0;
-    const gate = createRunGate();
+    const gate = sharedTxGate;
     let inFlight = false;
     $: imageUrl = (tokens[0] && tokens[0].metadataURI) ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(tokens[0].metadataURI)}?w=240` : tokens[0]?.metadata?.image;
 
@@ -191,6 +191,7 @@
             sendingView = SendingView.Sending;
 
             const initialValues = tokens.map((t) => (type == 'send' ? t.owner : t.approved));
+            const targets = tokens.map(t => isIndividualMode ? individualAddresses[`${t.contractId}-${t.tokenId}`] : transferTo);
             const startIndex = retryCurrentToken ? sentCount : 0;
             const endIndex = retryCurrentToken ? sentCount + 1 : tokens.length;
             
@@ -203,10 +204,9 @@
                 const groupTransactions: algosdk.Transaction[] = [];
                 
                 // First pass: collect all transactions
-                for (const token of currentGroupTokens) {
-                    const targetAddress = isIndividualMode ? 
-                        individualAddresses[`${token.contractId}-${token.tokenId}`] : 
-                        transferTo;
+                for (let i = groupStart; i < groupEnd; i++) {
+                    const token = tokens[i];
+                    const targetAddress = targets[i];
 
                     const contract = new Contract(token.contractId, algodClient, algodIndexer, opts);
                     const resp = type == 'send' 
@@ -333,14 +333,6 @@
                     attempts: 10,
                     delayMs: 1000,
                 });
-                const observed = type == 'send' ? result.value?.owner : result.value?.approved;
-                if (classifyChange(initial, observed) === 'pending') {
-                    unconfirmedCount = 1;
-                    unconfirmedTotal = endIndex - startIndex;
-                    sendingView = SendingView.Pending;
-                    return;
-                }
-
                 const observedAll = await Promise.all(tokens.slice(startIndex, endIndex).map(async (tk) => {
                     try {
                         const r = (await getTokens({contractId: tk.contractId, tokenId: tk.tokenId, invalidate: true}))[0];
@@ -349,11 +341,16 @@
                         return undefined;
                     }
                 }));
-                const unconfirmed = countPending(initialValues.slice(startIndex, endIndex), observedAll);
-                if (unconfirmed > 0) {
-                    unconfirmedCount = unconfirmed;
+                const summary = summarizeTargets(initialValues.slice(startIndex, endIndex), observedAll, targets.slice(startIndex, endIndex));
+                if (summary.pending > 0) {
+                    unconfirmedCount = summary.pending;
                     unconfirmedTotal = endIndex - startIndex;
                     sendingView = SendingView.Pending;
+                    return;
+                }
+                if (summary.unexpected > 0) {
+                    sendingError = 'A token changed to an address other than the one you chose. Check the transactions in the explorer.';
+                    sendingView = SendingView.Error;
                     return;
                 }
 
@@ -361,11 +358,11 @@
                     // Invalidate portfolio data for both sender and recipient
                     if (!isIndividualMode) {
                         await getTokens({ owner: fromAddr, invalidate: true });
-                        await getTokens({ owner: transferTo, invalidate: true });
+                        await getTokens({ owner: targets[startIndex], invalidate: true });
                     } else {
                         await getTokens({ owner: fromAddr, invalidate: true });
-                        for (const token of tokens) {
-                            const targetAddress = individualAddresses[`${token.contractId}-${token.tokenId}`];
+                        for (let i = startIndex; i < endIndex; i++) {
+                            const targetAddress = targets[i];
                             if (targetAddress) {
                                 await getTokens({ owner: targetAddress, invalidate: true });
                             }
@@ -513,6 +510,7 @@
     }
 
     onMount(() => {
+        inFlight = gate.busy;
         window.addEventListener('click', handleClickOutside);
         window.addEventListener('keydown', handleKeydown);
     });
@@ -955,7 +953,7 @@
                                 {/if}
                             </div>
                             <div class="flex flex-row items-center mt-4 space-x-4">
-                                <button on:click={handleReset()} class="w-52 h-10 bg-gray-500 text-white rounded-md">Start Over</button>
+                                <button on:click={handleReset()} disabled={inFlight} class="w-52 h-10 bg-gray-500 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed">Start Over</button>
                                 <button on:click={afterClose} class="w-52 h-10 border border-gray-500 text-gray-700 dark:text-gray-300 rounded-md">Cancel</button>
                             </div>
                         </div>
@@ -977,7 +975,7 @@
                             class="flex-1 h-11 rounded-lg transition-colors {isNextEnabled ? 'bg-blue-500 hover:bg-blue-600 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}"
                         >Next</button>
                     {:else if sendingView === "confirm"}
-                        <button on:click={handleReset(true)} class="flex-1 h-11 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">Back</button>
+                        <button on:click={handleReset(true)} disabled={inFlight} class="flex-1 h-11 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Back</button>
                         <button on:click={() => sendToken()} disabled={inFlight} class="flex-1 h-11 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Submit</button>
                     {/if}
                 </div>

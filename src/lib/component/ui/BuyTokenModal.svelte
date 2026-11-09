@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Currency, Listing, Token } from '$lib/data/types';
-    import { isSubmitted, pollUntil, classifyBuyerOwner, createRunGate } from '$lib/utils/txFlow';
+    import { isSubmitted, pollUntil, classifyBuyerOwner, sharedTxGate } from '$lib/utils/txFlow';
     import Modal from './Modal.svelte';
     import { reformatTokenName, getTokens } from "$lib/utils/indexer";
     import { mp } from 'ulujs';
@@ -13,7 +13,7 @@
 	import { toast } from '@zerodevx/svelte-toast';
 	import type { NFTIndexerListingI } from 'ulujs/types/mp';
 	import { invalidate, invalidateAll } from '$app/navigation';
-	import { onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
     import { WVOI2_CONTRACT_ID as TOKEN_WVOI2} from '$lib/data/constants';
 
     export let showModal: boolean;
@@ -38,8 +38,9 @@
 
     let walletBalance: number;
     let run = 0;
-    const gate = createRunGate();
+    const gate = sharedTxGate;
     let inFlight = false;
+    onMount(() => { inFlight = gate.busy; });
     let sendingError: string = '';
     let transactionId: string = '';
     let listingCurrency: Currency | null = null;
@@ -287,7 +288,7 @@
                         <div class="mt-2 text-gray-400">{sendingError}</div>
                     </div>
                     <div class="flex flex-col items-center mt-4">
-                        <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Start Over</button>
+                        <button on:click={reset} disabled={inFlight} class="w-64 h-10 bg-blue-500 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed">Start Over</button>
                     </div>
                 </div>
             {/if}

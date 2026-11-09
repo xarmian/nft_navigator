@@ -1,7 +1,31 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 // @ts-expect-error Node's direct TypeScript runner requires the .ts extension.
-import { isSubmitted, hasArcpayResult, pollUntil, classifyChange, classifyOwner, classifyBuyerOwner, countPending, createRunGate } from './txFlow.ts';
+import { isSubmitted, hasArcpayResult, pollUntil, classifyChange, classifyOwner, classifyBuyerOwner, countPending, createRunGate, classifyTarget, summarizeTargets, sharedTxGate } from './txFlow.ts';
+
+test('classifyTarget requires an intended changed value', () => {
+	for (const [initial, observed, expected, result] of [
+		['a', undefined, 'b', 'pending'], ['a', 'a', 'b', 'pending'],
+		['a', 'b', 'b', 'confirmed'], ['a', 'c', 'b', 'unexpected'],
+		['a', 'b', '', 'pending'], ['a', 'b', undefined, 'pending'], ['a', 'b', '   ', 'pending']
+	] as const) assert.equal(classifyTarget(initial, observed, expected), result);
+});
+
+test('summarizeTargets classifies each target', () => {
+	assert.deepEqual(summarizeTargets(['a', 'b'], ['x', 'y'], ['x', 'y']), { confirmed: 2, pending: 0, unexpected: 0, total: 2 });
+	assert.deepEqual(summarizeTargets(['a', 'b', 'c'], ['x', 'b', 'z'], ['x', 'y', 'c']), { confirmed: 1, pending: 1, unexpected: 1, total: 3 });
+	assert.deepEqual(summarizeTargets(['a'], ['x'], ['y']), { confirmed: 0, pending: 0, unexpected: 1, total: 1 });
+	assert.deepEqual(summarizeTargets(['a', 'b'], ['x'], ['x', 'y']), { confirmed: 1, pending: 1, unexpected: 0, total: 2 });
+	assert.deepEqual(summarizeTargets(['a', 'b'], ['x', 'y'], ['x']), { confirmed: 1, pending: 1, unexpected: 0, total: 2 });
+	assert.deepEqual(summarizeTargets([], [], []), { confirmed: 0, pending: 0, unexpected: 0, total: 0 });
+});
+
+test('sharedTxGate permits one active run', () => {
+	const ticket = sharedTxGate.tryStart();
+	assert.equal(typeof ticket, 'number');
+	assert.equal(sharedTxGate.tryStart(), null);
+	sharedTxGate.end(ticket!);
+});
 
 function fakeSleep() {
 	const calls: number[] = [];
