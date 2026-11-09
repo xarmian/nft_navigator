@@ -69,7 +69,7 @@ export function countPending(initial: string[], observed: (string | undefined)[]
 	return initial.filter((value, i) => classifyChange(value, observed[i]) === 'pending').length;
 }
 
-export function createRunGate(): { tryStart(label?: string): number | null; end(ticket: number): void; subscribe(fn: (busy: boolean) => void): () => void; abandon(): void; wasAbandoned(label: string): boolean; forgetAbandoned(label: string): void; isCurrent(ticket: number): boolean; readonly busy: boolean } {
+export function createRunGate(): { tryStart(label?: string): number | null; end(ticket: number): void; subscribe(fn: (busy: boolean) => void): () => void; abandon(): void; wasAbandoned(label: string): boolean; isCurrent(ticket: number): boolean; readonly busy: boolean } {
 	let latest = 0;
 	let active = false;
 	let activeLabel: string | undefined;
@@ -105,7 +105,6 @@ export function createRunGate(): { tryStart(label?: string): number | null; end(
 			notify();
 		},
 		wasAbandoned(label: string) { return abandonedLabels.has(label); },
-		forgetAbandoned(label: string) { abandonedLabels.delete(label); },
 		isCurrent(ticket: number) { return active && ticket === latest; },
 		get busy() { return active; },
 	};

@@ -292,14 +292,6 @@ test('createRunGate abandon on idle records nothing', () => {
 	assert.equal(gate.wasAbandoned('label'), false);
 });
 
-test('createRunGate forgetAbandoned clears a label', () => {
-	const gate = createRunGate();
-	gate.tryStart('label');
-	gate.abandon();
-	gate.forgetAbandoned('label');
-	assert.equal(gate.wasAbandoned('label'), false);
-});
-
 test('createRunGate normal end does not record abandonment', () => {
 	const gate = createRunGate();
 	const ticket = gate.tryStart('label');
@@ -315,14 +307,14 @@ test('createRunGate abandonment of another label does not mark a later label', (
 	assert.equal(gate.wasAbandoned('second'), false);
 });
 
-test('createRunGate repeated abandoned label stays marked until forgotten', () => {
+test('createRunGate abandoned label stays marked after a later run with that label ends', () => {
 	const gate = createRunGate();
 	gate.tryStart('a');
 	gate.abandon();
-	gate.tryStart('a');
+	const ticket = gate.tryStart('a');
 	assert.equal(gate.wasAbandoned('a'), true);
-	gate.forgetAbandoned('a');
-	assert.equal(gate.wasAbandoned('a'), false);
+	gate.end(ticket!);
+	assert.equal(gate.wasAbandoned('a'), true);
 });
 
 test('createRunGate notifies once per change', () => {

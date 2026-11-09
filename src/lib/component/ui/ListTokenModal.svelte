@@ -222,7 +222,6 @@
             gate.end(ticket);
             inFlight = gate.busy;
             if (wasCurrent) stoppedWaiting = false;
-            if (wasCurrent) gate.forgetAbandoned(abandonKey);
         }
     }
 
