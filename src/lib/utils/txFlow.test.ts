@@ -1,7 +1,30 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 // @ts-expect-error Node's direct TypeScript runner requires the .ts extension.
-import { isSubmitted, hasArcpayResult, pollUntil, classifyChange, classifyOwner, classifyBuyerOwner, countPending, createRunGate, classifyTarget, summarizeTargets, sharedTxGate, planSendRange, runGroups, createRunSwitch, skipGroup, splitSkipped, finalSendView, nextBuyView } from './txFlow.ts';
+import { isSubmitted, hasArcpayResult, pollUntil, classifyChange, classifyOwner, classifyBuyerOwner, countPending, createRunGate, classifyTarget, summarizeTargets, sharedTxGate, planSendRange, runGroups, createRunSwitch, skipGroup, splitSkipped, finalSendView, nextBuyView, planStop, toggleByKey, sameTokenKey, tokenAfterSend } from './txFlow.ts';
+
+test('planStop: no run active', () => assert.deepEqual(planStop({ runActive: false, submitted: false, walletOpen: false, sentCount: 0, total: 1 }), { stop: true, view: 'keep', warn: false }));
+test('planStop: submitted while wallet open', () => assert.deepEqual(planStop({ runActive: true, submitted: true, walletOpen: true, sentCount: 0, total: 1 }), { stop: false, view: 'keep', warn: false }));
+test('planStop: nothing landed while wallet open', () => assert.deepEqual(planStop({ runActive: true, submitted: false, walletOpen: true, sentCount: 0, total: 1 }), { stop: true, view: 'confirm', warn: true }));
+test('planStop: nothing landed while wallet closed', () => assert.deepEqual(planStop({ runActive: true, submitted: false, walletOpen: false, sentCount: 0, total: 1 }), { stop: true, view: 'confirm', warn: false }));
+test('planStop: 16 of 40 landed while wallet open', () => assert.deepEqual(planStop({ runActive: true, submitted: false, walletOpen: true, sentCount: 16, total: 40 }), { stop: true, view: 'partial', warn: true, skipped: { start: 16, end: 40 } }));
+test('planStop: 16 of 40 landed while wallet closed', () => assert.deepEqual(planStop({ runActive: true, submitted: false, walletOpen: false, sentCount: 16, total: 40 }), { stop: true, view: 'partial', warn: false, skipped: { start: 16, end: 40 } }));
+test('planStop: all landed but not submitted', () => assert.deepEqual(planStop({ runActive: true, submitted: false, walletOpen: false, sentCount: 40, total: 40 }), { stop: true, view: 'confirm', warn: false }));
+test('planStop skipped range combines with an earlier skipped range', () => {
+	const plan = planStop({ runActive: true, submitted: false, walletOpen: false, sentCount: 32, total: 40 });
+	assert.deepEqual(splitSkipped(40, [{ start: 0, end: 16 }, plan.skipped!]), { sendIndices: Array.from({ length: 16 }, (_, i) => i + 16), skippedIndices: [...Array.from({ length: 16 }, (_, i) => i), ...Array.from({ length: 8 }, (_, i) => i + 32)] });
+});
+
+const keyItem = (contractId: number | string, tokenId: number | string, label = 'item') => ({ contractId, tokenId, label });
+test('toggleByKey adds an absent item', () => assert.deepEqual(toggleByKey([], keyItem(1, 2)), [keyItem(1, 2)]));
+test('toggleByKey removes by the same object', () => { const item = keyItem(1, 2); assert.deepEqual(toggleByKey([item], item), []); });
+test('toggleByKey removes a different object with the same ids', () => assert.deepEqual(toggleByKey([keyItem(1, 2)], keyItem(1, 2, 'new')), []));
+test('toggleByKey never produces a duplicate key', () => assert.deepEqual(toggleByKey([keyItem(1, 2), keyItem('1', '2')], keyItem(1, 2)), []));
+test('toggleByKey treats numeric and string ids as equal', () => assert.deepEqual(toggleByKey([keyItem(1, 2)], keyItem('1', '2')), []));
+test('sameTokenKey compares equal ids', () => assert.equal(sameTokenKey(keyItem(1, 2), keyItem(1, 2)), true));
+test('sameTokenKey compares numeric and string ids as equal', () => assert.equal(sameTokenKey(keyItem(1, 2), keyItem('1', '2')), true));
+test('sameTokenKey detects a different token id', () => assert.equal(sameTokenKey(keyItem(1, 2), keyItem(1, 3)), false));
+test('sameTokenKey detects a different contract id', () => assert.equal(sameTokenKey(keyItem(1, 2), keyItem(2, 2)), false));
 
 test('createRunGate isCurrent is true for the live ticket', () => {
 	const gate = createRunGate();
@@ -517,4 +540,22 @@ test('send end state counts sent and skipped indices', () => {
 	assert.equal(split.sendIndices.length, 24);
 	assert.equal(split.skippedIndices.length, 16);
 	assert.equal(finalSendView(split.skippedIndices.length, { confirmed: 24, pending: 0, unexpected: 0 }), 'partial');
+});
+
+test('tokenAfterSend applies a result for the same token', () => {
+	const current = { contractId: 7, tokenId: 3, owner: 'old' };
+	const result = { contractId: '7', tokenId: '3', owner: 'new' } as unknown as typeof current;
+	assert.equal(tokenAfterSend(current, result), result);
+});
+
+test('tokenAfterSend leaves the page token alone for a different token id', () => {
+	const current = { contractId: 7, tokenId: 3, owner: 'old' };
+	const result = { contractId: 7, tokenId: 4, owner: 'new' };
+	assert.equal(tokenAfterSend(current, result), current);
+});
+
+test('tokenAfterSend leaves the page token alone for a different contract id', () => {
+	const current = { contractId: 7, tokenId: 3, owner: 'old' };
+	const result = { contractId: 8, tokenId: 3, owner: 'new' };
+	assert.equal(tokenAfterSend(current, result), current);
 });

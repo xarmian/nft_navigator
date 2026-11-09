@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Token } from '$lib/data/types';
-    import { pollUntil, summarizeTargets, planSendRange, runGroups, createRunSwitch, skipGroup, splitSkipped, finalSendView, sharedTxGate } from '$lib/utils/txFlow';
+    import { pollUntil, summarizeTargets, planSendRange, runGroups, createRunSwitch, skipGroup, splitSkipped, finalSendView, planStop, sharedTxGate } from '$lib/utils/txFlow';
     import Modal from './Modal.svelte';
     import { reformatTokenName, getTokens } from "$lib/utils/indexer";
     import WalletSearch from '../WalletSearch.svelte';
@@ -67,6 +67,11 @@
     const gate = sharedTxGate;
     let inFlight = false;
     let stoppedWaiting = false;
+    let walletOpen = false;
+    let allSubmitted = false;
+    let stopHandled = false;
+    let stoppedPartial = false;
+    $: doneWord = type == 'send' ? 'sent' : type == 'approve' ? 'approved' : 'revoked';
     let noRetry = false;
     $: imageUrl = (tokens[0] && tokens[0].metadataURI) ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(tokens[0].metadataURI)}?w=240` : tokens[0]?.metadata?.image;
 
@@ -183,6 +188,9 @@
         const myRun = runSwitch.begin();
         myRunActive = true;
         const live = () => gate.isCurrent(ticket) && runSwitch.isLive(myRun);
+        allSubmitted = false;
+        stopHandled = false;
+        stoppedPartial = false;
         noRetry = false;
         inFlight = true;
         try {
@@ -252,20 +260,23 @@
                     const currentTxIds = groupTransactions.map(txn => txn.txID());
                     const newTransactions = currentGroupTokens.map((tk, index) => ({ tokenId: String(tk.tokenId), contractId: tk.contractId, txId: currentTxIds[index] }));
                     if (!live()) return false;
-                    tokenTransactions = [...tokenTransactions, ...newTransactions];
+                    walletOpen = true;
                     const status = await signAndSendTransactions([groupTransactions]);
-                    if (!live()) return false;
+                    walletOpen = false;
+                    if (!live()) { if (status !== true) stoppedWaiting = false; return false; }
                     if (status !== true) {
                         if (live()) { sendingError = 'Transaction failed'; sendingView = SendingView.Error; }
                         return false;
                     }
                     if (!live()) return false;
+                    tokenTransactions = [...tokenTransactions, ...newTransactions];
                     transactionIds.push(...currentTxIds);
                     sentCount += currentGroupTokens.length;
                     return true;
                 },
             });
             if (runResult.status === 'stale' || runResult.status === 'failed') return;
+            allSubmitted = true;
             sendingView = SendingView.Waiting;
             if (tokens.length > 0) {
                 const { sendIndices, skippedIndices } = splitSkipped(tokens.length, skippedRanges);
@@ -325,13 +336,23 @@
             gate.end(ticket);
             inFlight = gate.busy;
             if (wasCurrent) stoppedWaiting = false;
+            walletOpen = false;
             myRunActive = false;
         }
     }
 
     function stopRun() {
-        if (myRunActive) stoppedWaiting = true;
+        const plan = planStop({ runActive: myRunActive, submitted: allSubmitted, walletOpen, sentCount, total: tokens.length });
+        if (!plan.stop) return;
         runSwitch.stop();
+        if (!myRunActive || stopHandled) return;
+        stopHandled = true;
+        if (plan.warn) stoppedWaiting = true;
+        if (plan.view === 'partial' && plan.skipped) {
+            skippedRanges = [...skippedRanges, plan.skipped];
+            stoppedPartial = true;
+            sendingView = SendingView.Partial;
+        }
     }
 
     function skipNextGroup() {
@@ -353,6 +374,7 @@
         sendingError = '';
         noRetry = false;
         sendingView = SendingView.Presend;
+        stoppedPartial = false;
         isIndividualMode = false;
         individualAddresses = {};
         individualNFDs = {};
@@ -371,10 +393,11 @@
     function afterClose() {
         stopRun();
         console.log('afterClose');
+        const unsent = splitSkipped(tokens.length, skippedRanges).skippedIndices.map(i => tokens[i]);
         if (sendingView === SendingView.Sent) {
             onAfterSend(token??tokens[0]);
-        } else if (sendingView === SendingView.Partial) {
-            onAfterSend(token??tokens[0], split.skippedIndices.map(i => tokens[i]));
+        } else if (sendingView === SendingView.Partial || (sendingView === SendingView.Pending && unsent.length > 0)) {
+            onAfterSend(token??tokens[0], unsent);
         }
         showModal = false;
         if (sendingView !== SendingView.Sent) {
@@ -495,7 +518,7 @@
                 <span class="mx-2">&gt;</span>
                 <BreadcrumbItem><span class={sendingView === SendingView.Sending || sendingView === SendingView.Waiting ? 'font-bold underline text-orange-500' : ''}>Sign</span></BreadcrumbItem>
                 <span class="mx-2">&gt;</span>
-                <BreadcrumbItem><span class={sendingView === SendingView.Sent ? 'font-bold underline text-orange-500' : ''}>Complete</span></BreadcrumbItem>
+                <BreadcrumbItem><span class={sendingView === SendingView.Sent || sendingView === SendingView.Partial ? 'font-bold underline text-orange-500' : ''}>Complete</span></BreadcrumbItem>
             </Breadcrumb>
             
             <div class="w-full max-w-xl mx-auto">
@@ -729,7 +752,7 @@
                         </div>
                         <div class="mt-2 text-gray-400">Please sign the transaction{transactionIds.length > 1 ? ' group' : ''} in your wallet</div>
                         <div class="flex flex-col items-center mt-4">
-                            <button on:click={() => { stopRun(); sendingView = SendingView.Confirm; }} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
+                            <button on:click={() => { stopRun(); if (sendingView !== SendingView.Partial) sendingView = SendingView.Confirm; }} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
                         </div>
                     </div>
                 {:else if sendingView === "waiting"}
@@ -843,8 +866,13 @@
                     </div>
                 {:else if sendingView === "partial"}
                     <div class="flex flex-col items-center space-y-4 py-10">
-                        <div class="text-xl font-bold">Some tokens were not sent</div>
-                        <div class="mt-2 text-gray-400">{split.sendIndices.length} of {tokens.length} tokens were sent and {split.skippedIndices.length} were skipped.</div>
+                        <div class="text-xl font-bold">{stoppedPartial ? 'Stopped before all tokens were ' + doneWord : 'Some tokens were not ' + doneWord}</div>
+                        {#if stoppedPartial}
+                            <div class="mt-2 text-gray-400">{split.sendIndices.length} of {tokens.length} tokens were submitted before you cancelled and {split.skippedIndices.length} were not {doneWord}. The submitted transactions have not been checked yet. Check them in your wallet or the explorer before trying again.</div>
+                        {:else}
+                            <div class="mt-2 text-gray-400">{split.sendIndices.length} of {tokens.length} tokens were {doneWord} and {split.skippedIndices.length} were skipped.</div>
+                        {/if}
+                        {#if stoppedWaiting}<div class="mt-2 text-gray-400">Your wallet may still be waiting. If you approve the earlier request, it can still complete, so check your wallet before trying again.</div>{/if}
                         <div class="max-h-32 overflow-y-auto text-sm text-gray-500">
                             {#each split.skippedIndices as i}
                                 <div>Token #{tokens[i].tokenId}</div>
@@ -869,7 +897,7 @@
                     <div class="flex flex-col items-center space-y-4 py-10">
                         <div class="text-xl font-bold">Transactions Submitted</div>
                         <div class="mt-2 text-gray-400">The transactions were signed and sent, but {unconfirmedCount} of {unconfirmedTotal} have not been confirmed yet. They may still complete. Check them before trying again.</div>
-                        {#if skippedRanges.length > 0}<div class="mt-2 text-gray-400">{split.skippedIndices.length} skipped, not sent.</div>{/if}
+                        {#if skippedRanges.length > 0}<div class="mt-2 text-gray-400">{split.skippedIndices.length} skipped, not {doneWord}.</div>{/if}
                         <div class="mt-2 text-gray-400 flex flex-col items-center">
                             <div class="font-bold mb-2">Transactions</div>
                             {#each transactionIds as id}

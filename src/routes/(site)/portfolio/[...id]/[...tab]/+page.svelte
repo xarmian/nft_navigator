@@ -19,6 +19,7 @@
     import PortfolioAnalytics from '$lib/component/ui/PortfolioAnalytics.svelte';
     import PortfolioSettings from '$lib/component/ui/PortfolioSettings.svelte';
     import { page } from '$app/stores';
+    import { toggleByKey } from '$lib/utils/txFlow';
 
     export let data: PageData;
     $: walletId = data.props.walletId;
@@ -209,11 +210,7 @@ console.log(currentTab);
     }
 
     function toggleSelectedTokens(token: Token) {
-        if (selectedTokens.includes(token)) {
-            selectedTokens = selectedTokens.filter(t => t !== token);
-        } else {
-            selectedTokens = [...selectedTokens, token];
-        }
+        selectedTokens = toggleByKey(selectedTokens, token);
     }
 
     function clearMultiSelectMode(token?: Token) {

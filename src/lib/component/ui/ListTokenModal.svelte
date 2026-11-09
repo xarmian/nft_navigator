@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Currency, Listing, Metadata, Token } from '$lib/data/types';
-    import { isSubmitted, pollUntil, classifyTarget, sharedTxGate } from '$lib/utils/txFlow';
+    import { isSubmitted, pollUntil, classifyTarget, planStop, sharedTxGate } from '$lib/utils/txFlow';
     import Modal from './Modal.svelte';
     import { reformatTokenName, getTokens } from "$lib/utils/indexer";
     import { arc72, mp } from 'ulujs';
@@ -45,6 +45,8 @@
     let inFlight = false;
     let stoppedWaiting = false;
     let myRunActive = false;
+    let walletOpen = false;
+    let submitted = false;
     let sendingError: string = '';
     let transactionId: string = '';
 
@@ -167,13 +169,16 @@
             const initialApproved = token.approved;
             const expectedApproved = doDelete ? zeroAddress : algosdk.getApplicationAddress(ctcInfoMp206);
             const { contractId, tokenId } = token;
+            walletOpen = true;
             const status = await signAndSendTransactions([decodedTxns]);
-            if (myRun !== run || !gate.isCurrent(ticket)) return;
+            walletOpen = false;
+            if (myRun !== run || !gate.isCurrent(ticket)) { if (!isSubmitted(status)) stoppedWaiting = false; return; }
             if (!isSubmitted(status)) {
                 sendingError = 'The transaction was not submitted (cancelled or rejected in the wallet).';
                 sendingView = SendingView.Error;
                 return;
             }
+            submitted = true;
             sendingView = SendingView.Waiting;
             const result = await pollUntil({
                 read: async () => (await getTokens({contractId, tokenId, invalidate: true}))[0],
@@ -224,13 +229,17 @@
             gate.end(ticket);
             inFlight = gate.busy;
             if (wasCurrent) stoppedWaiting = false;
+            walletOpen = false;
+            submitted = false;
             myRunActive = false;
         }
     }
 
     function stopRun() {
-        if (myRunActive) stoppedWaiting = true;
+        const plan = planStop({ runActive: myRunActive, submitted, walletOpen, sentCount: 0, total: 1 });
+        if (!plan.stop) return;
         run++;
+        if (plan.warn) stoppedWaiting = true;
     }
 
     function reset() {
@@ -354,9 +363,6 @@
                         </svg>
                     </div>
                     <div class="mt-2 text-gray-400">Transaction signed, awaiting confirmation.</div>
-                    <div class="flex flex-col items-center mt-4">
-                        <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
-                    </div>
                 </div>
             {:else if sendingView === "updating"}
                 <div class="flex flex-col items-center m-2 h-full place-content-center">
@@ -368,9 +374,6 @@
                         </svg>
                     </div>
                     <div class="mt-2 text-gray-400">Transaction Confirmed, updating token and listing details</div>
-                    <div class="flex flex-col items-center mt-4">
-                        <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
-                    </div>
                 </div>
             {:else if sendingView === "listed"}
                 <div class="flex flex-col items-center m-2">

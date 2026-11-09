@@ -116,6 +116,27 @@ export function planSendRange(sentCount: number, total: number, retry: boolean):
 	return { start: Math.min(end, Math.max(0, sentCount)), end };
 }
 
+export function planStop(s: { runActive: boolean; submitted: boolean; walletOpen: boolean; sentCount: number; total: number }): { stop: boolean; view: 'keep' | 'confirm' | 'partial'; warn: boolean; skipped?: { start: number; end: number } } {
+	if (!s.runActive) return { stop: true, view: 'keep', warn: false };
+	if (s.submitted) return { stop: false, view: 'keep', warn: false };
+	if (s.sentCount > 0 && s.sentCount < s.total) return { stop: true, view: 'partial', warn: s.walletOpen, skipped: { start: s.sentCount, end: s.total } };
+	return { stop: true, view: 'confirm', warn: s.walletOpen };
+}
+
+export function sameTokenKey(a: { contractId: number | string; tokenId: number | string }, b: { contractId: number | string; tokenId: number | string }): boolean {
+	return String(a.contractId) === String(b.contractId) && String(a.tokenId) === String(b.tokenId);
+}
+
+export function toggleByKey<T extends { contractId: number | string; tokenId: number | string }>(list: T[], item: T): T[] {
+	if (list.some(existing => sameTokenKey(existing, item))) return list.filter(existing => !sameTokenKey(existing, item));
+	return [...list, item];
+}
+
+// A finished run reports the token it was for. Keep the page's current token unless it is that same token.
+export function tokenAfterSend<T extends { contractId: number | string; tokenId: number | string }>(current: T, result: T): T {
+	return sameTokenKey(current, result) ? result : current;
+}
+
 export function createRunSwitch(): { begin(): number; stop(): void; isLive(id: number): boolean } {
 	let latest = 0;
 	let stopped = true;
