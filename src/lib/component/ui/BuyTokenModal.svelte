@@ -40,7 +40,7 @@
     let run = 0;
     const gate = sharedTxGate;
     let inFlight = false;
-    onMount(() => { inFlight = gate.busy; });
+    onMount(() => gate.subscribe(busy => { inFlight = busy; }));
     let sendingError: string = '';
     let transactionId: string = '';
     let listingCurrency: Currency | null = null;
@@ -72,7 +72,9 @@
         if (ticket === null) return;
         inFlight = true;
         const myRun = ++run;
-        const shouldStop = () => myRun !== run;
+        const shouldStop = () => myRun !== run || !gate.isCurrent(ticket);
+        const initialOwner = token.owner;
+        const buyer = fromAddr;
         try {
             sendingView = SendingView.Sending;
             const c = { 
@@ -102,7 +104,7 @@
                 c, // ARC200IndexerToken
                 opts,
             );
-            if (myRun !== run) return;
+            if (myRun !== run || !gate.isCurrent(ticket)) return;
 
             if (!resp || !resp.success) {
                 sendingError = typeof resp?.error === 'string' && resp.error.trim() ? resp.error : 'Could not prepare the transaction.';
@@ -121,10 +123,9 @@
                 decodedTxns.push(tx);
             }
 
-            const initialOwner = token.owner;
             const { contractId, tokenId } = token;
             const status = await signAndSendTransactions([decodedTxns]);
-            if (myRun !== run) return;
+            if (myRun !== run || !gate.isCurrent(ticket)) return;
             if (!isSubmitted(status)) {
                 sendingError = 'The transaction was not submitted (cancelled or rejected in the wallet).';
                 sendingView = SendingView.Error;
@@ -138,9 +139,9 @@
                 delayMs: 1000,
                 shouldStop,
             });
-            if (myRun !== run) return;
+            if (myRun !== run || !gate.isCurrent(ticket)) return;
 
-            switch (classifyBuyerOwner(initialOwner, result.value?.owner, fromAddr)) {
+            switch (classifyBuyerOwner(initialOwner, result.value?.owner, buyer)) {
                 case 'confirmed':
                     token = result.value!;
                     sendingView = SendingView.Sent;
@@ -157,7 +158,7 @@
             }
         }
         catch(err: any) {
-            if (myRun !== run) return;
+            if (myRun !== run || !gate.isCurrent(ticket)) return;
             sendingError = typeof err?.message === 'string' ? err.message : 'Unknown error';
             sendingView = SendingView.Error;
         }
@@ -220,7 +221,8 @@
                     </div>
                 {/if}
                 {#if inFlight}
-                    <div class="mt-2 text-gray-400">Your wallet may still be waiting for you. If you approve there, the purchase can still go through. Wait for this to finish before submitting again.</div>
+                    <div class="mt-2 text-gray-400">Your wallet may still be waiting. If you approve the earlier request, it can still complete, so check your wallet before trying again.</div>
+                    <button type="button" class="mt-2 text-sm text-gray-500 underline" on:click={() => sharedTxGate.abandon()}>Stop waiting</button>
                 {/if}
                 <div class="flex flex-row justify-between mt-4 space-x-2">
                     <button on:click={close} class="w-52 h-10 bg-blue-500 text-white rounded-md">Close</button>

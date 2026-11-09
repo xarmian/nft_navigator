@@ -1,7 +1,105 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 // @ts-expect-error Node's direct TypeScript runner requires the .ts extension.
-import { isSubmitted, hasArcpayResult, pollUntil, classifyChange, classifyOwner, classifyBuyerOwner, countPending, createRunGate, classifyTarget, summarizeTargets, sharedTxGate } from './txFlow.ts';
+import { isSubmitted, hasArcpayResult, pollUntil, classifyChange, classifyOwner, classifyBuyerOwner, countPending, createRunGate, classifyTarget, summarizeTargets, sharedTxGate, planSendRange, runGroups } from './txFlow.ts';
+
+test('createRunGate isCurrent is true for the live ticket', () => {
+	const gate = createRunGate();
+	const ticket = gate.tryStart()!;
+	assert.equal(gate.isCurrent(ticket), true);
+});
+
+test('createRunGate isCurrent is false after end', () => {
+	const gate = createRunGate();
+	const ticket = gate.tryStart()!;
+	gate.end(ticket);
+	assert.equal(gate.isCurrent(ticket), false);
+});
+
+test('createRunGate isCurrent stays false for abandoned run after a new run starts', () => {
+	const gate = createRunGate();
+	const old = gate.tryStart()!;
+	gate.abandon();
+	assert.equal(gate.isCurrent(old), false);
+	const current = gate.tryStart()!;
+	assert.equal(gate.isCurrent(old), false);
+	assert.equal(gate.isCurrent(current), true);
+});
+
+test('createRunGate isCurrent is false for a ticket never issued', () => {
+	const gate = createRunGate();
+	assert.equal(gate.isCurrent(999), false);
+});
+
+test('pollUntil abandoned before polling performs no reads', async () => {
+	const gate = createRunGate();
+	const ticket = gate.tryStart()!;
+	gate.abandon();
+	const result = await pollUntil({ read: async () => 'done', isDone: v => v === 'done', attempts: 3, delayMs: 0, sleep: async () => {}, shouldStop: () => !gate.isCurrent(ticket) });
+	assert.deepEqual(result, { done: false, stopped: true, value: undefined, reads: 0 });
+});
+
+test('component must check isCurrent after poll before applying a result', async () => {
+	const gate = createRunGate();
+	const ticket = gate.tryStart()!;
+	const result = await pollUntil({ read: async () => { gate.abandon(); return 'done'; }, isDone: v => v === 'done', attempts: 3, delayMs: 0, sleep: async () => {}, shouldStop: () => !gate.isCurrent(ticket) });
+	assert.equal(result.done, true);
+	assert.equal(gate.isCurrent(ticket), false);
+});
+
+test('planSendRange starts a first attempt at zero', () => assert.deepEqual(planSendRange(0, 3, false), { start: 0, end: 3 }));
+test('planSendRange retries the entire failed first group', () => assert.deepEqual(planSendRange(0, 3, true), { start: 0, end: 3 }));
+test('planSendRange retries only the failed second group and remaining batch', () => assert.deepEqual(planSendRange(16, 20, true), { start: 16, end: 20 }));
+test('planSendRange permits an empty retry range', () => assert.deepEqual(planSendRange(3, 3, true), { start: 3, end: 3 }));
+test('planSendRange clamps retry sentCount', () => {
+	assert.deepEqual(planSendRange(20, 3, true), { start: 3, end: 3 });
+	assert.deepEqual(planSendRange(-2, 3, true), { start: 0, end: 3 });
+});
+
+test('runGroups retries a rejected first group in full', async () => {
+	let calls: [number, number][] = [];
+	const first = await runGroups({ start: 0, end: 3, groupSize: 3, isCurrent: () => true, sendGroup: async (s, e) => { calls.push([s, e]); return false; } });
+	assert.deepEqual(first, { status: 'failed', failedAt: 0, groupsSent: 0 });
+	calls = [];
+	const range = planSendRange(0, 3, true);
+	const retry = await runGroups({ ...range, groupSize: 3, isCurrent: () => true, sendGroup: async (s, e) => { calls.push([s, e]); return true; } });
+	assert.deepEqual(calls, [[0, 3]]);
+	assert.deepEqual(retry, { status: 'done', groupsSent: 1 });
+});
+
+test('runGroups resumes at the failed second group', async () => {
+	const calls: [number, number][] = [];
+	const first = await runGroups({ start: 0, end: 20, groupSize: 16, isCurrent: () => true, sendGroup: async (s, e) => { calls.push([s, e]); return s === 0; } });
+	assert.deepEqual(first, { status: 'failed', failedAt: 16, groupsSent: 1 });
+	calls.length = 0;
+	const retry = await runGroups({ ...planSendRange(16, 20, true), groupSize: 16, isCurrent: () => true, sendGroup: async (s, e) => { calls.push([s, e]); return true; } });
+	assert.deepEqual(calls, [[16, 20]]);
+	assert.deepEqual(retry, { status: 'done', groupsSent: 1 });
+});
+
+test('runGroups opens no further prompts after abandon', async () => {
+	const gate = createRunGate();
+	const ticket = gate.tryStart()!;
+	let resolve!: (value: boolean) => void;
+	const calls: [number, number][] = [];
+	const pending = runGroups({ start: 0, end: 40, groupSize: 16, isCurrent: () => gate.isCurrent(ticket), sendGroup: (s, e) => { calls.push([s, e]); return new Promise<boolean>(r => resolve = r); } });
+	gate.abandon();
+	resolve(true);
+	assert.deepEqual(await pending, { status: 'stale' });
+	assert.deepEqual(calls, [[0, 16]]);
+});
+
+test('runGroups does not call sendGroup when not current at start', async () => {
+	let called = false;
+	assert.deepEqual(await runGroups({ start: 0, end: 1, groupSize: 1, isCurrent: () => false, sendGroup: async () => { called = true; return true; } }), { status: 'stale' });
+	assert.equal(called, false);
+});
+
+test('runGroups returns stale when a failed group settles after abandon', async () => {
+	let current = true;
+	const result = await runGroups({ start: 0, end: 1, groupSize: 1, isCurrent: () => current, sendGroup: async () => { current = false; return false; } });
+	assert.deepEqual(result, { status: 'stale' });
+});
 
 test('classifyTarget requires an intended changed value', () => {
 	for (const [initial, observed, expected, result] of [
@@ -9,6 +107,10 @@ test('classifyTarget requires an intended changed value', () => {
 		['a', 'b', 'b', 'confirmed'], ['a', 'c', 'b', 'unexpected'],
 		['a', 'b', '', 'pending'], ['a', 'b', undefined, 'pending'], ['a', 'b', '   ', 'pending']
 	] as const) assert.equal(classifyTarget(initial, observed, expected), result);
+});
+
+test('classifyTarget unchanged value equals expected is pending', () => {
+	assert.equal(classifyTarget('A', 'A', 'A'), 'pending');
 });
 
 test('summarizeTargets classifies each target', () => {
@@ -114,6 +216,69 @@ test('createRunGate busy follows the active run', () => {
 	assert.equal(gate.busy, true);
 	gate.end(ticket);
 	assert.equal(gate.busy, false);
+});
+
+test('createRunGate subscribe fires immediately with false', () => {
+	const gate = createRunGate();
+	const values: boolean[] = [];
+	gate.subscribe(value => values.push(value));
+	assert.deepEqual(values, [false]);
+});
+
+test('createRunGate subscribe fires when busy changes', () => {
+	const gate = createRunGate();
+	const values: boolean[] = [];
+	gate.subscribe(value => values.push(value));
+	const ticket = gate.tryStart()!;
+	gate.end(ticket);
+	assert.deepEqual(values, [false, true, false]);
+});
+
+test('createRunGate unsubscribe stops notifications', () => {
+	const gate = createRunGate();
+	const values: boolean[] = [];
+	const unsubscribe = gate.subscribe(value => values.push(value));
+	unsubscribe();
+	const ticket = gate.tryStart()!;
+	gate.end(ticket);
+	assert.deepEqual(values, [false]);
+});
+
+test('createRunGate abandon frees a busy gate', () => {
+	const gate = createRunGate();
+	const abandonedTicket = gate.tryStart()!;
+	gate.abandon();
+	assert.equal(gate.busy, false);
+	const nextTicket = gate.tryStart()!;
+	assert.ok(nextTicket > abandonedTicket + 1);
+});
+
+test('createRunGate abandoned ticket cannot end a newer run', () => {
+	const gate = createRunGate();
+	const oldTicket = gate.tryStart()!;
+	gate.abandon();
+	const newTicket = gate.tryStart()!;
+	gate.end(oldTicket);
+	assert.equal(gate.busy, true);
+	gate.end(newTicket);
+});
+
+test('createRunGate abandon on idle does not notify', () => {
+	const gate = createRunGate();
+	const values: boolean[] = [];
+	gate.subscribe(value => values.push(value));
+	gate.abandon();
+	assert.deepEqual(values, [false]);
+});
+
+test('createRunGate notifies once per change', () => {
+	const gate = createRunGate();
+	const values: boolean[] = [];
+	gate.subscribe(value => values.push(value));
+	const ticket = gate.tryStart()!;
+	gate.end(ticket);
+	gate.end(ticket);
+	assert.deepEqual(values, [false, true, false]);
 });
 
 test('isSubmitted accepts only true', () => {

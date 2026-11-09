@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Token } from '$lib/data/types';
-    import { pollUntil, summarizeTargets, sharedTxGate } from '$lib/utils/txFlow';
+    import { pollUntil, summarizeTargets, planSendRange, runGroups, sharedTxGate } from '$lib/utils/txFlow';
     import Modal from './Modal.svelte';
     import { reformatTokenName, getTokens } from "$lib/utils/indexer";
     import WalletSearch from '../WalletSearch.svelte';
@@ -61,6 +61,7 @@
     let unconfirmedTotal = 0;
     const gate = sharedTxGate;
     let inFlight = false;
+    let noRetry = false;
     $: imageUrl = (tokens[0] && tokens[0].metadataURI) ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(tokens[0].metadataURI)}?w=240` : tokens[0]?.metadata?.image;
 
     let searchQuery = '';
@@ -166,216 +167,145 @@
 
     async function sendToken(skipReset: boolean = false, retryCurrentToken: boolean = false) {
         const ticket = gate.tryStart();
-        if (ticket === null) return;
+        if (ticket === null) {
+            if (type == 'revoke') {
+                sendingError = 'Another transaction is still waiting on your wallet. Wait for it to finish, then try again.';
+                sendingView = SendingView.Error;
+            }
+            return;
+        }
+        noRetry = false;
         inFlight = true;
         try {
             console.log('send token to', isIndividualMode ? 'multiple addresses' : transferTo);
             if (!isIndividualMode && transferTo.length === 0) return;
             if (isIndividualMode && Object.keys(individualAddresses).length !== tokens.length) return;
-
-            // Reset sentCount and tokenTransactions when starting a new send attempt, unless skipping or retrying
             if (!skipReset && !retryCurrentToken) {
                 sentCount = 0;
                 tokenTransactions = [];
             }
-
-            const opts = {
-                acc: {
-                    addr: fromAddr,
-                    sk: new Uint8Array(0),
-                },
-                formatBytes: false,
-                simulate: true,
-            }
-
+            const opts = { acc: { addr: fromAddr, sk: new Uint8Array(0) }, formatBytes: false, simulate: true };
             sendingView = SendingView.Sending;
-
-            const initialValues = tokens.map((t) => (type == 'send' ? t.owner : t.approved));
+            const initialValues = tokens.map(t => type == 'send' ? t.owner : t.approved);
             const targets = tokens.map(t => isIndividualMode ? individualAddresses[`${t.contractId}-${t.tokenId}`] : transferTo);
-            const startIndex = retryCurrentToken ? sentCount : 0;
-            const endIndex = retryCurrentToken ? sentCount + 1 : tokens.length;
-            
-            // Process tokens in groups of MAX_GROUP_SIZE
-            for (let groupStart = startIndex; groupStart < endIndex; groupStart += MAX_GROUP_SIZE) {
-                const groupEnd = Math.min(groupStart + MAX_GROUP_SIZE, endIndex);
-                const currentGroupTokens = tokens.slice(groupStart, groupEnd);
-                
-                // Collect all transactions for the current group
-                const groupTransactions: algosdk.Transaction[] = [];
-                
-                // First pass: collect all transactions
-                for (let i = groupStart; i < groupEnd; i++) {
-                    const token = tokens[i];
-                    const targetAddress = targets[i];
-
-                    const contract = new Contract(token.contractId, algodClient, algodIndexer, opts);
-                    const resp = type == 'send' 
-                        ? await contract.arc72_transferFrom(token.owner, targetAddress, BigInt(token.tokenId), true, true)
-                        : await contract.arc72_approve(targetAddress, Number(token.tokenId), true, true);
-
-                    if (!resp || !resp.success) {
-                        sendingError = resp?.error || 'Failed to prepare transaction';
-                        sendingView = SendingView.Error;
-                        return;
-                    }
-
-                    // Decode and collect transactions for this token
-                    const suggestedParams = await algodClient.getTransactionParams().do();
-                    
-                    const tokenTransactions = resp.txns.map(txnB64 => {
-                        const txnBytes = Buffer.from(txnB64, 'base64');
-                        const decodedTxn = algosdk.decodeUnsignedTransaction(txnBytes);
-                        
-                        if (!decodedTxn.from) {
-                            throw new Error('Transaction missing required from address');
+            const { start: startIndex, end: endIndex } = planSendRange(sentCount, tokens.length, retryCurrentToken);
+            const runResult = await runGroups({
+                start: startIndex, end: endIndex, groupSize: MAX_GROUP_SIZE,
+                isCurrent: () => gate.isCurrent(ticket),
+                sendGroup: async (groupStart, groupEnd) => {
+                    const currentGroupTokens = tokens.slice(groupStart, groupEnd);
+                    const groupTransactions: algosdk.Transaction[] = [];
+                    for (let i = groupStart; i < groupEnd; i++) {
+                        const token = tokens[i];
+                        const targetAddress = targets[i];
+                        const contract = new Contract(token.contractId, algodClient, algodIndexer, opts);
+                        const resp = type == 'send'
+                            ? await contract.arc72_transferFrom(token.owner, targetAddress, BigInt(token.tokenId), true, true)
+                            : await contract.arc72_approve(targetAddress, Number(token.tokenId), true, true);
+                        if (!gate.isCurrent(ticket)) return false;
+                        if (!resp || !resp.success) {
+                            if (gate.isCurrent(ticket)) { sendingError = resp?.error || 'Failed to prepare transaction'; sendingView = SendingView.Error; }
+                            return false;
                         }
-
-                        // Create a new transaction while preserving all original parameters
-                        let txn;
-                        if (decodedTxn.type === algosdk.TransactionType.appl) {
-                            // Format box references correctly
-                            const formattedBoxes = decodedTxn.boxes?.map(box => ({
-                                appIndex: box.appIndex || decodedTxn.appIndex || 0,
-                                name: new Uint8Array(box.name)
-                            }));
-
-                            txn = algosdk.makeApplicationCallTxnFromObject({
-                                from: algosdk.encodeAddress(decodedTxn.from.publicKey),
-                                suggestedParams: suggestedParams,
-                                appIndex: decodedTxn.appIndex,
-                                appArgs: decodedTxn.appArgs,
-                                boxes: formattedBoxes,
-                                accounts: decodedTxn.appAccounts?.map(acc => algosdk.encodeAddress(acc.publicKey)),
-                                foreignApps: decodedTxn.appForeignApps,
-                                foreignAssets: decodedTxn.appForeignAssets,
-                                note: decodedTxn.note,
-                                onComplete: decodedTxn.appOnComplete || algosdk.OnApplicationComplete.NoOpOC
-                            });
-                        } else {
-                            txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+                        const suggestedParams = await algodClient.getTransactionParams().do();
+                        if (!gate.isCurrent(ticket)) return false;
+                        const tokenTxns = resp.txns.map(txnB64 => {
+                            const decodedTxn = algosdk.decodeUnsignedTransaction(Buffer.from(txnB64, 'base64'));
+                            if (!decodedTxn.from) throw new Error('Transaction missing required from address');
+                            if (decodedTxn.type === algosdk.TransactionType.appl) {
+                                const formattedBoxes = decodedTxn.boxes?.map(box => ({ appIndex: box.appIndex || decodedTxn.appIndex || 0, name: new Uint8Array(box.name) }));
+                                return algosdk.makeApplicationCallTxnFromObject({
+                                    from: algosdk.encodeAddress(decodedTxn.from.publicKey), suggestedParams, appIndex: decodedTxn.appIndex,
+                                    appArgs: decodedTxn.appArgs, boxes: formattedBoxes,
+                                    accounts: decodedTxn.appAccounts?.map(acc => algosdk.encodeAddress(acc.publicKey)),
+                                    foreignApps: decodedTxn.appForeignApps, foreignAssets: decodedTxn.appForeignAssets,
+                                    note: decodedTxn.note, onComplete: decodedTxn.appOnComplete || algosdk.OnApplicationComplete.NoOpOC
+                                });
+                            }
+                            return algosdk.makePaymentTxnWithSuggestedParamsFromObject({
                                 from: algosdk.encodeAddress(decodedTxn.from.publicKey),
                                 to: decodedTxn.to ? algosdk.encodeAddress(decodedTxn.to.publicKey) : algosdk.encodeAddress(decodedTxn.from.publicKey),
-                                amount: decodedTxn.amount || 0,
-                                suggestedParams: suggestedParams,
-                                note: decodedTxn.note
+                                amount: decodedTxn.amount || 0, suggestedParams, note: decodedTxn.note
                             });
-                        }
-
-                        return txn;
-                    });
-                    
-                    groupTransactions.push(...tokenTransactions);
-                }
-
-                // Assign group ID to the entire batch
-                if (groupTransactions.length > 1) {
-                    algosdk.assignGroupID(groupTransactions);
-                }
-
-                // Validate final group structure
-                // After assigning group ID, verify all transactions have matching group
-                if (groupTransactions.length > 1) {
-                    const expectedGroup = groupTransactions[0].group;
-                    const allSameGroup = expectedGroup && groupTransactions.every(t => 
-                        t.group && Buffer.from(t.group).equals(Buffer.from(expectedGroup))
-                    );
-                    
-                    if (!allSameGroup) {
-                        sendingError = 'Transaction group validation failed';
-                        sendingView = SendingView.Error;
-                        return;
+                        });
+                        groupTransactions.push(...tokenTxns);
                     }
-                }
-
-                // Get transaction IDs before sending
-                const currentTxIds = groupTransactions.map(txn => txn.txID());
-
-                // Map transactions to tokens
-                const newTransactions = currentGroupTokens.map((token, index) => {
-                    // Each token operation requires 2 transactions (app call + payment)
-                    // In a group, transactions alternate: [token1_app, token1_pay, token2_app, token2_pay, ...]
-                    // For a single token, we get [app_call, payment]
-                    // For two tokens, we get [token1_app, token1_pay]
-                    const txIndex = index;  // Just use the index directly since we get one app call per token
-                    return {
-                        tokenId: String(token.tokenId),
-                        contractId: token.contractId,
-                        txId: currentTxIds[txIndex]
-                    };
-                });
-                tokenTransactions = [...tokenTransactions, ...newTransactions];
-
-                // Send the grouped transactions
-                const status = await signAndSendTransactions([groupTransactions]);
-                
-                if (status === true) {
-                    // If the transactions were successful, add their IDs
+                    if (groupTransactions.length > 1) algosdk.assignGroupID(groupTransactions);
+                    if (groupTransactions.length > 1) {
+                        const expectedGroup = groupTransactions[0].group;
+                        const allSameGroup = expectedGroup && groupTransactions.every(t => t.group && Buffer.from(t.group).equals(Buffer.from(expectedGroup)));
+                        if (!allSameGroup) {
+                            if (gate.isCurrent(ticket)) { sendingError = 'Transaction group validation failed'; sendingView = SendingView.Error; }
+                            return false;
+                        }
+                    }
+                    const currentTxIds = groupTransactions.map(txn => txn.txID());
+                    const newTransactions = currentGroupTokens.map((tk, index) => ({ tokenId: String(tk.tokenId), contractId: tk.contractId, txId: currentTxIds[index] }));
+                    if (!gate.isCurrent(ticket)) return false;
+                    tokenTransactions = [...tokenTransactions, ...newTransactions];
+                    const status = await signAndSendTransactions([groupTransactions]);
+                    if (!gate.isCurrent(ticket)) return false;
+                    if (status !== true) {
+                        if (gate.isCurrent(ticket)) { sendingError = 'Transaction failed'; sendingView = SendingView.Error; }
+                        return false;
+                    }
+                    if (!gate.isCurrent(ticket)) return false;
                     transactionIds.push(...currentTxIds);
-                } else {
-                    sendingError = 'Transaction failed';
-                    sendingView = SendingView.Error;
-                    return;
-                }
-                
-                // Update sent count based on number of tokens processed
-                sentCount += currentGroupTokens.length;
-            }
-
+                    sentCount += currentGroupTokens.length;
+                    return true;
+                },
+            });
+            if (runResult.status === 'stale' || runResult.status === 'failed') return;
             sendingView = SendingView.Waiting;
-
-            // Wait for the last token this attempt sent to be confirmed (a retry sends only one token)
             if (tokens.length > 0 && endIndex > startIndex) {
-                const lastToken = tokens[endIndex - 1];
+                const lastToken = tokens[tokens.length - 1];
                 const initial = type == 'send' ? lastToken.owner : lastToken.approved;
                 const result = await pollUntil({
-                    read: async () => (await getTokens({contractId: lastToken.contractId, tokenId: lastToken.tokenId, invalidate: true}))[0],
-                    isDone: (t) => !!t && (type == 'send' ? t.owner : t.approved) !== initial,
-                    attempts: 10,
-                    delayMs: 1000,
+                    read: async () => (await getTokens({ contractId: lastToken.contractId, tokenId: lastToken.tokenId, invalidate: true }))[0],
+                    isDone: t => !!t && (type == 'send' ? t.owner : t.approved) !== initial,
+                    attempts: 10, delayMs: 1000, shouldStop: () => !gate.isCurrent(ticket),
                 });
-                const observedAll = await Promise.all(tokens.slice(startIndex, endIndex).map(async (tk) => {
+                if (!gate.isCurrent(ticket)) return;
+                const observedAll = await Promise.all(tokens.map(async tk => {
                     try {
-                        const r = (await getTokens({contractId: tk.contractId, tokenId: tk.tokenId, invalidate: true}))[0];
+                        const r = (await getTokens({ contractId: tk.contractId, tokenId: tk.tokenId, invalidate: true }))[0];
                         return type == 'send' ? r?.owner : r?.approved;
-                    } catch {
-                        return undefined;
-                    }
+                    } catch { return undefined; }
                 }));
-                const summary = summarizeTargets(initialValues.slice(startIndex, endIndex), observedAll, targets.slice(startIndex, endIndex));
-                if (summary.pending > 0) {
-                    unconfirmedCount = summary.pending;
-                    unconfirmedTotal = endIndex - startIndex;
-                    sendingView = SendingView.Pending;
-                    return;
-                }
+                if (!gate.isCurrent(ticket)) return;
+                const summary = summarizeTargets(initialValues, observedAll, targets);
                 if (summary.unexpected > 0) {
                     sendingError = 'A token changed to an address other than the one you chose. Check the transactions in the explorer.';
-                    sendingView = SendingView.Error;
-                    return;
+                    noRetry = true; sendingView = SendingView.Error; return;
                 }
-
+                if (summary.pending > 0) {
+                    unconfirmedCount = summary.pending; unconfirmedTotal = tokens.length; sendingView = SendingView.Pending; return;
+                }
                 if (type == 'send') {
-                    // Invalidate portfolio data for both sender and recipient
                     if (!isIndividualMode) {
                         await getTokens({ owner: fromAddr, invalidate: true });
+                        if (!gate.isCurrent(ticket)) return;
                         await getTokens({ owner: targets[startIndex], invalidate: true });
+                        if (!gate.isCurrent(ticket)) return;
                     } else {
                         await getTokens({ owner: fromAddr, invalidate: true });
-                        for (let i = startIndex; i < endIndex; i++) {
+                        if (!gate.isCurrent(ticket)) return;
+                        for (let i = 0; i < endIndex; i++) {
                             const targetAddress = targets[i];
                             if (targetAddress) {
                                 await getTokens({ owner: targetAddress, invalidate: true });
+                                if (!gate.isCurrent(ticket)) return;
                             }
                         }
                     }
                 }
-
                 if (result.value) token = result.value;
+                if (!gate.isCurrent(ticket)) return;
                 sendingView = SendingView.Sent;
-
                 invalidateAll();
             }
         } catch(err) {
+            if (!gate.isCurrent(ticket)) return;
             console.error('error sending token', err);
             sendingError = (err instanceof Error) ? err.message : 'Unknown error';
             sendingView = SendingView.Error;
@@ -392,6 +322,7 @@
             searchQuery = '';
         }
         sendingError = '';
+        noRetry = false;
         sendingView = SendingView.Presend;
         isIndividualMode = false;
         individualAddresses = {};
@@ -510,14 +441,14 @@
     }
 
     onMount(() => {
-        inFlight = gate.busy;
+        const unsubscribe = gate.subscribe(busy => { inFlight = busy; });
         window.addEventListener('click', handleClickOutside);
         window.addEventListener('keydown', handleKeydown);
-    });
-
-    onDestroy(() => {
-        window.removeEventListener('click', handleClickOutside);
-        window.removeEventListener('keydown', handleKeydown);
+        return () => {
+            unsubscribe();
+            window.removeEventListener('click', handleClickOutside);
+            window.removeEventListener('keydown', handleKeydown);
+        };
     });
 </script>
 <Modal title="{type == 'send' ? 'Transfer NFT Token' : 'Change NFT Token Approval'}" bind:showModal onClose={afterClose} showTopCloseButton={true} showBottomCloseButton={false}>
@@ -914,7 +845,7 @@
                                 {/each}
                             </div>
                             <div class="w-full text-center">
-                                <div class="text-sm font-bold mb-2 text-red-500">Failed to Process {Math.min(MAX_GROUP_SIZE, tokens.length - sentCount)} Tokens</div>
+                                <div class="text-sm font-bold mb-2 text-red-500">{noRetry ? 'Check the transactions in the explorer' : `Failed to Process ${Math.min(MAX_GROUP_SIZE, tokens.length - sentCount)} Tokens`}</div>
                                 <div class="text-sm text-gray-600 dark:text-gray-400">
                                     <div class="font-medium">Recipients:</div>
                                     {#if isIndividualMode}
@@ -935,8 +866,10 @@
                         <div class="flex flex-col items-center mt-4 space-y-4">
                             <div class="flex space-x-4">
                                 {#if type == 'revoke'}
-                                    <button on:click={revokeApproval} class="w-52 h-10 bg-blue-500 text-white rounded-md">Try Again</button>
-                                {:else}
+                                    {#if !noRetry}
+                                        <button on:click={revokeApproval} class="w-52 h-10 bg-blue-500 text-white rounded-md">Try Again</button>
+                                    {/if}
+                                {:else if !noRetry}
                                     <button on:click={() => sendToken(false, true)} class="w-52 h-10 bg-blue-500 text-white rounded-md">Retry Group</button>
                                     {#if tokens.length > sentCount + MAX_GROUP_SIZE}
                                         <button 
@@ -965,7 +898,8 @@
         {#if sendingView === "presend" || sendingView === "confirm"}
             <div class="mt-auto border-t border-gray-200 dark:border-gray-700 py-4">
                 {#if sendingView === "confirm" && inFlight}
-                    <div class="mt-2 text-gray-400">Your wallet may still be waiting for you. If you approve there, the transfer can still go through. Wait for this to finish before submitting again.</div>
+                    <div class="mt-2 text-gray-400">Your wallet may still be waiting. If you approve the earlier request, it can still complete, so check your wallet before trying again.</div>
+                    <button type="button" class="mt-2 text-sm text-gray-500 underline" on:click={() => sharedTxGate.abandon()}>Stop waiting</button>
                 {/if}
                 <div class="flex justify-between max-w-md mx-auto w-full space-x-4">
                     {#if sendingView === "presend"}

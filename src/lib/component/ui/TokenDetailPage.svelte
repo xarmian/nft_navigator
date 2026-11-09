@@ -94,6 +94,8 @@
             (navigator.maxTouchPoints > 0);
     });
 
+    onMount(() => arcpayGate.subscribe(busy => { arcpayBusy = busy; }));
+
     onDestroy(() => {
         arcpayRun++;
         if (windowDefined && document) document.removeEventListener('click', handleClickOutside);
@@ -231,7 +233,7 @@
     async function cancelListing() {
         if (listing && listing.source === 'arcpay') {
             const ticket = arcpayGate.tryStart();
-            if (ticket === null) return;
+            if (ticket === null) { arcpayNotice = 'Another transaction is still waiting on your wallet. Wait for it to finish, then try again.'; return; }
             arcpayBusy = true;
             const myRun = ++arcpayRun;
             arcpayNotice = null;
@@ -239,7 +241,7 @@
 
             try {
                 const submittedResult = await cancelListingArcpay(listing.transactionId);
-                if (myRun !== arcpayRun) return;
+                if (myRun !== arcpayRun || !arcpayGate.isCurrent(ticket)) return;
                 if (!hasArcpayResult(submittedResult)) {
                     arcpayNotice = 'No transaction was submitted.';
                     return;
@@ -249,11 +251,11 @@
                 const result = await pollUntil({
                     attempts: 12,
                     delayMs: 2000,
-                    shouldStop: () => myRun !== arcpayRun,
+                    shouldStop: () => myRun !== arcpayRun || !arcpayGate.isCurrent(ticket),
                     read: async () => (await getTokens({ contractId, tokenId, invalidate: true }))[0],
                     isDone: (t) => !!t && t.approved === zeroAddress,
                 });
-                if (myRun !== arcpayRun || result.stopped) return;
+                if (myRun !== arcpayRun || !arcpayGate.isCurrent(ticket) || result.stopped) return;
                 if (result.value) token = result.value;
                 if (result.done && result.value) {
                     // Clear listing after successful cancellation
@@ -262,7 +264,7 @@
                     arcpayNotice = 'The change has not been confirmed yet. It may still complete.';
                 }
             } catch(err: any) {
-                if (myRun !== arcpayRun) return;
+                if (myRun !== arcpayRun || !arcpayGate.isCurrent(ticket)) return;
                 arcpayNotice = typeof err?.message === 'string' ? err.message : 'The wallet service returned an error.';
             } finally {
                 arcpayGate.end(ticket);
@@ -291,7 +293,7 @@
     async function listArcpay() {
         if (!browser) return;
         const ticket = arcpayGate.tryStart();
-        if (ticket === null) return;
+        if (ticket === null) { arcpayNotice = 'Another transaction is still waiting on your wallet. Wait for it to finish, then try again.'; return; }
         arcpayBusy = true;
         const myRun = ++arcpayRun;
         arcpayNotice = null;
@@ -300,7 +302,7 @@
         try {
             const initialApproved = token.approved;
             const txId = await listTokenArcpay(token);
-            if (myRun !== arcpayRun) return;
+            if (myRun !== arcpayRun || !arcpayGate.isCurrent(ticket)) return;
             if (!hasArcpayResult(txId)) {
                 arcpayNotice = 'No transaction was submitted.';
                 return;
@@ -310,20 +312,20 @@
             const result = await pollUntil({
                 attempts: 12,
                 delayMs: 2000,
-                shouldStop: () => myRun !== arcpayRun,
+                shouldStop: () => myRun !== arcpayRun || !arcpayGate.isCurrent(ticket),
                 read: async () => (await getTokens({ contractId, tokenId, invalidate: true }))[0],
                 isDone: (t) => !!t && t.approved !== zeroAddress && t.approved !== initialApproved,
             });
-            if (myRun !== arcpayRun || result.stopped) return;
+            if (myRun !== arcpayRun || !arcpayGate.isCurrent(ticket) || result.stopped) return;
             if (result.value) token = result.value;
             if (result.done && result.value) {
                 try {
                     // Get fresh listing data
                     const arcpayListing = await getTokenListing(result.value);
-                    if (myRun !== arcpayRun) return;
+                    if (myRun !== arcpayRun || !arcpayGate.isCurrent(ticket)) return;
                     if (arcpayListing) {
                         const processedListing = await processArcpayListing(arcpayListing);
-                        if (myRun !== arcpayRun) return;
+                        if (myRun !== arcpayRun || !arcpayGate.isCurrent(ticket)) return;
                         if (processedListing) {
                             listing = processedListing;
                         }
@@ -335,7 +337,7 @@
                 arcpayNotice = 'The change has not been confirmed yet. It may still complete.';
             }
         } catch(err: any) {
-            if (myRun !== arcpayRun) return;
+            if (myRun !== arcpayRun || !arcpayGate.isCurrent(ticket)) return;
             arcpayNotice = typeof err?.message === 'string' ? err.message : 'The wallet service returned an error.';
         } finally {
             arcpayGate.end(ticket);
@@ -349,7 +351,7 @@
         if (!browser) return false;
         if (!listing || listing.source !== 'arcpay') return false;
         const ticket = arcpayGate.tryStart();
-        if (ticket === null) return false;
+        if (ticket === null) { arcpayNotice = 'Another transaction is still waiting on your wallet. Wait for it to finish, then try again.'; return false; }
         arcpayBusy = true;
         const myRun = ++arcpayRun;
         arcpayNotice = null;
@@ -359,7 +361,7 @@
             const initialOwner = token.owner;
             const buyer = $selectedWallet?.address;
             const txId = await buyTokenArcpay(listing.transactionId);
-            if (myRun !== arcpayRun) return false;
+            if (myRun !== arcpayRun || !arcpayGate.isCurrent(ticket)) return false;
             if (!hasArcpayResult(txId)) {
                 arcpayNotice = 'No transaction was submitted.';
                 return false;
@@ -369,11 +371,11 @@
             const result = await pollUntil({
                 attempts: 12,
                 delayMs: 2000,
-                shouldStop: () => myRun !== arcpayRun,
+                shouldStop: () => myRun !== arcpayRun || !arcpayGate.isCurrent(ticket),
                 read: async () => (await getTokens({ contractId, tokenId, invalidate: true }))[0],
                 isDone: (t) => !!t && t.owner !== initialOwner,
             });
-            if (myRun !== arcpayRun || result.stopped) return false;
+            if (myRun !== arcpayRun || !arcpayGate.isCurrent(ticket) || result.stopped) return false;
             switch (classifyBuyerOwner(initialOwner, result.value?.owner, buyer)) {
                 case 'confirmed':
                     token = result.value!;
@@ -389,7 +391,7 @@
                     break;
             }
         } catch(err: any) {
-            if (myRun !== arcpayRun) return false;
+            if (myRun !== arcpayRun || !arcpayGate.isCurrent(ticket)) return false;
             arcpayNotice = typeof err?.message === 'string' ? err.message : 'The wallet service returned an error.';
         } finally {
             arcpayGate.end(ticket);

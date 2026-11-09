@@ -61,7 +61,7 @@
         }
     });
 
-    onMount(() => { inFlight = gate.busy; });
+    onMount(() => gate.subscribe(busy => { inFlight = busy; }));
 
 
     async function listToken() {
@@ -69,7 +69,7 @@
         if (ticket === null) return;
         inFlight = true;
         const myRun = ++run;
-        const shouldStop = () => myRun !== run;
+        const shouldStop = () => myRun !== run || !gate.isCurrent(ticket);
         try {
             sendingView = SendingView.Sending;
             let resp;
@@ -97,7 +97,7 @@
 
                 const ctc = new arc72(token.contractId, algodClient, algodIndexer, opts);
                 resp = await ctc.arc72_approve(zeroAddress, Number(token.tokenId), true, true);
-                if (myRun !== run) return;
+                if (myRun !== run || !gate.isCurrent(ticket)) return;
             }
             else {
                 // create or update listing
@@ -139,7 +139,7 @@
                         listingsToDelete: listing ? [listing as unknown as NFTIndexerListingI] : [], // listing ids to delete (optional)
                     }
                 );
-                if (myRun !== run) return;
+                if (myRun !== run || !gate.isCurrent(ticket)) return;
             }
 
             if (!resp || !resp.success) {
@@ -163,7 +163,7 @@
             const expectedApproved = doDelete ? zeroAddress : algosdk.getApplicationAddress(ctcInfoMp206);
             const { contractId, tokenId } = token;
             const status = await signAndSendTransactions([decodedTxns]);
-            if (myRun !== run) return;
+            if (myRun !== run || !gate.isCurrent(ticket)) return;
             if (!isSubmitted(status)) {
                 sendingError = 'The transaction was not submitted (cancelled or rejected in the wallet).';
                 sendingView = SendingView.Error;
@@ -177,7 +177,7 @@
                 delayMs: 1000,
                 shouldStop,
             });
-            if (myRun !== run) return;
+            if (myRun !== run || !gate.isCurrent(ticket)) return;
 
             const classification = classifyTarget(initialApproved, result.value?.approved, expectedApproved);
             if (classification === 'pending') {
@@ -194,7 +194,7 @@
 
             // wait 5 seconds for indexer to update
             await new Promise(r => setTimeout(r, 5000));
-            if (myRun !== run) return;
+            if (myRun !== run || !gate.isCurrent(ticket)) return;
 
             if (doDelete) {
                 sendingView = SendingView.Deleted;
@@ -206,7 +206,7 @@
             invalidateAll();
         }
         catch(err: any) {
-            if (myRun !== run) return;
+            if (myRun !== run || !gate.isCurrent(ticket)) return;
             sendingError = typeof err?.message === 'string' ? err.message : 'Unknown error';
             sendingView = SendingView.Error;
         }
@@ -303,7 +303,8 @@
                     </div>
                 {/if}
                 {#if inFlight}
-                    <div class="mt-2 text-gray-400">Your wallet may still be waiting for you. If you approve there, the listing change can still go through. Wait for this to finish before submitting again.</div>
+                    <div class="mt-2 text-gray-400">Your wallet may still be waiting. If you approve the earlier request, it can still complete, so check your wallet before trying again.</div>
+                    <button type="button" class="mt-2 text-sm text-gray-500 underline" on:click={() => sharedTxGate.abandon()}>Stop waiting</button>
                 {/if}
                 <div class="flex flex-row justify-between mt-4 space-x-2">
                     <button on:click={close} class="w-52 h-10 bg-blue-500 text-white rounded-md">Close</button>

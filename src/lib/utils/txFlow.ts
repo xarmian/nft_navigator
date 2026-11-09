@@ -69,22 +69,58 @@ export function countPending(initial: string[], observed: (string | undefined)[]
 	return initial.filter((value, i) => classifyChange(value, observed[i]) === 'pending').length;
 }
 
-export function createRunGate(): { tryStart(): number | null; end(ticket: number): void; readonly busy: boolean } {
+export function createRunGate(): { tryStart(): number | null; end(ticket: number): void; subscribe(fn: (busy: boolean) => void): () => void; abandon(): void; isCurrent(ticket: number): boolean; readonly busy: boolean } {
 	let latest = 0;
 	let active = false;
+	const subscribers = new Set<(busy: boolean) => void>();
+	const notify = () => subscribers.forEach(fn => fn(active));
 	return {
 		tryStart() {
 			if (active) return null;
 			active = true;
+			notify();
 			return ++latest;
 		},
 		end(ticket: number) {
-			if (ticket === latest) active = false;
+			if (ticket === latest && active) {
+				active = false;
+				notify();
+			}
 		},
+		subscribe(fn: (busy: boolean) => void) {
+			subscribers.add(fn);
+			fn(active);
+			return () => subscribers.delete(fn);
+		},
+		abandon() {
+			if (!active) return;
+			active = false;
+			latest++;
+			notify();
+		},
+		isCurrent(ticket: number) { return active && ticket === latest; },
 		get busy() { return active; },
 	};
 }
 
-// Used only by click handlers, never at module load, so SSR is unaffected.
+export function planSendRange(sentCount: number, total: number, retry: boolean): { start: number; end: number } {
+	if (!retry) return { start: 0, end: total };
+	const end = Math.max(0, total);
+	return { start: Math.min(end, Math.max(0, sentCount)), end };
+}
+
+export async function runGroups(opts: { start: number; end: number; groupSize: number; sendGroup: (groupStart: number, groupEnd: number) => Promise<boolean>; isCurrent: () => boolean }): Promise<{ status: 'done' | 'failed' | 'stale'; failedAt?: number; groupsSent?: number }> {
+	let groupsSent = 0;
+	for (let groupStart = opts.start; groupStart < opts.end; groupStart += opts.groupSize) {
+		if (!opts.isCurrent()) return { status: 'stale' };
+		const sent = await opts.sendGroup(groupStart, Math.min(groupStart + opts.groupSize, opts.end));
+		if (!opts.isCurrent()) return { status: 'stale' };
+		if (!sent) return { status: 'failed', failedAt: groupStart, groupsSent };
+		groupsSent++;
+	}
+	return { status: 'done', groupsSent };
+}
+
+// Used from event handlers and from component init after a click; never at module load, and the modals render only after a click, so SSR is unaffected.
 export const sharedTxGate = createRunGate();
 
