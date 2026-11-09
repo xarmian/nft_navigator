@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 // @ts-expect-error Node's direct TypeScript runner requires the .ts extension.
-import { isSubmitted, hasArcpayResult, pollUntil, classifyChange, classifyOwner, classifyBuyerOwner, countPending, createRunGate, classifyTarget, summarizeTargets, sharedTxGate, planSendRange, runGroups } from './txFlow.ts';
+import { isSubmitted, hasArcpayResult, pollUntil, classifyChange, classifyOwner, classifyBuyerOwner, countPending, createRunGate, classifyTarget, summarizeTargets, sharedTxGate, planSendRange, runGroups, createRunSwitch, skipGroup, splitSkipped, finalSendView, nextBuyView } from './txFlow.ts';
 
 test('createRunGate isCurrent is true for the live ticket', () => {
 	const gate = createRunGate();
@@ -439,3 +439,82 @@ test('classifyOwner checks the expected buyer after a change', () => {
 	] as const) assert.equal(classifyOwner(initial, observed, expected), result);
 });
 
+
+test('createRunSwitch lifecycle', () => {
+	const sw = createRunSwitch();
+	const first = sw.begin();
+	assert.equal(sw.isLive(first), true);
+	sw.stop();
+	assert.equal(sw.isLive(first), false);
+	sw.stop();
+	const second = sw.begin();
+	assert.notEqual(second, first);
+	assert.equal(sw.isLive(first), false);
+	assert.equal(sw.isLive(second), true);
+	const third = sw.begin();
+	assert.equal(sw.isLive(second), false);
+	assert.equal(sw.isLive(third), true);
+});
+
+test('skipGroup advances one clamped group', () => {
+	assert.deepEqual(skipGroup(0, 40, 16), { skipped: { start: 0, end: 16 }, next: 16 });
+	assert.deepEqual(skipGroup(16, 40, 16), { skipped: { start: 16, end: 32 }, next: 32 });
+	assert.deepEqual(skipGroup(32, 40, 16), { skipped: { start: 32, end: 40 }, next: 40 });
+	assert.deepEqual(skipGroup(40, 40, 16), { skipped: { start: 40, end: 40 }, next: 40 });
+});
+
+test('splitSkipped partitions sent and skipped indices', () => {
+	assert.deepEqual(splitSkipped(5, []), { sendIndices: [0, 1, 2, 3, 4], skippedIndices: [] });
+	assert.deepEqual(splitSkipped(5, [{ start: 1, end: 3 }]), { sendIndices: [0, 3, 4], skippedIndices: [1, 2] });
+	assert.deepEqual(splitSkipped(6, [{ start: 1, end: 2 }, { start: 4, end: 6 }]), { sendIndices: [0, 2, 3], skippedIndices: [1, 4, 5] });
+	assert.deepEqual(splitSkipped(6, [{ start: 3, end: 6 }, { start: 1, end: 4 }, { start: 2, end: 5 }]), { sendIndices: [0], skippedIndices: [1, 2, 3, 4, 5] });
+	assert.deepEqual(splitSkipped(5, [{ start: -2, end: 2 }, { start: 4, end: 9 }]), { sendIndices: [2, 3], skippedIndices: [0, 1, 4] });
+	assert.deepEqual(splitSkipped(3, [{ start: -2, end: 9 }]), { sendIndices: [], skippedIndices: [0, 1, 2] });
+});
+
+test('finalSendView handles all outcomes and skipped tokens', () => {
+	assert.equal(finalSendView(0, { confirmed: 1, pending: 0, unexpected: 0 }), 'sent');
+	assert.equal(finalSendView(1, { confirmed: 1, pending: 0, unexpected: 0 }), 'partial');
+	assert.equal(finalSendView(0, { confirmed: 0, pending: 1, unexpected: 0 }), 'pending');
+	assert.equal(finalSendView(0, { confirmed: 0, pending: 0, unexpected: 1 }), 'unexpected');
+	assert.equal(finalSendView(1, { confirmed: 1, pending: 1, unexpected: 0 }), 'pending');
+	assert.equal(finalSendView(1, { confirmed: 1, pending: 0, unexpected: 1 }), 'unexpected');
+	assert.equal(finalSendView(0, { confirmed: 1, pending: 1, unexpected: 1 }), 'unexpected');
+});
+
+test('nextBuyView maps liveness and classification', () => {
+	for (const classification of ['confirmed', 'unexpected', 'pending'] as const) assert.equal(nextBuyView(false, classification), 'none');
+	assert.equal(nextBuyView(true, 'confirmed'), 'sent');
+	assert.equal(nextBuyView(true, 'unexpected'), 'error');
+	assert.equal(nextBuyView(true, 'pending'), 'pending');
+});
+
+test('skipping a failed first group sends only later groups', async () => {
+	const calls: [number, number][] = [];
+	const first = await runGroups({ start: 0, end: 40, groupSize: 16, isCurrent: () => true, sendGroup: async (s, e) => { calls.push([s, e]); return false; } });
+	assert.deepEqual(first, { status: 'failed', failedAt: 0, groupsSent: 0 });
+	const s = skipGroup(0, 40, 16);
+	assert.deepEqual(planSendRange(s.next, 40, true), { start: 16, end: 40 });
+	const second = await runGroups({ ...planSendRange(s.next, 40, true), groupSize: 16, isCurrent: () => true, sendGroup: async (a, b) => { calls.push([a, b]); return true; } });
+	assert.deepEqual(calls, [[0, 16], [16, 32], [32, 40]]);
+	assert.deepEqual(second, { status: 'done', groupsSent: 2 });
+});
+
+test('close during a multi-group send prevents further signing calls', async () => {
+	const sw = createRunSwitch();
+	const id = sw.begin();
+	let resolve!: (value: boolean) => void;
+	const calls: [number, number][] = [];
+	const pending = runGroups({ start: 0, end: 40, groupSize: 16, isCurrent: () => sw.isLive(id), sendGroup: (s, e) => { calls.push([s, e]); return new Promise<boolean>(r => resolve = r); } });
+	sw.stop();
+	resolve(true);
+	assert.deepEqual(await pending, { status: 'stale' });
+	assert.deepEqual(calls, [[0, 16]]);
+});
+
+test('send end state counts sent and skipped indices', () => {
+	const split = splitSkipped(40, [{ start: 0, end: 16 }]);
+	assert.equal(split.sendIndices.length, 24);
+	assert.equal(split.skippedIndices.length, 16);
+	assert.equal(finalSendView(split.skippedIndices.length, { confirmed: 24, pending: 0, unexpected: 0 }), 'partial');
+});

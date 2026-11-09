@@ -802,7 +802,7 @@ console.log(currentTab);
                 <button class="bg-blue-500 text-white rounded-lg p-2" on:click={() => showSendTokenModal = true}>Send ({selectedTokens.length})</button>
             </div>
             {#if showSendTokenModal}
-                <SendTokenModal bind:showModal={showSendTokenModal} tokens={selectedTokens} fromAddr={walletId} onClose={() => showSendTokenModal = false} onAfterSend={() => clearMultiSelectMode()} />
+                <SendTokenModal bind:showModal={showSendTokenModal} tokens={selectedTokens} fromAddr={walletId} onClose={() => showSendTokenModal = false} onAfterSend={(_t, unsent) => { if (unsent && unsent.length > 0) { selectedTokens = unsent; } else { clearMultiSelectMode(); } }} />
             {/if}
         {/if}
     {:else}

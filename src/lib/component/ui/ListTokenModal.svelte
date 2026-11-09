@@ -44,6 +44,7 @@
     const gate = sharedTxGate;
     let inFlight = false;
     let stoppedWaiting = false;
+    let myRunActive = false;
     let sendingError: string = '';
     let transactionId: string = '';
 
@@ -62,7 +63,7 @@
         }
     });
 
-    onMount(() => gate.subscribe(busy => { inFlight = busy; }));
+    onMount(() => { const unsubscribe = gate.subscribe(busy => { inFlight = busy; }); return () => { stopRun(); unsubscribe(); }; });
 
 
     async function listToken() {
@@ -72,6 +73,7 @@
         const afterAbandon = gate.wasAbandoned(abandonKey);
         inFlight = true;
         const myRun = ++run;
+        myRunActive = true;
         const shouldStop = () => myRun !== run || !gate.isCurrent(ticket);
         try {
             sendingView = SendingView.Sending;
@@ -218,25 +220,34 @@
             sendingView = SendingView.Error;
         }
         finally {
-            const wasCurrent = gate.isCurrent(ticket);
+            const wasCurrent = gate.isCurrent(ticket) && myRun === run;
             gate.end(ticket);
             inFlight = gate.busy;
             if (wasCurrent) stoppedWaiting = false;
+            myRunActive = false;
         }
     }
 
+    function stopRun() {
+        if (myRunActive) stoppedWaiting = true;
+        run++;
+    }
+
     function reset() {
+        stopRun();
         sendingError = '';
         sendingView = SendingView.Confirm;
     }
 
     function close() {
+        stopRun();
         showModal = false;
         sendingError = '';
         sendingView = SendingView.Confirm;
     }
 
     function afterClose() {
+        stopRun();
         console.log('afterClose');
         if (sendingView === SendingView.Listed) {
             onAfterSend(token);

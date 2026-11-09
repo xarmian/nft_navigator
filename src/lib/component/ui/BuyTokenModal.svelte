@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Currency, Listing, Token } from '$lib/data/types';
-    import { isSubmitted, pollUntil, classifyBuyerOwner, sharedTxGate } from '$lib/utils/txFlow';
+    import { isSubmitted, pollUntil, classifyBuyerOwner, nextBuyView, sharedTxGate } from '$lib/utils/txFlow';
     import Modal from './Modal.svelte';
     import { reformatTokenName, getTokens } from "$lib/utils/indexer";
     import { mp } from 'ulujs';
@@ -41,7 +41,8 @@
     const gate = sharedTxGate;
     let inFlight = false;
     let stoppedWaiting = false;
-    onMount(() => gate.subscribe(busy => { inFlight = busy; }));
+    let myRunActive = false;
+    onMount(() => { const unsubscribe = gate.subscribe(busy => { inFlight = busy; }); return () => { stopRun(); unsubscribe(); }; });
     let sendingError: string = '';
     let transactionId: string = '';
     let listingCurrency: Currency | null = null;
@@ -73,6 +74,7 @@
         if (ticket === null) return;
         inFlight = true;
         const myRun = ++run;
+        myRunActive = true;
         const shouldStop = () => myRun !== run || !gate.isCurrent(ticket);
         const initialOwner = token.owner;
         const buyer = fromAddr;
@@ -142,19 +144,22 @@
             });
             if (myRun !== run || !gate.isCurrent(ticket)) return;
 
-            switch (classifyBuyerOwner(initialOwner, result.value?.owner, buyer)) {
-                case 'confirmed':
+            const next = nextBuyView(myRun === run && gate.isCurrent(ticket), classifyBuyerOwner(initialOwner, result.value?.owner, buyer));
+            switch (next) {
+                case 'sent':
                     token = result.value!;
                     sendingView = SendingView.Sent;
                     invalidateAll();
                     onAfterSend(token);
                     break;
-                case 'unexpected':
+                case 'error':
                     sendingError = 'The token owner changed to an address other than the buyer. Check the transaction in the explorer.';
                     sendingView = SendingView.Error;
                     break;
                 case 'pending':
                     sendingView = SendingView.Pending;
+                    break;
+                case 'none':
                     break;
             }
         }
@@ -164,25 +169,34 @@
             sendingView = SendingView.Error;
         }
         finally {
-            const wasCurrent = gate.isCurrent(ticket);
+            const wasCurrent = gate.isCurrent(ticket) && myRun === run;
             gate.end(ticket);
             inFlight = gate.busy;
             if (wasCurrent) stoppedWaiting = false;
+            myRunActive = false;
         }
     }
 
+    function stopRun() {
+        if (myRunActive) stoppedWaiting = true;
+        run++;
+    }
+
     function reset() {
+        stopRun();
         sendingError = '';
         sendingView = SendingView.Confirm;
     }
 
     function close() {
+        stopRun();
         showModal = false;
         sendingError = '';
         sendingView = SendingView.Confirm;
     }
 
     function afterClose() {
+        stopRun();
         console.log('afterClose');
         if (sendingView === SendingView.Sent) {
             onAfterSend(token);

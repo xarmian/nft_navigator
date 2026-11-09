@@ -116,6 +116,46 @@ export function planSendRange(sentCount: number, total: number, retry: boolean):
 	return { start: Math.min(end, Math.max(0, sentCount)), end };
 }
 
+export function createRunSwitch(): { begin(): number; stop(): void; isLive(id: number): boolean } {
+	let latest = 0;
+	let stopped = true;
+	return {
+		begin() { stopped = false; return ++latest; },
+		stop() { stopped = true; },
+		isLive(id: number) { return !stopped && id === latest; },
+	};
+}
+
+export function skipGroup(sentCount: number, total: number, groupSize: number): { skipped: { start: number; end: number }; next: number } {
+	const start = Math.min(Math.max(sentCount, 0), total);
+	const end = Math.min(start + groupSize, total);
+	return { skipped: { start, end }, next: end };
+}
+
+export function splitSkipped(total: number, skipped: { start: number; end: number }[]): { sendIndices: number[]; skippedIndices: number[] } {
+	const skippedIndices: number[] = [];
+	const sendIndices: number[] = [];
+	for (let i = 0; i < total; i++) {
+		if (skipped.some(range => i >= Math.max(0, range.start) && i < Math.min(total, range.end))) skippedIndices.push(i);
+		else sendIndices.push(i);
+	}
+	return { sendIndices, skippedIndices };
+}
+
+export function finalSendView(skippedCount: number, summary: { confirmed: number; pending: number; unexpected: number }): 'unexpected' | 'pending' | 'partial' | 'sent' {
+	if (summary.unexpected > 0) return 'unexpected';
+	if (summary.pending > 0) return 'pending';
+	if (skippedCount > 0) return 'partial';
+	return 'sent';
+}
+
+export function nextBuyView(live: boolean, classification: 'confirmed' | 'unexpected' | 'pending'): 'sent' | 'error' | 'pending' | 'none' {
+	if (!live) return 'none';
+	if (classification === 'confirmed') return 'sent';
+	if (classification === 'unexpected') return 'error';
+	return 'pending';
+}
+
 export async function runGroups(opts: { start: number; end: number; groupSize: number; sendGroup: (groupStart: number, groupEnd: number) => Promise<boolean>; isCurrent: () => boolean }): Promise<{ status: 'done' | 'failed' | 'stale'; failedAt?: number; groupsSent?: number }> {
 	let groupsSent = 0;
 	for (let groupStart = opts.start; groupStart < opts.end; groupStart += opts.groupSize) {
