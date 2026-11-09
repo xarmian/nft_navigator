@@ -41,6 +41,7 @@
     const MAX_GROUP_SIZE = 16; // Maximum number of transactions in a group
 
     let sendingView: typeof SendingView[keyof typeof SendingView] = SendingView.Presend;
+    const hasPageToken = !!token; // a token page passes `token`; the portfolio passes only `tokens`
     if (tokens.length == 0 && token) tokens = [token];
     
     let transferTo = '';
@@ -341,7 +342,9 @@
             gate.end(ticket);
             inFlight = gate.busy;
             if (wasCurrent) stoppedWaiting = false;
-            if (wasCurrent && destroyed) reportToParent(latestToken);
+            // A run that finishes after its modal closed may tell a token page (which keeps its own token
+            // unless it is the same one) but never the portfolio: its selection feeds any Send modal open by now.
+            if (wasCurrent && destroyed && hasPageToken && latestToken && sendingView === SendingView.Sent) onAfterSend(latestToken);
             walletOpen = false;
             myRunActive = false;
         }
@@ -910,7 +913,7 @@
                         {:else}
                             <div class="mt-2 text-gray-400">{split.sendIndices.length} of {tokens.length} tokens were {doneWord} and {split.skippedIndices.length} were skipped.</div>
                         {/if}
-                        {#if stoppedWaiting}<div class="mt-2 text-gray-400">Your wallet may still be waiting. If you approve the earlier request, it can still complete, so check your wallet before trying again.</div>{/if}
+                        {#if stoppedWaiting && !stoppedPartial}<div class="mt-2 text-gray-400">A wallet request from this send may still be in progress. Check your wallet and the explorer before trying again.</div>{/if}
                         <div class="max-h-32 overflow-y-auto text-sm text-gray-500">
                             {#each split.skippedIndices as i}
                                 <div>Token #{tokens[i].tokenId}</div>
@@ -1019,7 +1022,7 @@
         {#if sendingView === "presend" || sendingView === "confirm"}
             <div class="mt-auto border-t border-gray-200 dark:border-gray-700 py-4">
                 {#if sendingView === "confirm" && (inFlight || stoppedWaiting)}
-                    <div class="mt-2 text-gray-400">Your wallet may still be waiting. If you approve the earlier request, it can still complete, so check your wallet before trying again.</div>
+                    <div class="mt-2 text-gray-400">A wallet request from this send may still be in progress. Check your wallet and the explorer before trying again.</div>
                     {#if inFlight}<button type="button" class="mt-2 text-sm text-gray-500 underline" on:click={() => { stoppedWaiting = true; sharedTxGate.abandon(); }}>Stop waiting</button>{/if}
                 {/if}
                 <div class="flex justify-between max-w-md mx-auto w-full space-x-4">

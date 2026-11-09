@@ -124,9 +124,9 @@ export function planStop(s: { runActive: boolean; submitted: boolean; walletOpen
 }
 
 export function stopSummary(s: { landed: number; total: number; promptOpen: boolean; doneWord: string }): string {
-	if (s.landed === 0 && s.promptOpen) return 'Your wallet may still be waiting. If you approve the earlier request, it can still complete, so check your wallet before trying again.';
+	if (s.landed === 0 && s.promptOpen) return 'A wallet request from this send may still be in progress. Check your wallet and the explorer before trying again.';
 	if (s.landed === 0 && !s.promptOpen) return '';
-	if (s.promptOpen) return `${s.landed} of ${s.total} tokens were submitted before this was stopped. The other ${s.total - s.landed} are not ${s.doneWord} yet: one wallet request is still open and can still complete if you approve it. Check your wallet or the explorer before trying again. The submitted transactions have not been checked yet.`;
+	if (s.promptOpen) return `${s.landed} of ${s.total} tokens were submitted before this was stopped. The other ${s.total - s.landed} are not ${s.doneWord} yet. A wallet request from this send may still be in progress. Check your wallet and the explorer before trying again. The submitted transactions have not been checked yet.`;
 	return `${s.landed} of ${s.total} tokens were submitted before this was stopped and ${s.total - s.landed} were not ${s.doneWord}. The submitted transactions have not been checked yet. Check them in your wallet or the explorer before trying again.`;
 }
 

@@ -248,7 +248,7 @@
                     </div>
                 {/if}
                 {#if sendingView === "confirm" && (inFlight || stoppedWaiting)}
-                    <div class="mt-2 text-gray-400">Your wallet may still be waiting. If you approve the earlier request, it can still complete, so check your wallet before trying again.</div>
+                    <div class="mt-2 text-gray-400">A wallet request from this send may still be in progress. Check your wallet and the explorer before trying again.</div>
                     {#if inFlight}<button type="button" class="mt-2 text-sm text-gray-500 underline" on:click={() => { stoppedWaiting = true; sharedTxGate.abandon(); }}>Stop waiting</button>{/if}
                 {/if}
                 <div class="flex flex-row justify-between mt-4 space-x-2">

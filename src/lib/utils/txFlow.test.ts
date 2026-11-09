@@ -18,13 +18,13 @@ test('planStop skipped range combines with an earlier skipped range', () => {
 });
 
 test('stopSummary returns exact message for each stopped state', () => {
-	assert.equal(stopSummary({ landed: 0, total: 40, promptOpen: true, doneWord: 'sent' }), 'Your wallet may still be waiting. If you approve the earlier request, it can still complete, so check your wallet before trying again.');
+	assert.equal(stopSummary({ landed: 0, total: 40, promptOpen: true, doneWord: 'sent' }), 'A wallet request from this send may still be in progress. Check your wallet and the explorer before trying again.');
 	assert.equal(stopSummary({ landed: 0, total: 40, promptOpen: false, doneWord: 'sent' }), '');
-	assert.equal(stopSummary({ landed: 16, total: 40, promptOpen: true, doneWord: 'sent' }), '16 of 40 tokens were submitted before this was stopped. The other 24 are not sent yet: one wallet request is still open and can still complete if you approve it. Check your wallet or the explorer before trying again. The submitted transactions have not been checked yet.');
+	assert.equal(stopSummary({ landed: 16, total: 40, promptOpen: true, doneWord: 'sent' }), '16 of 40 tokens were submitted before this was stopped. The other 24 are not sent yet. A wallet request from this send may still be in progress. Check your wallet and the explorer before trying again. The submitted transactions have not been checked yet.');
 	assert.equal(stopSummary({ landed: 16, total: 40, promptOpen: false, doneWord: 'sent' }), '16 of 40 tokens were submitted before this was stopped and 24 were not sent. The submitted transactions have not been checked yet. Check them in your wallet or the explorer before trying again.');
-	assert.match(stopSummary({ landed: 16, total: 40, promptOpen: true, doneWord: 'sent' }), /not sent yet.*still open/);
+	assert.match(stopSummary({ landed: 16, total: 40, promptOpen: true, doneWord: 'sent' }), /not sent yet.*may still be in progress/);
 	assert.match(stopSummary({ landed: 16, total: 40, promptOpen: false, doneWord: 'sent' }), /were not sent/);
-	assert.doesNotMatch(stopSummary({ landed: 16, total: 40, promptOpen: false, doneWord: 'sent' }), /yet:/);
+	assert.doesNotMatch(stopSummary({ landed: 16, total: 40, promptOpen: false, doneWord: 'sent' }), /in progress/);
 });
 
 test('planClosePartial closes only an unhandled remaining partial run', () => {
