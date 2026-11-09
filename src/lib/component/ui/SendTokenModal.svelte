@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Token } from '$lib/data/types';
+    import { pollUntil, classifyChange } from '$lib/utils/txFlow';
     import Modal from './Modal.svelte';
     import { reformatTokenName, getTokens } from "$lib/utils/indexer";
     import WalletSearch from '../WalletSearch.svelte';
@@ -31,6 +32,7 @@
         Confirm: "confirm",
         Sending: "sending",
         Waiting: "waiting",
+        Pending: "pending",
         Error: "error",
         Sent: "sent",
     } as const;
@@ -316,19 +318,20 @@
             // Wait for the last token's transaction to be confirmed
             if (tokens.length > 0) {
                 const lastToken = tokens[tokens.length - 1];
-                let t = null;
+                const initial = type == 'send' ? lastToken.owner : lastToken.approved;
+                const result = await pollUntil({
+                    read: async () => (await getTokens({contractId: lastToken.contractId, tokenId: lastToken.tokenId, invalidate: true}))[0],
+                    isDone: (t) => !!t && (type == 'send' ? t.owner : t.approved) !== initial,
+                    attempts: 10,
+                    delayMs: 1000,
+                });
+                const observed = type == 'send' ? result.value?.owner : result.value?.approved;
+                if (classifyChange(initial, observed) === 'pending') {
+                    sendingView = SendingView.Pending;
+                    return;
+                }
 
                 if (type == 'send') {
-                    let owner = lastToken.owner;
-                    let newOwner = owner;
-                    let i = 0;
-                    while (owner === newOwner && i < 10) {
-                        await new Promise(r => setTimeout(r, 1000));
-                        t = await getTokens({contractId: lastToken.contractId, tokenId: lastToken.tokenId, invalidate: true});
-                        newOwner = t[0].owner;
-                        i++;
-                    }
-
                     // Invalidate portfolio data for both sender and recipient
                     if (!isIndividualMode) {
                         await getTokens({ owner: fromAddr, invalidate: true });
@@ -342,19 +345,9 @@
                             }
                         }
                     }
-                } else {
-                    let approved = lastToken.approved;
-                    let newApproved = approved;
-                    let i = 0;
-                    while (approved === newApproved && i < 10) {
-                        await new Promise(r => setTimeout(r, 1000));
-                        t = await getTokens({contractId: lastToken.contractId, tokenId: lastToken.tokenId, invalidate: true});
-                        newApproved = t[0].approved;
-                        i++;
-                    }
                 }
 
-                if (t && t.length > 0) token = t[0];
+                if (result.value) token = result.value;
                 sendingView = SendingView.Sent;
 
                 invalidateAll();
@@ -851,6 +844,20 @@
                                     </div>
                                 {/each}
                             </div>
+                        </div>
+                        <div class="flex flex-row items-center mt-4 space-x-4">
+                            <button on:click={afterClose} class="w-64 h-10 bg-blue-500 text-white rounded-md">Close</button>
+                        </div>
+                    </div>
+                {:else if sendingView === "pending"}
+                    <div class="flex flex-col items-center space-y-4 py-10">
+                        <div class="text-xl font-bold">Transactions Submitted</div>
+                        <div class="mt-2 text-gray-400">The transactions were signed and sent, but the last one has not been confirmed yet. They may still complete. Check them before trying again.</div>
+                        <div class="mt-2 text-gray-400 flex flex-col items-center">
+                            <div class="font-bold mb-2">Transactions</div>
+                            {#each transactionIds as id}
+                                <a href={"https://explorer.voi.network/explorer/transaction/" + id} target="_blank" class="text-xs underline text-blue-500 hover:text-blue-600">{id}</a>
+                            {/each}
                         </div>
                         <div class="flex flex-row items-center mt-4 space-x-4">
                             <button on:click={afterClose} class="w-64 h-10 bg-blue-500 text-white rounded-md">Close</button>

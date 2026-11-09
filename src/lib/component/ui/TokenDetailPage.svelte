@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { Token, Collection, Listing, Currency, Auction, Sale } from '$lib/data/types';
     import { reformatTokenName } from '$lib/utils/indexer';
+    import { hasArcpayResult, pollUntil } from '$lib/utils/txFlow';
     import { zeroAddress } from '$lib/data/constants';
     import { selectedWallet } from 'avm-wallet-svelte';
 	import SendTokenModal from './SendTokenModal.svelte';
@@ -50,6 +51,8 @@
     let menuRef: HTMLElement | null = null;
 	let windowDefined = false;
     let waitingForConfirmationModal = false;
+    let arcpayNotice: string | null = null;
+    let arcpayRun = 0;
     let activeTab = 'details';
     let mintDate: string | null = null;
     let mintDateTime: string | null = null;
@@ -90,6 +93,7 @@
     });
 
     onDestroy(() => {
+        arcpayRun++;
         if (windowDefined && document) document.removeEventListener('click', handleClickOutside);
     });
 
@@ -266,68 +270,89 @@
 
     async function listArcpay() {
         if (!browser) return;
+        const myRun = ++arcpayRun;
+        arcpayNotice = null;
+        waitingForConfirmationModal = false;
 
-        const txId = await listTokenArcpay(token);
-        waitingForConfirmationModal = true;
-
-        if (txId !== undefined) {
-            let count = 0;
-            const interval = setInterval(async () => {
-                const tokenChk = (await getTokens({ contractId: token.contractId, tokenId: token.tokenId, invalidate: true }))[0];
-                if (tokenChk.approved !== zeroAddress) {
-                    token = tokenChk;
-                    // Get fresh listing data
-                    const arcpayListing = await getTokenListing(tokenChk);
-                    if (arcpayListing) {
-                        const processedListing = await processArcpayListing(arcpayListing);
-                        if (processedListing) {
-                            listing = processedListing;
-                        }
-                    }
-                    waitingForConfirmationModal = false;
-                    clearInterval(interval);
-                } else {
-                    count++;
-                    if (count === 12) {
-                        token = tokenChk;
-                        waitingForConfirmationModal = false;
-                        clearInterval(interval);
+        try {
+            const txId = await listTokenArcpay(token);
+            if (myRun !== arcpayRun) return;
+            if (!hasArcpayResult(txId)) {
+                arcpayNotice = 'No transaction was submitted.';
+                return;
+            }
+            waitingForConfirmationModal = true;
+            const { contractId, tokenId } = token;
+            const result = await pollUntil({
+                attempts: 12,
+                delayMs: 2000,
+                shouldStop: () => myRun !== arcpayRun,
+                read: async () => (await getTokens({ contractId, tokenId, invalidate: true }))[0],
+                isDone: (t) => !!t && t.approved !== zeroAddress,
+            });
+            if (myRun !== arcpayRun || result.stopped) return;
+            if (result.value) token = result.value;
+            if (result.done && result.value) {
+                // Get fresh listing data
+                const arcpayListing = await getTokenListing(result.value);
+                if (myRun !== arcpayRun) return;
+                if (arcpayListing) {
+                    const processedListing = await processArcpayListing(arcpayListing);
+                    if (myRun !== arcpayRun) return;
+                    if (processedListing) {
+                        listing = processedListing;
                     }
                 }
-            }, 2000);
+            } else {
+                arcpayNotice = 'The change has not been confirmed yet. It may still complete.';
+            }
+        } catch(err: any) {
+            if (myRun !== arcpayRun) return;
+            arcpayNotice = typeof err?.message === 'string' ? err.message : 'The wallet service returned an error.';
+        } finally {
+            if (myRun === arcpayRun) waitingForConfirmationModal = false;
         }
     }
 
     async function buyArcpay(evt: Event) {
-        if (!browser) return;
+        evt.preventDefault();
+        if (!browser) return false;
+        if (!listing || listing.source !== 'arcpay') return false;
+        const myRun = ++arcpayRun;
+        arcpayNotice = null;
+        waitingForConfirmationModal = false;
 
-        if (listing && listing.source === 'arcpay') {
-            const txId = await buyTokenArcpay(listing?.transactionId);
-            waitingForConfirmationModal = true;
-
-            if (txId !== undefined) {
-                let count = 0;
-                const interval = setInterval(async () => {
-                    const tokenChk = (await getTokens({ contractId: token.contractId, tokenId: token.tokenId, invalidate: true }))[0];
-                    if (tokenChk.approved === zeroAddress) {
-                        token = tokenChk;
-                        // Clear listing after successful purchase
-                        listing = null;
-                        waitingForConfirmationModal = false;
-                        clearInterval(interval);
-                    } else {
-                        count++;
-                        if (count === 12) {
-                            token = tokenChk;
-                            waitingForConfirmationModal = false;
-                            clearInterval(interval);
-                        }
-                    }
-                }, 2000);
+        try {
+            const txId = await buyTokenArcpay(listing.transactionId);
+            if (myRun !== arcpayRun) return false;
+            if (!hasArcpayResult(txId)) {
+                arcpayNotice = 'No transaction was submitted.';
+                return false;
             }
+            waitingForConfirmationModal = true;
+            const { contractId, tokenId } = token;
+            const result = await pollUntil({
+                attempts: 12,
+                delayMs: 2000,
+                shouldStop: () => myRun !== arcpayRun,
+                read: async () => (await getTokens({ contractId, tokenId, invalidate: true }))[0],
+                isDone: (t) => !!t && t.approved === zeroAddress,
+            });
+            if (myRun !== arcpayRun || result.stopped) return false;
+            if (result.value) token = result.value;
+            if (result.done && result.value) {
+                // Clear listing after successful purchase
+                listing = null;
+            } else {
+                arcpayNotice = 'The change has not been confirmed yet. It may still complete.';
+            }
+        } catch(err: any) {
+            if (myRun !== arcpayRun) return false;
+            arcpayNotice = typeof err?.message === 'string' ? err.message : 'The wallet service returned an error.';
+        } finally {
+            if (myRun === arcpayRun) waitingForConfirmationModal = false;
         }
 
-        evt.preventDefault();
         return false;
     }
 
@@ -814,6 +839,18 @@
                     <span>Processing</span>
                 </div>
                 <div class="text-gray-600 dark:text-gray-300">Please wait while we update the token information...</div>
+                <button on:click={() => { waitingForConfirmationModal = false; arcpayRun++; }} class="min-h-[44px] px-6 bg-blue-500 text-white rounded-md">Hide</button>
+            </div>
+        </div>
+    </div>
+{/if}
+
+{#if arcpayNotice}
+    <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Transaction notice" tabindex="-1">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl max-w-md w-full">
+            <div class="text-center space-y-4">
+                <div class="text-gray-600 dark:text-gray-300">{arcpayNotice}</div>
+                <button on:click={() => { arcpayNotice = null; }} class="min-h-[44px] px-6 bg-blue-500 text-white rounded-md">Close</button>
             </div>
         </div>
     </div>
