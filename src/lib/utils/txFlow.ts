@@ -116,6 +116,78 @@ export function planSendRange(sentCount: number, total: number, retry: boolean):
 	return { start: Math.min(end, Math.max(0, sentCount)), end };
 }
 
+export function planStop(s: { runActive: boolean; submitted: boolean; walletOpen: boolean; landed: number; sentCount: number; total: number }): { stop: boolean; view: 'keep' | 'confirm' | 'partial'; warn: boolean; skipped?: { start: number; end: number } } {
+	if (!s.runActive) return { stop: true, view: 'keep', warn: false };
+	if (s.submitted) return { stop: false, view: 'keep', warn: false };
+	if (s.landed > 0 && s.sentCount < s.total) return { stop: true, view: 'partial', warn: s.walletOpen, skipped: { start: s.sentCount, end: s.total } };
+	return { stop: true, view: 'confirm', warn: s.walletOpen };
+}
+
+export function stopSummary(s: { landed: number; total: number; promptOpen: boolean; doneWord: string }): string {
+	if (s.landed === 0 && s.promptOpen) return 'A wallet request from this send may still be in progress. Check your wallet and the explorer before trying again.';
+	if (s.landed === 0 && !s.promptOpen) return '';
+	if (s.promptOpen) return `${s.landed} of ${s.total} tokens were submitted before this was stopped. The other ${s.total - s.landed} are not ${s.doneWord} yet. A wallet request from this send may still be in progress. Check your wallet and the explorer before trying again. The submitted transactions have not been checked yet.`;
+	return `${s.landed} of ${s.total} tokens were submitted before this was stopped and ${s.total - s.landed} were not ${s.doneWord}. The submitted transactions have not been checked yet. Check them in your wallet or the explorer before trying again.`;
+}
+
+export function planClosePartial(s: { view: string; landed: number; sentCount: number; total: number; handled: boolean }): { start: number; end: number } | null {
+	return s.view === 'error' && s.landed > 0 && s.sentCount < s.total && !s.handled ? { start: s.sentCount, end: s.total } : null;
+}
+
+export function sameTokenKey(a: { contractId: number | string; tokenId: number | string }, b: { contractId: number | string; tokenId: number | string }): boolean {
+	return String(a.contractId) === String(b.contractId) && String(a.tokenId) === String(b.tokenId);
+}
+
+export function toggleByKey<T extends { contractId: number | string; tokenId: number | string }>(list: T[], item: T): T[] {
+	if (list.some(existing => sameTokenKey(existing, item))) return list.filter(existing => !sameTokenKey(existing, item));
+	return [...list, item];
+}
+
+// A finished run reports the token it was for. Keep the page's current token unless it is that same token.
+export function tokenAfterSend<T extends { contractId: number | string; tokenId: number | string }>(current: T, result: T): T {
+	return sameTokenKey(current, result) ? result : current;
+}
+
+export function createRunSwitch(): { begin(): number; stop(): void; isLive(id: number): boolean } {
+	let latest = 0;
+	let stopped = true;
+	return {
+		begin() { stopped = false; return ++latest; },
+		stop() { stopped = true; },
+		isLive(id: number) { return !stopped && id === latest; },
+	};
+}
+
+export function skipGroup(sentCount: number, total: number, groupSize: number): { skipped: { start: number; end: number }; next: number } {
+	const start = Math.min(Math.max(sentCount, 0), total);
+	const end = Math.min(start + groupSize, total);
+	return { skipped: { start, end }, next: end };
+}
+
+export function splitSkipped(total: number, skipped: { start: number; end: number }[]): { sendIndices: number[]; skippedIndices: number[] } {
+	const skippedIndices: number[] = [];
+	const sendIndices: number[] = [];
+	for (let i = 0; i < total; i++) {
+		if (skipped.some(range => i >= Math.max(0, range.start) && i < Math.min(total, range.end))) skippedIndices.push(i);
+		else sendIndices.push(i);
+	}
+	return { sendIndices, skippedIndices };
+}
+
+export function finalSendView(skippedCount: number, summary: { confirmed: number; pending: number; unexpected: number }): 'unexpected' | 'pending' | 'partial' | 'sent' {
+	if (summary.unexpected > 0) return 'unexpected';
+	if (summary.pending > 0) return 'pending';
+	if (skippedCount > 0) return 'partial';
+	return 'sent';
+}
+
+export function nextBuyView(live: boolean, classification: 'confirmed' | 'unexpected' | 'pending'): 'sent' | 'error' | 'pending' | 'none' {
+	if (!live) return 'none';
+	if (classification === 'confirmed') return 'sent';
+	if (classification === 'unexpected') return 'error';
+	return 'pending';
+}
+
 export async function runGroups(opts: { start: number; end: number; groupSize: number; sendGroup: (groupStart: number, groupEnd: number) => Promise<boolean>; isCurrent: () => boolean }): Promise<{ status: 'done' | 'failed' | 'stale'; failedAt?: number; groupsSent?: number }> {
 	let groupsSent = 0;
 	for (let groupStart = opts.start; groupStart < opts.end; groupStart += opts.groupSize) {

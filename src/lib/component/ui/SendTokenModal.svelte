@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Token } from '$lib/data/types';
-    import { pollUntil, summarizeTargets, planSendRange, runGroups, sharedTxGate } from '$lib/utils/txFlow';
+    import { pollUntil, summarizeTargets, planSendRange, runGroups, createRunSwitch, skipGroup, splitSkipped, finalSendView, planStop, stopSummary, planClosePartial, sharedTxGate } from '$lib/utils/txFlow';
     import Modal from './Modal.svelte';
     import { reformatTokenName, getTokens } from "$lib/utils/indexer";
     import WalletSearch from '../WalletSearch.svelte';
@@ -25,7 +25,7 @@
     export let type: string = 'send'; // send or approve or revoke
 
     export let onClose: () => void = () => {};
-    export let onAfterSend: (t: Token) => void = () => {};
+    export let onAfterSend: (t: Token, unsent?: Token[]) => void = () => {};
 
     const SendingView = {
         Presend: "presend",
@@ -35,11 +35,13 @@
         Pending: "pending",
         Error: "error",
         Sent: "sent",
+        Partial: "partial",
     } as const;
 
     const MAX_GROUP_SIZE = 16; // Maximum number of transactions in a group
 
     let sendingView: typeof SendingView[keyof typeof SendingView] = SendingView.Presend;
+    const hasPageToken = !!token; // a token page passes `token`; the portfolio passes only `tokens`
     if (tokens.length == 0 && token) tokens = [token];
     
     let transferTo = '';
@@ -57,11 +59,22 @@
     let transactionIds: string[] = [];
     let tokenTransactions: { tokenId: string; txId: string; contractId: number }[] = [];
     let sentCount = 0;
+    let landedCount = 0;
+    let skippedRanges: { start: number; end: number }[] = [];
+    $: split = splitSkipped(tokens.length, skippedRanges);
+    let myRunActive = false;
+    const runSwitch = createRunSwitch();
     let unconfirmedCount = 0;
     let unconfirmedTotal = 0;
     const gate = sharedTxGate;
     let inFlight = false;
     let stoppedWaiting = false;
+    let walletOpen = false;
+    let allSubmitted = false;
+    let stopHandled = false;
+    let stoppedPartial = false;
+    let destroyed = false;
+    $: doneWord = type == 'send' ? 'sent' : type == 'approve' ? 'approved' : 'revoked';
     let noRetry = false;
     $: imageUrl = (tokens[0] && tokens[0].metadataURI) ? `https://prod.cdn.highforge.io/i/${encodeURIComponent(tokens[0].metadataURI)}?w=240` : tokens[0]?.metadata?.image;
 
@@ -175,8 +188,15 @@
             }
             return;
         }
+        const myRun = runSwitch.begin();
+        myRunActive = true;
+        const live = () => gate.isCurrent(ticket) && runSwitch.isLive(myRun);
+        allSubmitted = false;
+        stopHandled = false;
+        stoppedPartial = false;
         noRetry = false;
         inFlight = true;
+        let latestToken: Token | undefined;
         try {
             console.log('send token to', isIndividualMode ? 'multiple addresses' : transferTo);
             if (!isIndividualMode && transferTo.length === 0) return;
@@ -184,6 +204,8 @@
             if (!skipReset && !retryCurrentToken) {
                 sentCount = 0;
                 tokenTransactions = [];
+                skippedRanges = [];
+                landedCount = 0;
             }
             const opts = { acc: { addr: fromAddr, sk: new Uint8Array(0) }, formatBytes: false, simulate: true };
             sendingView = SendingView.Sending;
@@ -192,7 +214,7 @@
             const { start: startIndex, end: endIndex } = planSendRange(sentCount, tokens.length, retryCurrentToken || skipReset);
             const runResult = await runGroups({
                 start: startIndex, end: endIndex, groupSize: MAX_GROUP_SIZE,
-                isCurrent: () => gate.isCurrent(ticket),
+                isCurrent: () => live(),
                 sendGroup: async (groupStart, groupEnd) => {
                     const currentGroupTokens = tokens.slice(groupStart, groupEnd);
                     const groupTransactions: algosdk.Transaction[] = [];
@@ -203,13 +225,13 @@
                         const resp = type == 'send'
                             ? await contract.arc72_transferFrom(token.owner, targetAddress, BigInt(token.tokenId), true, true)
                             : await contract.arc72_approve(targetAddress, Number(token.tokenId), true, true);
-                        if (!gate.isCurrent(ticket)) return false;
+                        if (!live()) return false;
                         if (!resp || !resp.success) {
-                            if (gate.isCurrent(ticket)) { sendingError = resp?.error || 'Failed to prepare transaction'; sendingView = SendingView.Error; }
+                            if (live()) { sendingError = resp?.error || 'Failed to prepare transaction'; sendingView = SendingView.Error; }
                             return false;
                         }
                         const suggestedParams = await algodClient.getTransactionParams().do();
-                        if (!gate.isCurrent(ticket)) return false;
+                        if (!live()) return false;
                         const tokenTxns = resp.txns.map(txnB64 => {
                             const decodedTxn = algosdk.decodeUnsignedTransaction(Buffer.from(txnB64, 'base64'));
                             if (!decodedTxn.from) throw new Error('Transaction missing required from address');
@@ -236,91 +258,144 @@
                         const expectedGroup = groupTransactions[0].group;
                         const allSameGroup = expectedGroup && groupTransactions.every(t => t.group && Buffer.from(t.group).equals(Buffer.from(expectedGroup)));
                         if (!allSameGroup) {
-                            if (gate.isCurrent(ticket)) { sendingError = 'Transaction group validation failed'; sendingView = SendingView.Error; }
+                            if (live()) { sendingError = 'Transaction group validation failed'; sendingView = SendingView.Error; }
                             return false;
                         }
                     }
                     const currentTxIds = groupTransactions.map(txn => txn.txID());
                     const newTransactions = currentGroupTokens.map((tk, index) => ({ tokenId: String(tk.tokenId), contractId: tk.contractId, txId: currentTxIds[index] }));
-                    if (!gate.isCurrent(ticket)) return false;
-                    tokenTransactions = [...tokenTransactions, ...newTransactions];
+                    if (!live()) return false;
+                    walletOpen = true;
                     const status = await signAndSendTransactions([groupTransactions]);
-                    if (!gate.isCurrent(ticket)) return false;
+                    walletOpen = false;
+                    if (!live()) { if (status !== true) stoppedWaiting = false; return false; }
                     if (status !== true) {
-                        if (gate.isCurrent(ticket)) { sendingError = 'Transaction failed'; sendingView = SendingView.Error; }
+                        if (live()) { sendingError = 'Transaction failed'; sendingView = SendingView.Error; }
                         return false;
                     }
-                    if (!gate.isCurrent(ticket)) return false;
+                    if (!live()) return false;
+                    tokenTransactions = [...tokenTransactions, ...newTransactions];
                     transactionIds.push(...currentTxIds);
                     sentCount += currentGroupTokens.length;
+                    landedCount += currentGroupTokens.length;
                     return true;
                 },
             });
             if (runResult.status === 'stale' || runResult.status === 'failed') return;
+            allSubmitted = true;
             sendingView = SendingView.Waiting;
             if (tokens.length > 0) {
-                const lastToken = tokens[tokens.length - 1];
-                const initial = type == 'send' ? lastToken.owner : lastToken.approved;
-                const result = await pollUntil({
-                    read: async () => (await getTokens({ contractId: lastToken.contractId, tokenId: lastToken.tokenId, invalidate: true }))[0],
-                    isDone: t => !!t && (type == 'send' ? t.owner : t.approved) !== initial,
-                    attempts: 10, delayMs: 1000, shouldStop: () => !gate.isCurrent(ticket),
-                });
-                if (!gate.isCurrent(ticket)) return;
-                const observedAll = await Promise.all(tokens.map(async tk => {
-                    try {
-                        const r = (await getTokens({ contractId: tk.contractId, tokenId: tk.tokenId, invalidate: true }))[0];
-                        return type == 'send' ? r?.owner : r?.approved;
-                    } catch { return undefined; }
-                }));
-                if (!gate.isCurrent(ticket)) return;
-                const summary = summarizeTargets(initialValues, observedAll, targets);
-                if (summary.unexpected > 0) {
-                    sendingError = 'A token changed to an address other than the one you chose. Check the transactions in the explorer.';
-                    noRetry = true; sendingView = SendingView.Error; return;
-                }
-                if (summary.pending > 0) {
-                    unconfirmedCount = summary.pending; unconfirmedTotal = tokens.length; sendingView = SendingView.Pending; return;
-                }
-                if (type == 'send') {
-                    if (!isIndividualMode) {
+                const { sendIndices, skippedIndices } = splitSkipped(tokens.length, skippedRanges);
+                let summary = { confirmed: 0, pending: 0, unexpected: 0, total: 0 };
+                if (sendIndices.length > 0) {
+                    const lastToken = tokens[sendIndices[sendIndices.length - 1]];
+                    const initial = type == 'send' ? lastToken.owner : lastToken.approved;
+                    const result = await pollUntil({
+                        read: async () => (await getTokens({ contractId: lastToken.contractId, tokenId: lastToken.tokenId, invalidate: true }))[0],
+                        isDone: t => !!t && (type == 'send' ? t.owner : t.approved) !== initial,
+                        attempts: 10, delayMs: 1000, shouldStop: () => !live(),
+                    });
+                    if (!live()) return;
+                    const observedAll = await Promise.all(sendIndices.map(async i => {
+                        const tk = tokens[i];
+                        try {
+                            const r = (await getTokens({ contractId: tk.contractId, tokenId: tk.tokenId, invalidate: true }))[0];
+                            return type == 'send' ? r?.owner : r?.approved;
+                        } catch { return undefined; }
+                    }));
+                    if (!live()) return;
+                    summary = summarizeTargets(sendIndices.map(i => initialValues[i]), observedAll, sendIndices.map(i => targets[i]));
+                    const view = finalSendView(skippedIndices.length, summary);
+                    if (view === 'unexpected') {
+                        sendingError = 'A token changed to an address other than the one you chose. Check the transactions in the explorer.';
+                        noRetry = true; sendingView = SendingView.Error; return;
+                    }
+                    if (view === 'pending') {
+                        unconfirmedCount = summary.pending; unconfirmedTotal = sendIndices.length; sendingView = SendingView.Pending; return;
+                    }
+                    if (type == 'send') {
                         await getTokens({ owner: fromAddr, invalidate: true });
-                        if (!gate.isCurrent(ticket)) return;
-                        if (transferTo) {
-                            await getTokens({ owner: transferTo, invalidate: true });
-                            if (!gate.isCurrent(ticket)) return;
-                        }
-                    } else {
-                        await getTokens({ owner: fromAddr, invalidate: true });
-                        if (!gate.isCurrent(ticket)) return;
-                        for (let i = 0; i < endIndex; i++) {
-                            const targetAddress = targets[i];
-                            if (targetAddress) {
-                                await getTokens({ owner: targetAddress, invalidate: true });
-                                if (!gate.isCurrent(ticket)) return;
-                            }
+                        if (!live()) return;
+                        const recipients = [...new Set(sendIndices.map(i => targets[i]).filter(Boolean))];
+                        for (const targetAddress of recipients) {
+                            await getTokens({ owner: targetAddress, invalidate: true });
+                            if (!live()) return;
                         }
                     }
+                    if (result.value) { latestToken = result.value; if (!destroyed) token = result.value; }
+                    if (!live()) return;
+                    sendingView = view === 'partial' ? SendingView.Partial : SendingView.Sent;
+                    invalidateAll();
+                } else {
+                    const view = finalSendView(skippedIndices.length, summary);
+                    sendingView = view === 'partial' ? SendingView.Partial : SendingView.Sent;
+                    invalidateAll();
                 }
-                if (result.value) token = result.value;
-                if (!gate.isCurrent(ticket)) return;
-                sendingView = SendingView.Sent;
-                invalidateAll();
             }
         } catch(err) {
-            if (!gate.isCurrent(ticket)) return;
+            if (!live()) return;
             console.error('error sending token', err);
             sendingError = (err instanceof Error) ? err.message : 'Unknown error';
             sendingView = SendingView.Error;
         } finally {
-            const wasCurrent = gate.isCurrent(ticket);
+            const wasCurrent = live();
             gate.end(ticket);
             inFlight = gate.busy;
             if (wasCurrent) stoppedWaiting = false;
+            // A run that finishes after its modal closed may tell a token page (which keeps its own token
+            // unless it is the same one) but never the portfolio: its selection feeds any Send modal open by now.
+            if (wasCurrent && destroyed && hasPageToken && latestToken && sendingView === SendingView.Sent) onAfterSend(latestToken);
+            walletOpen = false;
+            myRunActive = false;
         }
     }
 
+    function reportToParent(latest?: Token) {
+        const unsent = splitSkipped(tokens.length, skippedRanges).skippedIndices.map(i => tokens[i]);
+        const t = latest ?? token ?? tokens[0];
+        if (sendingView === SendingView.Sent) {
+            onAfterSend(t);
+        } else if (sendingView === SendingView.Partial || (sendingView === SendingView.Pending && unsent.length > 0)) {
+            onAfterSend(t, unsent);
+        }
+    }
+
+    function refreshAfterPartial() {
+        void (async () => {
+            try {
+                if (type == 'send') await getTokens({ owner: fromAddr, invalidate: true });
+            } catch {
+                // a failed cache refresh must not block closing
+            }
+            invalidateAll();
+        })();
+    }
+
+    function stopRun() {
+        const plan = planStop({ runActive: myRunActive, submitted: allSubmitted, walletOpen, landed: landedCount, sentCount, total: tokens.length });
+        if (!plan.stop) return;
+        runSwitch.stop();
+        if (!myRunActive || stopHandled) return;
+        stopHandled = true;
+        if (plan.warn) stoppedWaiting = true;
+        if (plan.view === 'partial' && plan.skipped) {
+            skippedRanges = [...skippedRanges, plan.skipped];
+            stoppedPartial = true;
+            sendingView = SendingView.Partial;
+        }
+    }
+
+    function skipNextGroup() {
+        if (inFlight) return;
+        const s = skipGroup(sentCount, tokens.length, MAX_GROUP_SIZE);
+        skippedRanges = [...skippedRanges, s.skipped];
+        sentCount = s.next;
+        sendingView = SendingView.Sending;
+        sendToken(true);
+    }
+
     function reset(preserveRecipient: boolean = false) {
+        stopRun();
         if (!preserveRecipient) {
             transferTo = '';
             transferToNFD = '';
@@ -329,11 +404,14 @@
         sendingError = '';
         noRetry = false;
         sendingView = SendingView.Presend;
+        stoppedPartial = false;
         isIndividualMode = false;
         individualAddresses = {};
         individualNFDs = {};
         sentCount = 0;
         tokenTransactions = [];  // Also reset tokenTransactions when doing a full reset
+        skippedRanges = [];
+        landedCount = 0;
     }
 
     function handleReset(preserveRecipient: boolean = false) {
@@ -344,12 +422,25 @@
     }
 
     function afterClose() {
+        stopRun();
         console.log('afterClose');
-        if (sendingView === SendingView.Sent) {
-            onAfterSend(token??tokens[0]);
+        const closeRange = planClosePartial({ view: sendingView, landed: landedCount, sentCount, total: tokens.length, handled: stopHandled });
+        if (closeRange) {
+            skippedRanges = [...skippedRanges, closeRange];
+            stoppedPartial = true;
+            stopHandled = true;
+            sendingView = SendingView.Partial;
         }
+        if (stoppedPartial) {
+            toast.push(stopSummary({ landed: landedCount, total: tokens.length, promptOpen: stoppedWaiting, doneWord }), { duration: 12000 });
+            refreshAfterPartial();
+        } else if (stoppedWaiting) {
+            toast.push(stopSummary({ landed: 0, total: tokens.length, promptOpen: true, doneWord }), { duration: 12000 });
+        }
+        reportToParent();
         showModal = false;
-        if (sendingView !== SendingView.Sent) {
+        const finishing = myRunActive && allSubmitted;
+        if (sendingView !== SendingView.Sent && !finishing) {
             reset();
         }
         onClose();
@@ -450,6 +541,8 @@
         window.addEventListener('click', handleClickOutside);
         window.addEventListener('keydown', handleKeydown);
         return () => {
+            destroyed = true;
+            stopRun();
             unsubscribe();
             window.removeEventListener('click', handleClickOutside);
             window.removeEventListener('keydown', handleKeydown);
@@ -466,7 +559,7 @@
                 <span class="mx-2">&gt;</span>
                 <BreadcrumbItem><span class={sendingView === SendingView.Sending || sendingView === SendingView.Waiting ? 'font-bold underline text-orange-500' : ''}>Sign</span></BreadcrumbItem>
                 <span class="mx-2">&gt;</span>
-                <BreadcrumbItem><span class={sendingView === SendingView.Sent ? 'font-bold underline text-orange-500' : ''}>Complete</span></BreadcrumbItem>
+                <BreadcrumbItem><span class={sendingView === SendingView.Sent || sendingView === SendingView.Partial ? 'font-bold underline text-orange-500' : ''}>Complete</span></BreadcrumbItem>
             </Breadcrumb>
             
             <div class="w-full max-w-xl mx-auto">
@@ -700,7 +793,7 @@
                         </div>
                         <div class="mt-2 text-gray-400">Please sign the transaction{transactionIds.length > 1 ? ' group' : ''} in your wallet</div>
                         <div class="flex flex-col items-center mt-4">
-                            <button on:click={() => sendingView = SendingView.Confirm} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
+                            <button on:click={() => { stopRun(); if (sendingView !== SendingView.Partial) sendingView = SendingView.Confirm; }} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
                         </div>
                     </div>
                 {:else if sendingView === "waiting"}
@@ -812,10 +905,40 @@
                             <button on:click={afterClose} class="w-64 h-10 bg-blue-500 text-white rounded-md">Close</button>
                         </div>
                     </div>
+                {:else if sendingView === "partial"}
+                    <div class="flex flex-col items-center space-y-4 py-10">
+                        <div class="text-xl font-bold">{stoppedPartial ? 'Stopped before all tokens were ' + doneWord : 'Some tokens were not ' + doneWord}</div>
+                        {#if stoppedPartial}
+                            <div class="mt-2 text-gray-400">{stopSummary({ landed: landedCount, total: tokens.length, promptOpen: stoppedWaiting, doneWord })}</div>
+                        {:else}
+                            <div class="mt-2 text-gray-400">{split.sendIndices.length} of {tokens.length} tokens were {doneWord} and {split.skippedIndices.length} were skipped.</div>
+                        {/if}
+                        {#if stoppedWaiting && !stoppedPartial}<div class="mt-2 text-gray-400">A wallet request from this send may still be in progress. Check your wallet and the explorer before trying again.</div>{/if}
+                        <div class="max-h-32 overflow-y-auto text-sm text-gray-500">
+                            {#each split.skippedIndices as i}
+                                <div>Token #{tokens[i].tokenId}</div>
+                            {/each}
+                        </div>
+                        <div class="mt-2 text-gray-400 flex flex-col items-center">
+                            <div class="font-bold mb-2">Transactions</div>
+                            <div class="max-w-md w-full space-y-1">
+                                {#each tokenTransactions as tx}
+                                    <div class="flex flex-col bg-gray-100 dark:bg-gray-800 rounded-lg">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <div class="text-xs text-gray-500">{tokens.find(t => String(t.tokenId) === tx.tokenId && t.contractId === tx.contractId)?.metadata?.name}</div>
+                                            <a href={"https://explorer.voi.network/explorer/transaction/" + tx.txId} target="_blank" class="text-xs underline text-blue-500 hover:text-blue-600">{tx.txId ? `${tx.txId.slice(0, 8)}...${tx.txId.slice(-8)}` : 'Unknown'}</a>
+                                        </div>
+                                    </div>
+                                {/each}
+                            </div>
+                        </div>
+                        <button on:click={afterClose} class="w-64 h-10 bg-blue-500 text-white rounded-md">Close</button>
+                    </div>
                 {:else if sendingView === "pending"}
                     <div class="flex flex-col items-center space-y-4 py-10">
                         <div class="text-xl font-bold">Transactions Submitted</div>
                         <div class="mt-2 text-gray-400">The transactions were signed and sent, but {unconfirmedCount} of {unconfirmedTotal} have not been confirmed yet. They may still complete. Check them before trying again.</div>
+                        {#if skippedRanges.length > 0}<div class="mt-2 text-gray-400">{split.skippedIndices.length} skipped, not {doneWord}.</div>{/if}
                         <div class="mt-2 text-gray-400 flex flex-col items-center">
                             <div class="font-bold mb-2">Transactions</div>
                             {#each transactionIds as id}
@@ -878,11 +1001,7 @@
                                     <button on:click={() => sendToken(false, true)} class="w-52 h-10 bg-blue-500 text-white rounded-md">Retry Group</button>
                                     {#if tokens.length > sentCount + MAX_GROUP_SIZE}
                                         <button 
-                                            on:click={() => {
-                                                sentCount += MAX_GROUP_SIZE;
-                                                sendingView = SendingView.Sending;
-                                                sendToken(true);
-                                            }} 
+                                            on:click={skipNextGroup} 
                                             class="w-52 h-10 bg-gray-500 text-white rounded-md"
                                         >
                                             Skip to Next Group
@@ -903,7 +1022,7 @@
         {#if sendingView === "presend" || sendingView === "confirm"}
             <div class="mt-auto border-t border-gray-200 dark:border-gray-700 py-4">
                 {#if sendingView === "confirm" && (inFlight || stoppedWaiting)}
-                    <div class="mt-2 text-gray-400">Your wallet may still be waiting. If you approve the earlier request, it can still complete, so check your wallet before trying again.</div>
+                    <div class="mt-2 text-gray-400">A wallet request from this send may still be in progress. Check your wallet and the explorer before trying again.</div>
                     {#if inFlight}<button type="button" class="mt-2 text-sm text-gray-500 underline" on:click={() => { stoppedWaiting = true; sharedTxGate.abandon(); }}>Stop waiting</button>{/if}
                 {/if}
                 <div class="flex justify-between max-w-md mx-auto w-full space-x-4">

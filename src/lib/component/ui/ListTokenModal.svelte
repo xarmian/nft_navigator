@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Currency, Listing, Metadata, Token } from '$lib/data/types';
-    import { isSubmitted, pollUntil, classifyTarget, sharedTxGate } from '$lib/utils/txFlow';
+    import { isSubmitted, pollUntil, classifyTarget, planStop, stopSummary, sharedTxGate } from '$lib/utils/txFlow';
     import Modal from './Modal.svelte';
     import { reformatTokenName, getTokens } from "$lib/utils/indexer";
     import { arc72, mp } from 'ulujs';
@@ -16,6 +16,7 @@
     import Share from './Share.svelte';
     import { decodeRoyalties } from '$lib/utils/functions';
     import { onMount } from 'svelte';
+    import { toast } from '@zerodevx/svelte-toast';
     export let showModal: boolean;
     export let token: Token;
     export let fromAddr: string;
@@ -44,8 +45,13 @@
     const gate = sharedTxGate;
     let inFlight = false;
     let stoppedWaiting = false;
+    let myRunActive = false;
+    let walletOpen = false;
+    let submitted = false;
     let sendingError: string = '';
     let transactionId: string = '';
+    let destroyed = false;
+    let latestToken: Token | undefined;
 
     let salePrice: number | null = null;
 
@@ -62,7 +68,7 @@
         }
     });
 
-    onMount(() => gate.subscribe(busy => { inFlight = busy; }));
+    onMount(() => { const unsubscribe = gate.subscribe(busy => { inFlight = busy; }); return () => { destroyed = true; stopRun(); unsubscribe(); }; });
 
 
     async function listToken() {
@@ -72,6 +78,7 @@
         const afterAbandon = gate.wasAbandoned(abandonKey);
         inFlight = true;
         const myRun = ++run;
+        myRunActive = true;
         const shouldStop = () => myRun !== run || !gate.isCurrent(ticket);
         try {
             sendingView = SendingView.Sending;
@@ -165,13 +172,16 @@
             const initialApproved = token.approved;
             const expectedApproved = doDelete ? zeroAddress : algosdk.getApplicationAddress(ctcInfoMp206);
             const { contractId, tokenId } = token;
+            walletOpen = true;
             const status = await signAndSendTransactions([decodedTxns]);
-            if (myRun !== run || !gate.isCurrent(ticket)) return;
+            walletOpen = false;
+            if (myRun !== run || !gate.isCurrent(ticket)) { if (!isSubmitted(status)) stoppedWaiting = false; return; }
             if (!isSubmitted(status)) {
                 sendingError = 'The transaction was not submitted (cancelled or rejected in the wallet).';
                 sendingView = SendingView.Error;
                 return;
             }
+            submitted = true;
             sendingView = SendingView.Waiting;
             const result = await pollUntil({
                 read: async () => (await getTokens({contractId, tokenId, invalidate: true}))[0],
@@ -196,7 +206,8 @@
                 sendingView = SendingView.Error;
                 return;
             }
-            token = result.value!;
+            latestToken = result.value!;
+            if (!destroyed) token = result.value!;
             sendingView = SendingView.Updating;
 
             // wait 5 seconds for indexer to update
@@ -218,25 +229,40 @@
             sendingView = SendingView.Error;
         }
         finally {
-            const wasCurrent = gate.isCurrent(ticket);
+            const wasCurrent = gate.isCurrent(ticket) && myRun === run;
             gate.end(ticket);
             inFlight = gate.busy;
             if (wasCurrent) stoppedWaiting = false;
+            if (wasCurrent && destroyed && sendingView === SendingView.Listed) onAfterSend(latestToken ?? token);
+            walletOpen = false;
+            submitted = false;
+            myRunActive = false;
         }
     }
 
+    function stopRun() {
+        const plan = planStop({ runActive: myRunActive, submitted, walletOpen, landed: 0, sentCount: 0, total: 1 });
+        if (!plan.stop) return;
+        run++;
+        if (plan.warn) stoppedWaiting = true;
+    }
+
     function reset() {
+        stopRun();
         sendingError = '';
         sendingView = SendingView.Confirm;
     }
 
     function close() {
+        stopRun();
         showModal = false;
         sendingError = '';
         sendingView = SendingView.Confirm;
     }
 
     function afterClose() {
+        stopRun();
+        if (stoppedWaiting) toast.push(stopSummary({ landed: 0, total: 1, promptOpen: true, doneWord: 'done' }), { duration: 12000 });
         console.log('afterClose');
         if (sendingView === SendingView.Listed) {
             onAfterSend(token);
@@ -312,7 +338,7 @@
                     </div>
                 {/if}
                 {#if sendingView === "confirm" && (inFlight || stoppedWaiting)}
-                    <div class="mt-2 text-gray-400">Your wallet may still be waiting. If you approve the earlier request, it can still complete, so check your wallet before trying again.</div>
+                    <div class="mt-2 text-gray-400">A wallet request from this send may still be in progress. Check your wallet and the explorer before trying again.</div>
                     {#if inFlight}<button type="button" class="mt-2 text-sm text-gray-500 underline" on:click={() => { stoppedWaiting = true; sharedTxGate.abandon(); }}>Stop waiting</button>{/if}
                 {/if}
                 <div class="flex flex-row justify-between mt-4 space-x-2">
@@ -343,9 +369,6 @@
                         </svg>
                     </div>
                     <div class="mt-2 text-gray-400">Transaction signed, awaiting confirmation.</div>
-                    <div class="flex flex-col items-center mt-4">
-                        <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
-                    </div>
                 </div>
             {:else if sendingView === "updating"}
                 <div class="flex flex-col items-center m-2 h-full place-content-center">
@@ -357,9 +380,6 @@
                         </svg>
                     </div>
                     <div class="mt-2 text-gray-400">Transaction Confirmed, updating token and listing details</div>
-                    <div class="flex flex-col items-center mt-4">
-                        <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
-                    </div>
                 </div>
             {:else if sendingView === "listed"}
                 <div class="flex flex-col items-center m-2">

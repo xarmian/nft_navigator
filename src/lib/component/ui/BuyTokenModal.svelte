@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Currency, Listing, Token } from '$lib/data/types';
-    import { isSubmitted, pollUntil, classifyBuyerOwner, sharedTxGate } from '$lib/utils/txFlow';
+    import { isSubmitted, pollUntil, classifyBuyerOwner, nextBuyView, planStop, stopSummary, sharedTxGate } from '$lib/utils/txFlow';
     import Modal from './Modal.svelte';
     import { reformatTokenName, getTokens } from "$lib/utils/indexer";
     import { mp } from 'ulujs';
@@ -41,7 +41,10 @@
     const gate = sharedTxGate;
     let inFlight = false;
     let stoppedWaiting = false;
-    onMount(() => gate.subscribe(busy => { inFlight = busy; }));
+    let myRunActive = false;
+    let walletOpen = false;
+    let submitted = false;
+    onMount(() => { const unsubscribe = gate.subscribe(busy => { inFlight = busy; }); return () => { stopRun(); unsubscribe(); }; });
     let sendingError: string = '';
     let transactionId: string = '';
     let listingCurrency: Currency | null = null;
@@ -73,6 +76,7 @@
         if (ticket === null) return;
         inFlight = true;
         const myRun = ++run;
+        myRunActive = true;
         const shouldStop = () => myRun !== run || !gate.isCurrent(ticket);
         const initialOwner = token.owner;
         const buyer = fromAddr;
@@ -125,13 +129,16 @@
             }
 
             const { contractId, tokenId } = token;
+            walletOpen = true;
             const status = await signAndSendTransactions([decodedTxns]);
-            if (myRun !== run || !gate.isCurrent(ticket)) return;
+            walletOpen = false;
+            if (myRun !== run || !gate.isCurrent(ticket)) { if (!isSubmitted(status)) stoppedWaiting = false; return; }
             if (!isSubmitted(status)) {
                 sendingError = 'The transaction was not submitted (cancelled or rejected in the wallet).';
                 sendingView = SendingView.Error;
                 return;
             }
+            submitted = true;
             sendingView = SendingView.Waiting;
             const result = await pollUntil({
                 read: async () => (await getTokens({contractId, tokenId, invalidate: true}))[0],
@@ -142,19 +149,22 @@
             });
             if (myRun !== run || !gate.isCurrent(ticket)) return;
 
-            switch (classifyBuyerOwner(initialOwner, result.value?.owner, buyer)) {
-                case 'confirmed':
+            const next = nextBuyView(myRun === run && gate.isCurrent(ticket), classifyBuyerOwner(initialOwner, result.value?.owner, buyer));
+            switch (next) {
+                case 'sent':
                     token = result.value!;
                     sendingView = SendingView.Sent;
                     invalidateAll();
                     onAfterSend(token);
                     break;
-                case 'unexpected':
+                case 'error':
                     sendingError = 'The token owner changed to an address other than the buyer. Check the transaction in the explorer.';
                     sendingView = SendingView.Error;
                     break;
                 case 'pending':
                     sendingView = SendingView.Pending;
+                    break;
+                case 'none':
                     break;
             }
         }
@@ -164,25 +174,39 @@
             sendingView = SendingView.Error;
         }
         finally {
-            const wasCurrent = gate.isCurrent(ticket);
+            const wasCurrent = gate.isCurrent(ticket) && myRun === run;
             gate.end(ticket);
             inFlight = gate.busy;
             if (wasCurrent) stoppedWaiting = false;
+            walletOpen = false;
+            submitted = false;
+            myRunActive = false;
         }
     }
 
+    function stopRun() {
+        const plan = planStop({ runActive: myRunActive, submitted, walletOpen, landed: 0, sentCount: 0, total: 1 });
+        if (!plan.stop) return;
+        run++;
+        if (plan.warn) stoppedWaiting = true;
+    }
+
     function reset() {
+        stopRun();
         sendingError = '';
         sendingView = SendingView.Confirm;
     }
 
     function close() {
+        stopRun();
         showModal = false;
         sendingError = '';
         sendingView = SendingView.Confirm;
     }
 
     function afterClose() {
+        stopRun();
+        if (stoppedWaiting) toast.push(stopSummary({ landed: 0, total: 1, promptOpen: true, doneWord: 'done' }), { duration: 12000 });
         console.log('afterClose');
         if (sendingView === SendingView.Sent) {
             onAfterSend(token);
@@ -224,7 +248,7 @@
                     </div>
                 {/if}
                 {#if sendingView === "confirm" && (inFlight || stoppedWaiting)}
-                    <div class="mt-2 text-gray-400">Your wallet may still be waiting. If you approve the earlier request, it can still complete, so check your wallet before trying again.</div>
+                    <div class="mt-2 text-gray-400">A wallet request from this send may still be in progress. Check your wallet and the explorer before trying again.</div>
                     {#if inFlight}<button type="button" class="mt-2 text-sm text-gray-500 underline" on:click={() => { stoppedWaiting = true; sharedTxGate.abandon(); }}>Stop waiting</button>{/if}
                 {/if}
                 <div class="flex flex-row justify-between mt-4 space-x-2">
@@ -255,9 +279,6 @@
                         </svg>
                     </div>
                     <div class="mt-2 text-gray-400">Transaction signed, awaiting confirmation.</div>
-                    <div class="flex flex-col items-center mt-4">
-                        <button on:click={reset} class="w-64 h-10 bg-blue-500 text-white rounded-md">Cancel</button>
-                    </div>
                 </div>
             {:else if sendingView === "sent"}
                 <div class="flex flex-col items-center m-2">

@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Token, Collection, Listing, Currency, Auction, Sale } from '$lib/data/types';
     import { reformatTokenName } from '$lib/utils/indexer';
-    import { hasArcpayResult, pollUntil, sharedTxGate, classifyBuyerOwner } from '$lib/utils/txFlow';
+    import { hasArcpayResult, pollUntil, sharedTxGate, classifyBuyerOwner, tokenAfterSend } from '$lib/utils/txFlow';
     import { zeroAddress } from '$lib/data/constants';
     import { selectedWallet } from 'avm-wallet-svelte';
 	import SendTokenModal from './SendTokenModal.svelte';
@@ -279,7 +279,7 @@
     }
 
     async function onAfterSend(t: Token) {
-        token = t;
+        token = tokenAfterSend(token, t);
     }
 
     function buyToken() {

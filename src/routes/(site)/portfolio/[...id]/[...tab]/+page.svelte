@@ -19,6 +19,7 @@
     import PortfolioAnalytics from '$lib/component/ui/PortfolioAnalytics.svelte';
     import PortfolioSettings from '$lib/component/ui/PortfolioSettings.svelte';
     import { page } from '$app/stores';
+    import { toggleByKey } from '$lib/utils/txFlow';
 
     export let data: PageData;
     $: walletId = data.props.walletId;
@@ -209,11 +210,7 @@ console.log(currentTab);
     }
 
     function toggleSelectedTokens(token: Token) {
-        if (selectedTokens.includes(token)) {
-            selectedTokens = selectedTokens.filter(t => t !== token);
-        } else {
-            selectedTokens = [...selectedTokens, token];
-        }
+        selectedTokens = toggleByKey(selectedTokens, token);
     }
 
     function clearMultiSelectMode(token?: Token) {
@@ -802,7 +799,7 @@ console.log(currentTab);
                 <button class="bg-blue-500 text-white rounded-lg p-2" on:click={() => showSendTokenModal = true}>Send ({selectedTokens.length})</button>
             </div>
             {#if showSendTokenModal}
-                <SendTokenModal bind:showModal={showSendTokenModal} tokens={selectedTokens} fromAddr={walletId} onClose={() => showSendTokenModal = false} onAfterSend={() => clearMultiSelectMode()} />
+                <SendTokenModal bind:showModal={showSendTokenModal} tokens={selectedTokens} fromAddr={walletId} onClose={() => showSendTokenModal = false} onAfterSend={(_t, unsent) => { if (unsent && unsent.length > 0) { selectedTokens = unsent; } else { clearMultiSelectMode(); } }} />
             {/if}
         {/if}
     {:else}
